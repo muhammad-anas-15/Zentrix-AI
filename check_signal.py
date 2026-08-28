@@ -1,18 +1,14 @@
-"""
-Quick-run helper: prints assistant output in clean, readable format
-for any symbol/interval, instead of a raw dict.
-
-Usage: python check_signal.py XAU/USD 15m
-"""
 import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from orchestrator.agent import run_assistant
 
-if __name__ == "__main__":
-    symbol = sys.argv[1] if len(sys.argv) > 1 else "BTCUSDT"
-    interval = sys.argv[2] if len(sys.argv) > 2 else "15m"
+def get_trading_signal(symbol: str, timeframe: str) -> dict:
+    result = run_assistant(symbol, timeframe)
+    return result
 
-    result = run_assistant(symbol, interval, use_llm=False)
+# CLI se run karne ke liye purana behavior bhi rakh lo:
+if __name__ == "__main__":
+    result = get_trading_signal(sys.argv[1], sys.argv[2])
     for k, v in result.items():
         print(f"{k}: {v}")
