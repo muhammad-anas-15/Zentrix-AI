@@ -11,3 +11,4 @@ sentence-transformers
 feedparser
 google-genai
 streamlit
+plotly
