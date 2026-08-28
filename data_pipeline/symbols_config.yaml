@@ -1,0 +1,19 @@
+crypto:
+  - BTCUSDT
+  - ETHUSDT
+  - BNBUSDT
+  - SOLUSDT
+  - XRPUSDT
+
+forex:
+  - EUR/USD
+  - GBP/USD
+  - USD/JPY
+  - AUD/USD
+  - USD/CAD
+
+intervals:
+  1m: "1m"
+  5m: "5m"
+  15m: "15m"
+  1h: "1h"

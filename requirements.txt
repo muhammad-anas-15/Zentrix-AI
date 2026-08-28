@@ -1,0 +1,13 @@
+requests
+pandas
+numpy
+pyyaml
+python-dotenv
+xgboost
+scikit-learn
+shap
+chromadb
+sentence-transformers
+feedparser
+google-genai
+streamlit

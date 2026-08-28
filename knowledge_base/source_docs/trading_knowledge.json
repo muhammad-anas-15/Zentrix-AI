@@ -1,0 +1,145 @@
+[
+  {"id": "bullish_candle_generic", "category": "candlestick_pattern", "title": "Bullish Candle",
+   "content": "A basic green candle where close is higher than open, with no special wick/body ratio forming a named pattern. Simply shows buyers were in control during that period. On its own it is a weak signal — traders look at several consecutive bullish candles, or combine it with trend/indicator context, before treating it as meaningful."},
+
+  {"id": "bearish_candle_generic", "category": "candlestick_pattern", "title": "Bearish Candle",
+   "content": "A basic red candle where close is lower than open, with no special wick/body ratio forming a named pattern. Simply shows sellers were in control during that period. On its own it is a weak signal — traders look at several consecutive bearish candles, or combine it with trend/indicator context, before treating it as meaningful."},
+
+  {"id": "doji", "category": "candlestick_pattern", "title": "Doji",
+   "content": "A Doji forms when open and close prices are nearly equal, creating a small or no body with wicks on either side. It signals indecision between buyers and sellers. Alone it is not a strong signal — traders wait for the next candle to confirm direction. A Doji after a strong trend often warns the trend is losing steam."},
+
+  {"id": "hammer", "category": "candlestick_pattern", "title": "Hammer",
+   "content": "A Hammer has a small body near the top with a long lower wick (at least twice the body) and little to no upper wick. It shows sellers pushed price down but buyers regained control by close. Appearing after a downtrend, especially near a support level, it is considered a bullish reversal signal. Traders usually wait for the next candle to close higher before entering."},
+
+  {"id": "inverted_hammer", "category": "candlestick_pattern", "title": "Inverted Hammer",
+   "content": "Small body near the bottom with a long upper wick and little lower wick. Appearing after a downtrend, it suggests buyers attempted to push price up; if the next candle confirms with a higher close, it supports a bullish reversal."},
+
+  {"id": "shooting_star", "category": "candlestick_pattern", "title": "Shooting Star",
+   "content": "Small body near the bottom with a long upper wick (at least twice the body) and little lower wick. Buyers pushed price up during the period but sellers took control by close. After an uptrend, especially near resistance, this is considered a bearish reversal signal."},
+
+  {"id": "hanging_man", "category": "candlestick_pattern", "title": "Hanging Man",
+   "content": "Same shape as a Hammer (small body, long lower wick) but appears after an UPTREND instead of a downtrend. It warns that sellers are starting to enter and a reversal down may follow, especially if the next candle closes lower."},
+
+  {"id": "bullish_engulfing", "category": "candlestick_pattern", "title": "Bullish Engulfing",
+   "content": "A green candle whose body completely covers the prior red candle's body. Shows buyers overwhelming sellers in one period. Considered a high-probability bullish reversal, particularly effective after a downtrend or near a support zone. Stronger when accompanied by higher-than-average volume."},
+
+  {"id": "bearish_engulfing", "category": "candlestick_pattern", "title": "Bearish Engulfing",
+   "content": "A red candle whose body completely covers the prior green candle's body. Shows sellers overwhelming buyers. Considered a high-probability bearish reversal, particularly after an uptrend or near resistance. Stronger with above-average volume."},
+
+  {"id": "morning_star", "category": "candlestick_pattern", "title": "Morning Star",
+   "content": "A three-candle bullish reversal pattern: a long red candle, followed by a small-bodied candle (indecision, often gapping down), followed by a long green candle closing well into the first candle's body. Signals a shift from selling to buying pressure, typically after a downtrend."},
+
+  {"id": "evening_star", "category": "candlestick_pattern", "title": "Evening Star",
+   "content": "A three-candle bearish reversal pattern: a long green candle, a small-bodied indecision candle, then a long red candle closing well into the first candle's body. Signals a shift from buying to selling pressure, typically after an uptrend."},
+
+  {"id": "three_white_soldiers", "category": "candlestick_pattern", "title": "Three White Soldiers",
+   "content": "Three consecutive long green candles, each opening within the prior candle's body and closing higher. Indicates strong sustained buying pressure and a likely continuation or start of an uptrend. Caution: if candles grow abnormally long with little pullback, market may be overextended."},
+
+  {"id": "three_black_crows", "category": "candlestick_pattern", "title": "Three Black Crows",
+   "content": "Three consecutive long red candles, each opening within the prior candle's body and closing lower. Indicates strong sustained selling pressure, likely continuation or start of a downtrend."},
+
+  {"id": "spinning_top", "category": "candlestick_pattern", "title": "Spinning Top",
+   "content": "Small body with wicks of similar length on both sides. Similar to Doji but with a slightly larger body. Shows balanced push from both buyers and sellers — a pause point, often preceding a reversal or consolidation."},
+
+  {"id": "rsi_overbought_oversold", "category": "indicator", "title": "RSI (Relative Strength Index)",
+   "content": "RSI measures the speed and magnitude of recent price moves on a 0-100 scale. Above 70 is generally considered overbought (price may be due for a pullback); below 30 is oversold (price may be due for a bounce). RSI can stay overbought/oversold during strong trends, so it works best combined with trend or pattern confirmation rather than alone."},
+
+  {"id": "macd_basics", "category": "indicator", "title": "MACD (Moving Average Convergence Divergence)",
+   "content": "MACD tracks momentum by comparing a fast and slow EMA. When the MACD line crosses above its signal line, it suggests bullish momentum is building; crossing below suggests bearish momentum. The histogram (difference between MACD and signal) growing taller shows strengthening momentum in that direction; shrinking suggests momentum is fading, often ahead of a reversal."},
+
+  {"id": "ema_trend", "category": "indicator", "title": "EMA (Exponential Moving Average) Trend Reading",
+   "content": "Price trading above a rising EMA (e.g. EMA20/EMA50) generally indicates an uptrend; below a falling EMA indicates a downtrend. When a shorter EMA (e.g. 20) crosses above a longer EMA (e.g. 50), it is called a 'Golden Cross' and is viewed as bullish; the reverse is a 'Death Cross', viewed as bearish."},
+
+  {"id": "bollinger_bands", "category": "indicator", "title": "Bollinger Bands",
+   "content": "Bollinger Bands plot a moving average with upper/lower bands based on price volatility (standard deviation). Price touching the upper band suggests the market may be overbought/near-term extended; touching the lower band suggests oversold/extended. Narrowing bands ('squeeze') often precede a big volatility breakout in either direction."},
+
+  {"id": "atr_volatility", "category": "indicator", "title": "ATR (Average True Range)",
+   "content": "ATR measures how much an asset typically moves in a given period, regardless of direction. Rising ATR means volatility is increasing (bigger price swings, higher risk/reward per trade); falling ATR means the market is calming down. Traders often use ATR to size stop-losses relative to current volatility rather than a fixed number."},
+
+  {"id": "volume_confirmation", "category": "indicator", "title": "Volume Confirmation",
+   "content": "Volume shows how much trading activity accompanies a price move. A price move on high volume is considered more reliable/likely to continue than the same move on low volume. Price rising with falling volume can signal weak, unsustainable buying (possible reversal ahead); the same logic applies to falling prices with falling volume."},
+
+  {"id": "support_level", "category": "price_action", "title": "Support Level",
+   "content": "A price zone where an asset has historically stopped falling and bounced back up, because buying interest tends to increase there. The more times price has bounced off a level, the more significant traders consider it. If price breaks clearly below support, that former support often becomes new resistance."},
+
+  {"id": "resistance_level", "category": "price_action", "title": "Resistance Level",
+   "content": "A price zone where an asset has historically stopped rising and pulled back, because selling interest tends to increase there. If price breaks clearly above resistance, that former resistance often becomes new support (role reversal)."},
+
+  {"id": "breakout_strategy", "category": "strategy", "title": "Breakout Trading",
+   "content": "A breakout occurs when price moves decisively beyond a support/resistance level or a consolidation range, often with a surge in volume. Traders enter in the breakout direction, betting the move continues. False breakouts (price breaks then reverses back) are common, so waiting for a candle to CLOSE beyond the level, not just touch it, reduces false signals."},
+
+  {"id": "trend_following", "category": "strategy", "title": "Trend Following",
+   "content": "This strategy assumes 'the trend is your friend' — traders identify the dominant direction (using EMAs or higher-timeframe structure) and only take trades in that direction, avoiding counter-trend trades. Pullbacks to a moving average or support/resistance within the trend are often used as entry points."},
+
+  {"id": "mean_reversion", "category": "strategy", "title": "Mean Reversion"
+   , "content": "Assumes price that moves too far from its average (e.g. touching Bollinger Band extremes, RSI extremes) tends to snap back toward the average. Works best in ranging/sideways markets; can fail badly during strong trending markets where price keeps extending."},
+
+  {"id": "confluence_concept", "category": "strategy", "title": "Confluence (Multiple Confirmation)",
+   "content": "Confluence means multiple independent signals agreeing at the same point — for example, a Bullish Engulfing candle forming exactly at a support level while RSI is oversold and MACD is turning up. The more independent signals that align, the higher traders' confidence in that setup, though no combination guarantees an outcome."},
+
+  {"id": "multi_timeframe_analysis", "category": "strategy", "title": "Multi-Timeframe Analysis",
+   "content": "Checking the same asset across multiple timeframes (e.g. 15-min, 1-hour, 4-hour) before deciding. A signal that agrees across several timeframes is considered stronger than one visible on only a single short timeframe, which may just be noise."},
+
+  {"id": "risk_reward_ratio", "category": "risk_management", "title": "Risk-to-Reward Ratio",
+   "content": "Compares potential loss (distance to stop-loss) against potential gain (distance to target) before entering a trade. A common guideline is seeking at least 1:2 (risking $1 to potentially make $2), so that even a system with a below-50% win rate can be profitable over time."},
+
+  {"id": "stop_loss_concept", "category": "risk_management", "title": "Stop-Loss",
+   "content": "A predetermined price level at which a losing trade is automatically closed to limit further loss. Commonly placed just beyond a recent swing high/low or support/resistance level so normal price noise doesn't trigger it prematurely."},
+
+  {"id": "overtrading_risk", "category": "risk_management", "title": "Overtrading",
+   "content": "Taking too many trades, often out of impatience or chasing losses, without waiting for high-confluence setups. Generally increases transaction costs and emotional decision-making, and is considered one of the most common reasons new traders lose money regardless of strategy quality."},
+
+  {"id": "news_volatility_risk", "category": "risk_management", "title": "News-Driven Volatility"
+   , "content": "Major scheduled news (central bank rate decisions, employment data, inflation reports) or unscheduled events (geopolitical news, major public statements) can cause sudden, sharp price moves that override normal technical patterns. Many traders avoid opening new positions immediately before/during high-impact news, or reduce position size."},
+
+  {"id": "piercing_line", "category": "candlestick_pattern", "title": "Piercing Line",
+   "content": "Two-candle bullish reversal: a red candle followed by a green candle that opens below the prior low but closes above the midpoint of the red candle's body. Shows buyers regaining strong control mid-session. More reliable after a downtrend or near support."},
+
+  {"id": "dark_cloud_cover", "category": "candlestick_pattern", "title": "Dark Cloud Cover",
+   "content": "Two-candle bearish reversal: a green candle followed by a red candle that opens above the prior high but closes below the midpoint of the green candle's body. Signals sellers overwhelming buyers mid-session. More reliable after an uptrend or near resistance."},
+
+  {"id": "bullish_harami", "category": "candlestick_pattern", "title": "Bullish Harami",
+   "content": "A large red candle followed by a small green candle whose body sits entirely inside the prior candle's body. Shows selling momentum stalling. A weaker reversal signal than Engulfing patterns — traders usually wait for further confirmation."},
+
+  {"id": "bearish_harami", "category": "candlestick_pattern", "title": "Bearish Harami",
+   "content": "A large green candle followed by a small red candle whose body sits entirely inside the prior candle's body. Shows buying momentum stalling, a mild bearish warning needing confirmation."},
+
+  {"id": "marubozu", "category": "candlestick_pattern", "title": "Marubozu",
+   "content": "A candle with little to no wicks — open equals (or nearly equals) the low/high and close equals the opposite extreme. A green Marubozu shows buyers in total control all period (strong bullish); a red Marubozu shows sellers in total control (strong bearish). Often signals strong continuation."},
+
+  {"id": "tweezer_top_bottom", "category": "candlestick_pattern", "title": "Tweezer Top / Tweezer Bottom",
+   "content": "Two consecutive candles with matching highs (Tweezer Top, bearish, after uptrend) or matching lows (Tweezer Bottom, bullish, after downtrend). Shows price tested the same level twice and failed to break it, suggesting a short-term reversal."},
+
+  {"id": "inside_bar", "category": "candlestick_pattern", "title": "Inside Bar",
+   "content": "A candle whose entire high-low range is contained within the previous candle's range. Represents a pause/consolidation. Often used as a breakout setup: traders watch which direction price breaks out of the inside bar's range."},
+
+  {"id": "pin_bar", "category": "candlestick_pattern", "title": "Pin Bar",
+   "content": "A candle with a small body and one very long wick (upper or lower), similar to Hammer/Shooting Star but used broadly across any trend context. The long wick shows price was strongly rejected in that direction, hinting at a possible short-term reversal, especially at support/resistance."},
+
+  {"id": "double_top_bottom", "category": "chart_pattern", "title": "Double Top / Double Bottom",
+   "content": "Double Top: price hits a resistance level twice with a pullback between, failing to break higher — bearish reversal signal once the middle pullback low ('neckline') is broken. Double Bottom is the mirror bullish version at support. Widely used multi-candle chart pattern, not a single-candle signal."},
+
+  {"id": "head_shoulders", "category": "chart_pattern", "title": "Head and Shoulders",
+   "content": "A reversal pattern with three peaks: a smaller peak (left shoulder), a higher peak (head), then another smaller peak (right shoulder), with a support line ('neckline') connecting the lows. Breaking below the neckline after the right shoulder signals a bearish reversal. The inverse (Inverse Head and Shoulders) signals bullish reversal at the bottom of a downtrend."},
+
+  {"id": "triangle_patterns", "category": "chart_pattern", "title": "Triangle Patterns (Ascending/Descending/Symmetrical)",
+   "content": "Formed when price consolidates between converging trendlines. Ascending triangle (flat top, rising bottom) usually breaks bullish; descending triangle (flat bottom, falling top) usually breaks bearish; symmetrical triangle (converging both sides) can break either way — traders wait for the confirmed breakout direction rather than guessing in advance."},
+
+  {"id": "flag_pennant", "category": "chart_pattern", "title": "Flag and Pennant",
+   "content": "Short consolidation patterns appearing after a strong, sharp price move ('flagpole'). A Flag is a small rectangular pullback; a Pennant is a small symmetrical triangle. Both typically resolve by continuing in the direction of the original strong move, and are considered continuation (not reversal) patterns."},
+
+  {"id": "scalping_short_timeframe", "category": "strategy", "title": "Scalping / Short-Timeframe (60-Second Style) Trading",
+   "content": "Very short-duration trading (seconds to a few minutes) aims to capture small, quick price moves rather than large trends. Because timeframes this short contain more random noise, traders relying on this style typically demand extra confirmation — e.g. a strong candle pattern AND alignment with a higher timeframe trend AND proximity to a key support/resistance — before entering, since any single short-timeframe signal alone is considered low-reliability."},
+
+  {"id": "momentum_burst_entry", "category": "strategy", "title": "Momentum Burst Entry",
+   "content": "A short-term strategy where traders enter immediately after a sudden strong candle (e.g. a Marubozu or a candle far larger than recent average range) in the direction of that candle, betting momentum continues briefly before reversing. Considered higher-risk since these bursts can reverse sharply right after entry ('exhaustion move'), so tight risk management is emphasized."},
+
+  {"id": "range_bound_trading", "category": "strategy", "title": "Range-Bound Trading",
+   "content": "When price is moving sideways between a clear support and resistance with no strong trend, traders may buy near support and sell/short near resistance, exiting before the opposite boundary. This approach fails badly if the range eventually breaks out, so a stop beyond the range boundary is standard practice."},
+
+  {"id": "candlestick_context_matters", "category": "principle", "title": "Pattern Context Matters More Than Shape Alone",
+   "content": "The same candlestick pattern can mean different things depending on WHERE it appears — a Hammer at a well-tested support level is far more meaningful than the same shape appearing in the middle of a random range with no nearby structure. Traders are taught to always read a pattern in the context of the broader trend and nearby support/resistance, not in isolation."},
+
+  {"id": "false_signal_awareness", "category": "principle", "title": "No Signal Is Guaranteed"
+   , "content": "Every pattern, indicator, and strategy described here reflects historical tendency, not certainty. Markets are influenced by countless factors (liquidity, news, large participants) that can override typical pattern behavior at any time. Experienced traders treat all signals as probabilistic input to a decision, not a guaranteed forecast, and always combine them with risk management."}
+]
