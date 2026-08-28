@@ -12,3 +12,4 @@ feedparser
 google-genai
 streamlit
 plotly
+torchvision
