@@ -36,6 +36,15 @@ def expected_calibration_error(p_up: np.ndarray, label: np.ndarray) -> float:
                      for r in reliability_table(p_up, label) if r["n"]))
 
 
+def _naive(last_move_up: np.ndarray, y: np.ndarray) -> dict[str, Any]:
+    """Better of 'repeat the last candle' and 'reverse the last candle' on the same rows. Picking the better
+    rule after the fact flatters the baseline, which makes beating it a stricter test for the model."""
+    repeat = _rate(last_move_up == y)
+    reverse = _rate(last_move_up != y)
+    return {**(repeat if repeat["rate"] >= reverse["rate"] else reverse),
+            "rule": "repeat last candle" if repeat["rate"] >= reverse["rate"] else "reverse last candle"}
+
+
 def summarize(pred: pd.DataFrame) -> dict[str, Any]:
     """Headline numbers use blocks >= 2 (calibrated out-of-sample); tier stats use blocks >= 3."""
     cal = pred[pred["block"] >= 2]
@@ -54,6 +63,7 @@ def summarize(pred: pd.DataFrame) -> dict[str, Any]:
         "accuracy": _rate(direction(p_cal) == y),
         "raw_accuracy": _rate(direction(p_raw) == y),
         "baseline_accuracy": _rate(cal["majority_pred"].to_numpy(dtype=int) == y),
+        "naive_baseline": _naive(cal["last_move_up"].to_numpy(dtype=int), y),
         "up_rate": float(y.mean()),
         "brier": float(np.mean((p_cal - y) ** 2)),
         "brier_raw": float(np.mean((p_raw - y) ** 2)),

@@ -40,7 +40,8 @@ class WalkForwardConfig:
 
 @dataclass
 class WalkForwardResult:
-    predictions: pd.DataFrame  # time, decision_time, block, label, p_raw, p_cal, strength, majority_pred, n_train
+    predictions: pd.DataFrame  # time, decision_time, block, label, p_raw, p_cal, strength, majority_pred,
+    # n_train, last_move_up
     calibrator: Calibrator
     cuts: dict[str, float | None]
     config: WalkForwardConfig
@@ -72,6 +73,7 @@ def run_walk_forward(ds: pd.DataFrame, cfg: WalkForwardConfig | None = None) -> 
             "time": ds["time"].iloc[s:e].to_numpy(), "decision_time": ds["decision_time"].iloc[s:e].to_numpy(),
             "block": k, "label": y[s:e], "p_raw": model.predict_proba(x.iloc[s:e])[:, 1],
             "majority_pred": int(y[train].mean() >= 0.5), "n_train": int(train.sum()),
+            "last_move_up": ds["last_move_up"].iloc[s:e].to_numpy(dtype=int),
         }))
         spans.append({"block": k, "train_last_label_known_at": int(ds.loc[train, "label_known_at"].max()),
                       "test_first_decision_time": int(first_decision)})

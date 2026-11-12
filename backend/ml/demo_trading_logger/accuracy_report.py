@@ -48,13 +48,14 @@ def build_report(conn: sqlite3.Connection, generated_at: datetime | None = None)
         m = summarize(pred)
         data, cfg, cuts = json.loads(run["data_json"]), json.loads(run["config_json"]), json.loads(run["cuts_json"])
         earned = [t for t, _ in TIER_LEVELS if cuts.get(t) is not None]
-        acc, base = m["accuracy"], m["baseline_accuracy"]
-        beats = "yes" if acc["n"] and acc["ci95"][0] > base["rate"] else "no"
+        acc, base, naive = m["accuracy"], m["baseline_accuracy"], m["naive_baseline"]
+        best = max(base["rate"], naive["rate"])
+        beats = "yes" if acc["n"] and acc["ci95"][0] > best else "no"
         summary_rows.append(
             f"| {_title(run)} | {_date(m['period']['first_time'])} to {_date(m['period']['last_time'])} "
-            f"| {m['n_oos']:,} | {_ci(acc)} | {_pct(base['rate'])} | {(acc['rate'] - base['rate']) * 100:+.1f} pp "
-            f"| {beats} | {_pct(data['flat_rate'])} | {m['ece_raw'] * 100:.1f} -> {m['ece_cal'] * 100:.1f} pp "
-            f"| {', '.join(earned) or 'none'} |")
+            f"| {m['n_oos']:,} | {_ci(acc)} | {_pct(base['rate'])} | {_pct(naive['rate'])} ({naive['rule']}) "
+            f"| {(acc['rate'] - best) * 100:+.1f} pp | {beats} | {_pct(data['flat_rate'])} "
+            f"| {m['ece_raw'] * 100:.1f} -> {m['ece_cal'] * 100:.1f} pp | {', '.join(earned) or 'none'} |")
         sections.append(_model_section(run, m, data, cfg, cuts))
 
     header = f"""# Zentrix ML report: out-of-sample results
@@ -83,15 +84,21 @@ later must come from the live track record in the database, not from this file.
   "{NO_EDGE}" (no demonstrated edge).
 - **Label.** Close h candles ahead above (up) or below (down) the current close. Flat outcomes are
   excluded from training and accuracy; their rate is listed.
-- **Baseline.** Always predicting the majority direction of the training data. ECE = expected calibration
-  error of stated confidence (lower is better). Intervals are 95% Wilson intervals.
+- **Baselines.** (1) Majority: always predict the training data's majority direction. (2) Naive: the better
+  (chosen after the fact) of "repeat the last candle's direction" and "reverse it". Short-timeframe quote data
+  often mean-reverts slightly from one candle to the next; a model that only rediscovers that is not adding
+  much, and that effect is often smaller than the spread. "Edge" is accuracy minus the better baseline;
+  "Beats baselines" means the 95% interval lies entirely above it.
+- **Accuracy is not profitability.** Hit rate ignores move size, spread, commission and slippage. No trading
+  returns are claimed here.
+- ECE = expected calibration error of stated confidence (lower is better). Intervals are 95% Wilson intervals.
 - Earlier figures from the removed `historical_simulator.py` (~60% overall, 83-89% "high confidence") were
   measured on the model's own training data and are invalid.
 
 ## Summary
 
-| Model | OOS period (UTC) | OOS signals | Accuracy (95% CI) | Majority baseline | Edge | CI above baseline | Flat | ECE raw -> calibrated | Tiers earned |
-|---|---|---|---|---|---|---|---|---|---|
+| Model | OOS period (UTC) | OOS signals | Accuracy (95% CI) | Majority | Naive last-candle rule | Edge vs better baseline | Beats baselines | Flat | ECE raw -> calibrated | Tiers earned |
+|---|---|---|---|---|---|---|---|---|---|---|
 """
     return header + "\n".join(summary_rows) + "\n\n## Per model\n\n" + "\n".join(sections)
 
@@ -115,7 +122,8 @@ def _model_section(run: dict[str, Any], m: dict[str, Any], data: dict[str, Any],
 
 Data: {data['n_candles']:,} closed candles, {data['n_rows']:,} labelled rows, flat outcomes {_pct(data['flat_rate'])}.
 Calibrated accuracy {_ci(m['accuracy'])} on {m['n_oos']:,} signals vs majority baseline
-{_pct(m['baseline_accuracy']['rate'])} (up-rate {_pct(m['up_rate'])}); raw-model accuracy
+{_pct(m['baseline_accuracy']['rate'])} (up-rate {_pct(m['up_rate'])}) and naive rule
+{_pct(m['naive_baseline']['rate'])} ({m['naive_baseline']['rule']}); raw-model accuracy
 {_pct(m['raw_accuracy']['rate'])}. Brier {m['brier']:.4f} (raw {m['brier_raw']:.4f}), log loss {m['log_loss']:.4f}.
 Per block: {blocks}.
 

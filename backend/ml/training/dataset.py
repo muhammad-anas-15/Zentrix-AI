@@ -1,7 +1,8 @@
 """Labelled datasets built from closed candles with the shared feature pipeline (vectorised: one pass
 over the whole history instead of recomputing indicators for every window).
 
-Label (horizon h): 1 if close[t+h] > close[t], 0 if lower. Flat outcomes (equal closes) are neither up
+Label (horizon h): 1 if close[t+h] > close[t], 0 if lower. ``last_move_up`` feeds the naive
+"repeat/reverse the last candle" baseline in the report (not a model input). Flat outcomes (equal closes) are neither up
 nor down; they are excluded from training and from accuracy, and their rate is reported.
 ``label_known_at`` is when the label is observable (close time of candle t+h); walk-forward uses it to
 purge training rows whose label overlaps the test period.
@@ -48,7 +49,10 @@ def build_dataset(candles: pd.DataFrame, interval: str, htf_candles: pd.DataFram
                   htf_interval: str | None, horizon: int = 1) -> tuple[pd.DataFrame, DatasetInfo]:
     htf = higher_tf_trend(htf_candles, htf_interval) if htf_candles is not None and htf_interval else None
     feats = compute_features(candles, interval, htf)
-    df = pd.concat([feats, make_labels(candles, interval, horizon)], axis=1).iloc[WARMUP:]
+    df = pd.concat([feats, make_labels(candles, interval, horizon)], axis=1)
+    # Naive baseline input: did the last candle close up? (known at decision time)
+    df["last_move_up"] = (df["current_price"].diff() > 0).astype(int)
+    df = df.iloc[WARMUP:]
     df["decision_time"] = df["time"] + interval_seconds(interval)
     usable = df.dropna(subset=[*NUMERIC_FEATURES, "label_known_at"])
     n_flat = int(usable["is_flat"].sum())
