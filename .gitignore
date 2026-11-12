@@ -40,3 +40,6 @@ mobile/android/key.properties
 Thumbs.db
 .idea/
 .vscode/
+
+# Local dev Postgres (scripts/dev_db.py)
+backend/.pgdata/
