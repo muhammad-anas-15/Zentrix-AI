@@ -1,0 +1,40 @@
+# Models evaluated by `python -m ml.training.pipeline` (walk-forward) and listed in docs/ML_REPORT.md.
+# Same symbol/timeframe/horizon set as the old model_registry/*.pkl files.
+
+history_months:   # months of closed candles used per base interval
+  1m: 3
+  5m: 12
+  15m: 12
+  1h: 24
+
+walk_forward:
+  n_blocks: 6
+  initial_train_frac: 0.4
+  calibration: platt
+  min_tier_n: 100
+  seed: 42
+
+models:
+  # Forex and gold (Twelve Data)
+  - {symbol: EUR/USD, interval: 15m, horizon: 1}
+  - {symbol: GBP/USD, interval: 15m, horizon: 1}
+  - {symbol: USD/JPY, interval: 15m, horizon: 1}
+  - {symbol: AUD/USD, interval: 15m, horizon: 1}
+  - {symbol: NZD/USD, interval: 15m, horizon: 1}
+  - {symbol: GBP/JPY, interval: 15m, horizon: 1}
+  - {symbol: USD/CAD, interval: 15m, horizon: 1}
+  - {symbol: USD/CHF, interval: 15m, horizon: 1}
+  - {symbol: XAU/USD, interval: 15m, horizon: 1}
+  - {symbol: EUR/USD, interval: 15m, horizon: 5}
+  - {symbol: GBP/USD, interval: 15m, horizon: 5}
+  - {symbol: XAU/USD, interval: 15m, horizon: 5}
+  - {symbol: EUR/USD, interval: 1m, horizon: 1}
+  - {symbol: EUR/USD, interval: 5m, horizon: 1}
+  - {symbol: EUR/USD, interval: 1h, horizon: 1}
+  - {symbol: XAU/USD, interval: 1m, horizon: 1}
+  # Crypto (Binance futures) - research only; the product targets forex and gold
+  - {symbol: BTCUSDT, interval: 1m, horizon: 1}
+  - {symbol: BTCUSDT, interval: 5m, horizon: 1}
+  - {symbol: BTCUSDT, interval: 15m, horizon: 1}
+  - {symbol: BTCUSDT, interval: 1h, horizon: 1}
+  - {symbol: BTCUSDT, interval: 15m, horizon: 5}
