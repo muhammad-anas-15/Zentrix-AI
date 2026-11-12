@@ -7,6 +7,7 @@ out-of-sample, and ``track_record`` carries that tier's measured OOS hit rate fr
 
 from __future__ import annotations
 
+import math
 import time as _time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -17,11 +18,14 @@ import pandas as pd
 
 from ml.calibration.calibrators import calibrator_from_dict
 from ml.calibration.strength import assign_strength, confidence
-from ml.data.candles import HIGHER_TF, is_forex
+from ml.data.candles import HIGHER_TF, interval_seconds, is_forex
+from ml.data.sessions import trading_hours_only
 from ml.data.sources import binance, twelvedata
 from ml.features.builder import INFERENCE_HTF_LOOKBACK, INFERENCE_LOOKBACK, to_model_matrix
 from ml.inference.features import latest_feature_row
 from ml.training.model import load_artifact, model_key
+
+WEEKEND_SECONDS = 49 * 3600  # Fri 17:00 -> Sun 17:00 New York, plus a DST hour
 
 
 @dataclass(frozen=True)
@@ -38,6 +42,7 @@ class Signal:
     track_record: dict[str, Any] | None  # OOS stats of this strength tier for this model
     model_key: str
     model_trained_at: str
+    model_usable: bool  # False: no demonstrated OOS edge; every signal is "Very Weak - Wait"
     features: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
@@ -68,13 +73,18 @@ class Predictor:
             confidence=conf, strength=strength,
             track_record=self.meta["strength"]["tier_stats"].get(strength),
             model_key=self.meta["key"], model_trained_at=self.meta["trained_at"],
+            model_usable=bool(self.meta.get("usability", {}).get("usable", False)),
             features={k: (v.item() if hasattr(v, "item") else v) for k, v in r.items()},
         )
 
 
 def fetch_recent(symbol: str, interval: str, limit: int) -> pd.DataFrame:
+    """Recent market-hours candles (same filter as training). For forex, over-fetches by one weekend
+    (49 h of candles) so that on Monday morning ``limit`` market-hours candles still remain."""
     source = twelvedata if is_forex(symbol) else binance
-    return source.fetch_latest(symbol, interval, limit)
+    want = limit + (math.ceil(WEEKEND_SECONDS / interval_seconds(interval)) if is_forex(symbol) else 0)
+    candles = trading_hours_only(source.fetch_latest(symbol, interval, want), symbol)
+    return candles.tail(limit).reset_index(drop=True)
 
 
 def live_feature_row(symbol: str, interval: str, now: float | None = None) -> pd.DataFrame:

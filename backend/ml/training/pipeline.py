@@ -52,6 +52,8 @@ def run_model(spec: dict[str, Any], months: float, cfg: WalkForwardConfig, offli
         "config": cfg.to_dict(), "data": data, "cuts": result.cuts, "calibration": result.calibrator.to_dict(),
     }, result.predictions)
 
+    usability = metrics["usability"]
+    served_cuts = result.cuts if usability["usable"] else {t: None for t in result.cuts}
     model = fit_final_model(ds, cfg.seed)
     metadata = {
         "key": key, "symbol": symbol, "interval": interval, "horizon": horizon,
@@ -69,13 +71,15 @@ def run_model(spec: dict[str, Any], months: float, cfg: WalkForwardConfig, offli
         "metrics": {k: metrics[k] for k in ("n_oos", "period", "accuracy", "baseline_accuracy", "up_rate",
                                             "brier", "log_loss", "ece_raw", "ece_cal")},
         "calibration": result.calibrator.to_dict(),
-        "strength": {"cuts": result.cuts, "levels": dict(TIER_LEVELS), "min_n": cfg.min_tier_n,
-                     "tier_stats": metrics["tiers"]},
+        "usability": usability,
+        "strength": {"cuts": served_cuts, "cuts_before_usability_gate": result.cuts,
+                     "levels": dict(TIER_LEVELS), "min_n": cfg.min_tier_n, "tier_stats": metrics["tiers"]},
     }
     path = save_artifact(model, metadata, artifacts_root)
     acc = metrics["accuracy"]
-    log.info("%s: OOS accuracy %.3f (n=%d) vs baseline %.3f; tiers %s -> %s", key, acc["rate"], acc["n"],
-             metrics["baseline_accuracy"]["rate"], {t: c for t, c in result.cuts.items() if c}, path)
+    log.info("%s: OOS accuracy %.3f (n=%d) vs majority %.3f / naive %.3f; usable=%s; served tiers %s -> %s",
+             key, acc["rate"], acc["n"], metrics["baseline_accuracy"]["rate"], metrics["naive_baseline"]["rate"],
+             usability["usable"], {t: c for t, c in served_cuts.items() if c}, path)
     return metadata
 
 

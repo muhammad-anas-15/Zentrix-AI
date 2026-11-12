@@ -14,7 +14,7 @@ from typing import Any
 
 from ml.calibration.strength import MIN_TIER_N, NO_EDGE, TIER_LEVELS, TIER_ORDER
 from ml.demo_trading_logger import store
-from ml.evaluation.metrics import summarize
+from ml.evaluation.metrics import MAX_NAIVE_RATE, summarize
 from ml.settings import get_settings
 from ml.training.model import git_commit
 
@@ -47,10 +47,11 @@ def build_report(conn: sqlite3.Connection, generated_at: datetime | None = None)
         pred = store.load_predictions(conn, run["run_id"])
         m = summarize(pred)
         data, cfg, cuts = json.loads(run["data_json"]), json.loads(run["config_json"]), json.loads(run["cuts_json"])
-        earned = [t for t, _ in TIER_LEVELS if cuts.get(t) is not None]
+        usable = m["usability"]["usable"]
+        earned = [t for t, _ in TIER_LEVELS if cuts.get(t) is not None] if usable else []
         acc, base, naive = m["accuracy"], m["baseline_accuracy"], m["naive_baseline"]
         best = max(base["rate"], naive["rate"])
-        beats = "yes" if acc["n"] and acc["ci95"][0] > best else "no"
+        beats = "yes" if usable else "**no**"
         summary_rows.append(
             f"| {_title(run)} | {_date(m['period']['first_time'])} to {_date(m['period']['last_time'])} "
             f"| {m['n_oos']:,} | {_ci(acc)} | {_pct(base['rate'])} | {_pct(naive['rate'])} ({naive['rule']}) "
@@ -95,6 +96,11 @@ later must come from the live track record in the database, not from this file.
   (chosen after the fact) of "repeat the last candle's body direction" and "reverse it", which captures most
   feed-noise effects. "Edge" is accuracy minus the better baseline; "Beats baselines" means the 95% interval
   lies entirely above it. A model that does not beat the naive rule has shown no usable edge.
+- **Usable for signals.** Yes only if the 95% interval clears both baselines and the naive rule scores below
+  {MAX_NAIVE_RATE:.0%} (above that, the label is dominated by feed structure). Models that are not usable serve
+  every signal as "{NO_EDGE}", whatever tiers the walk-forward found.
+- **Market hours.** Forex and gold use candles from the trading week only (Sun 17:00 to Fri 17:00 New York).
+  The feed also returns closed-market candles (~25%); they are dropped in training and live inference.
 - **Accuracy is not profitability.** Hit rate ignores move size, spread, commission and slippage. No trading
   returns are claimed here.
 - ECE = expected calibration error of stated confidence (lower is better). Intervals are 95% Wilson intervals.
@@ -103,7 +109,7 @@ later must come from the live track record in the database, not from this file.
 
 ## Summary
 
-| Model | OOS period (UTC) | OOS signals | Accuracy (95% CI) | Majority | Naive last-candle rule | Edge vs better baseline | Beats baselines | Flat | ECE raw -> calibrated | Tiers earned |
+| Model | OOS period (UTC) | OOS signals | Accuracy (95% CI) | Majority | Naive last-candle rule | Edge vs better baseline | Usable for signals | Flat | ECE raw -> calibrated | Tiers earned |
 |---|---|---|---|---|---|---|---|---|---|---|
 """
     return header + "\n".join(summary_rows) + "\n\n## Per model\n\n" + "\n".join(sections)
@@ -124,7 +130,11 @@ def _model_section(run: dict[str, Any], m: dict[str, Any], data: dict[str, Any],
         f"| {m['tiers'][t]['n']:,} | {_pct(m['tiers'][t]['share'])} | {_ci(m['tiers'][t])} |"
         for t in TIER_ORDER)
     blocks = ", ".join(f"B{b['block']} {_pct(b['rate'])}" for b in m["per_block"])
+    usability = ("yes" if m["usability"]["usable"]
+                 else "**no** - " + "; ".join(m["usability"]["reasons"]) + '. Tiers below are not served.')
     return f"""### {_title(run)}
+
+Usable for signals: {usability}
 
 Data: {data['n_candles']:,} closed candles, {data['n_rows']:,} labelled rows, flat outcomes {_pct(data['flat_rate'])},
 label `{data.get('label_mode', 'close_to_close')}`. Feed checks (~50% on a clean feed): up bodies

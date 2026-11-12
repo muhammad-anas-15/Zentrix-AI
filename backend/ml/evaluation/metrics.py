@@ -11,6 +11,9 @@ import pandas as pd
 from ml.calibration.strength import TIER_ORDER, confidence, direction, wilson_interval
 
 RELIABILITY_BINS: tuple[float, ...] = (0.50, 0.52, 0.54, 0.56, 0.58, 0.60, 0.65, 1.0)
+# If a trivial last-candle rule already predicts the label this well, the label is dominated by feed structure
+# (e.g. synthetic 1m candles) and model "skill" cannot be separated from it.
+MAX_NAIVE_RATE = 0.55
 
 
 def _rate(correct: np.ndarray) -> dict[str, Any]:
@@ -45,6 +48,19 @@ def _naive(last_body_up: np.ndarray, y: np.ndarray) -> dict[str, Any]:
             "rule": "repeat last candle" if repeat["rate"] >= reverse["rate"] else "reverse last candle"}
 
 
+def assess_usability(m: dict[str, Any]) -> dict[str, Any]:
+    """A model may serve strength tiers only if its OOS accuracy interval clears both baselines and the label
+    is not dominated by a trivial rule. Otherwise every live signal is shown as "no demonstrated edge"."""
+    acc, base, naive = m["accuracy"], m["baseline_accuracy"], m["naive_baseline"]
+    best = max(base["rate"], naive["rate"])
+    reasons = []
+    if not (acc["n"] and acc["ci95"][0] > best):
+        reasons.append(f"95% interval does not clear the better baseline ({best * 100:.1f}%)")
+    if naive["rate"] >= MAX_NAIVE_RATE:
+        reasons.append(f"a trivial last-candle rule already scores {naive['rate'] * 100:.1f}% (feed artifact)")
+    return {"usable": not reasons, "reasons": reasons}
+
+
 def summarize(pred: pd.DataFrame) -> dict[str, Any]:
     """Headline numbers use blocks >= 2 (calibrated out-of-sample); tier stats use blocks >= 3."""
     cal = pred[pred["block"] >= 2]
@@ -57,7 +73,7 @@ def summarize(pred: pd.DataFrame) -> dict[str, Any]:
         sel = tiers[tiers["strength"] == tier]
         stats = _rate(direction(sel["p_cal"].to_numpy(dtype=float)) == sel["label"].to_numpy(dtype=int))
         tier_stats[tier] = {**stats, "share": len(sel) / len(tiers) if len(tiers) else None}
-    return {
+    out = {
         "n_oos": int(len(cal)),
         "period": {"first_time": int(cal["time"].min()), "last_time": int(cal["time"].max())},
         "accuracy": _rate(direction(p_cal) == y),
@@ -75,3 +91,5 @@ def summarize(pred: pd.DataFrame) -> dict[str, Any]:
                       for b, g in cal.groupby("block")],
         "tiers": tier_stats,
     }
+    out["usability"] = assess_usability(out)
+    return out

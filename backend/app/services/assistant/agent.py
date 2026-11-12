@@ -75,7 +75,8 @@ def run_assistant(symbol: str = "EUR/USD", interval: str = "15m", use_llm: bool 
         "possible_target_down": f["support"],
         "knowledge_matches": [k["title"] for k in knowledge],
         "news_risk_level": news["risk_level"],
-        "model": {"key": signal.model_key, "trained_at": signal.model_trained_at},
+        "model": {"key": signal.model_key, "trained_at": signal.model_trained_at,
+                  "has_demonstrated_edge": signal.model_usable},
         "disclaimer": DISCLAIMER,
     }
     if use_llm:

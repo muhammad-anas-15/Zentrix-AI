@@ -20,6 +20,7 @@ from ml.data.candles import (
     safe_symbol,
     to_frame,
 )
+from ml.data.sessions import trading_hours_only
 from ml.data.sources import binance, twelvedata
 from ml.settings import get_settings
 
@@ -53,8 +54,9 @@ def fetch_range(symbol: str, interval: str, start_ts: int, end_ts: int | None = 
 
 def load_history(symbol: str, interval: str, months: float, now: float | None = None,
                  offline: bool = False, cache_dir: Path | None = None) -> pd.DataFrame:
-    """Closed candles covering the last ``months`` months. Extends the cache forwards (and backwards
-    if it starts too late) unless ``offline``; offline mode uses only what is cached/imported."""
+    """Closed, market-hours candles covering the last ``months`` months. Extends the cache forwards (and
+    backwards if it starts too late) unless ``offline``; offline mode uses only what is cached/imported.
+    The cache keeps the raw feed; the market-hours filter is applied on read."""
     now = time.time() if now is None else now
     start_ts = int(now - months * SECONDS_PER_MONTH)
     step = interval_seconds(interval)
@@ -73,7 +75,7 @@ def load_history(symbol: str, interval: str, months: float, now: float | None = 
             write_cache(merged, symbol, interval, cache_dir)
         cached = merged
 
-    df = drop_unclosed(cached, interval, now)
+    df = trading_hours_only(drop_unclosed(cached, interval, now), symbol)
     df = df[df["time"] >= start_ts].reset_index(drop=True)
     log.info("%s %s: %d closed candles (%s -> %s)", symbol, interval, len(df),
              _fmt(df["time"].iloc[0]) if len(df) else "-", _fmt(df["time"].iloc[-1]) if len(df) else "-")

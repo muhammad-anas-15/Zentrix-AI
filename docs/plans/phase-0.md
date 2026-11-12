@@ -51,6 +51,14 @@ Known problems from CLAUDE.md section 3, all confirmed in the code, plus:
    Open-to-open cancels the constant offset. 1m forex stays contaminated under every label (spread is large
    vs 1-minute moves). The report shows per-model feed checks. Phase 2 outcome resolution must use the same
    definition. Flat outcomes are excluded; their rate is reported.
+   - **Market hours:** about 25% of Twelve Data forex/gold candles fall while the market is closed
+     (New York Fri 17:00 to Sun 17:00). They have tiny ranges, many flats and most of the open/close skew, so
+     they are dropped in training and live inference (same filter, `ml/data/sessions.py`). On trading-hours
+     candles, 15m labels are ~50/50 and trivially predictable at only ~50.5%.
+   - **1m forex/gold:** the next open lands on the opposite side of the close 97-99% of the time even in
+     trading hours (synthetic candle construction). No label fixes that, so these models are gated off.
+   - **Usability gate:** a model serves strength tiers only if its 95% OOS interval clears both the majority
+     and naive baselines and the naive rule scores < 55%. Otherwise every signal is "Very Weak - Wait".
 4. Platt calibration by default (isotonic available); headline metrics use blocks 2+, tier metrics blocks 3+.
 5. Strength tier levels (95% lower bound, Bonferroni over a 0.50-0.80 grid, min 100 signals): Strong 60%,
    Good 56%, Moderate 53%, Weak > 50%; otherwise "Very Weak - Wait".
