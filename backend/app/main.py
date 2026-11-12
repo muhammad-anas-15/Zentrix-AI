@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
 from app.api import health
-from app.api.v1 import auth, market, me, news, signals
+from app.api.v1 import auth, journal, market, me, news, risk, signals, tools
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
@@ -61,6 +61,9 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
                                 {"name": "market", "description": "Instruments, venues, timeframes, candles"},
                                 {"name": "signals", "description": "Live signals, outcomes, track record, models"},
                                 {"name": "news", "description": "Economic calendar and news guard"},
+                                {"name": "tools", "description": "Conditions, ATR levels, exit advice, scenario"},
+                                {"name": "risk", "description": "Position size, risk profile, daily risk status"},
+                                {"name": "journal", "description": "Trade journal, statistics, review"},
                                 {"name": "ops", "description": "Health checks"}])
     install_error_handlers(app)
     if settings.cors_origins:
@@ -83,7 +86,8 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
         return response
 
     app.include_router(health.router)
-    for router in (auth.router, me.router, market.router, signals.router, news.router):
+    for router in (auth.router, me.router, market.router, signals.router, news.router, tools.router,
+                   risk.router, journal.router):
         app.include_router(router, prefix="/v1")
     return app
 

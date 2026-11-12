@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError
@@ -54,7 +55,7 @@ class LastPrice:
 async def last_price(db: AsyncSession, listing_id: int, at: datetime | None = None) -> LastPrice | None:
     """Close of the most recently *closed* stored candle over all timeframes (closing at/before ``at``)."""
     stmt = (select(Candle.timeframe, Candle.ts, Candle.close).where(Candle.listing_id == listing_id)
-            .distinct(Candle.timeframe).order_by(Candle.timeframe, Candle.ts.desc()))
+            .ext(distinct_on(Candle.timeframe)).order_by(Candle.timeframe, Candle.ts.desc()))
     if at is not None:
         stmt = stmt.join(Timeframe, Timeframe.code == Candle.timeframe).where(
             Candle.ts + func.make_interval(0, 0, 0, 0, 0, 0, Timeframe.seconds) <= at)

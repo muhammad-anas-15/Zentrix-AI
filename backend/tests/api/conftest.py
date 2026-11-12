@@ -168,3 +168,21 @@ async def sign_in(client: httpx.AsyncClient, google: FakeGoogle, device: str = "
 def bearer(tokens: dict | str) -> dict[str, str]:
     token = tokens if isinstance(tokens, str) else tokens["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+async def listing_id(app: FastAPI, symbol: str, venue: str | None = None) -> int:
+    sql = ("SELECT l.id FROM instrument_listings l JOIN instruments i ON i.id = l.instrument_id "
+           "JOIN venues v ON v.id = l.venue_id WHERE i.symbol = :s AND "
+           + ("v.code = :v" if venue else "l.is_primary"))
+    return int(await scalar(app, sql, s=symbol, **({"v": venue} if venue else {})))
+
+
+async def seed_candles(app: FastAPI, symbol: str, timeframe: str, candles: Any, venue: str | None = None) -> int:
+    """Store an ML candle frame for the instrument's (primary) listing; returns the listing id."""
+    from app.services.marketdata.candles import upsert_candles
+
+    lid = await listing_id(app, symbol, venue)
+    async with app.state.sessionmaker() as db:
+        await upsert_candles(db, lid, timeframe, candles)
+        await db.commit()
+    return lid
