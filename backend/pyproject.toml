@@ -42,14 +42,14 @@ include = ["app*", "ml*", "knowledge*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -p no:anyio"
 markers = [
     "network: hits a live external API (deselect with -m 'not network')",
     "slow: long-running",
 ]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]

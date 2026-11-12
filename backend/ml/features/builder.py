@@ -1,82 +1,111 @@
+"""Single feature pipeline shared by training and inference (feature parity by construction).
+
+``compute_features`` returns one row per candle; row i uses only candles <= i and higher-TF candles that
+closed by candle i's close. ``to_model_matrix`` turns rows into the exact model input (fixed column order
+and fixed one-hot vocabulary), and is the only way either path builds model input.
+
+Indicator warm-up: EMAs depend on where the series starts. Rows before ``WARMUP`` are dropped in training,
+and inference computes on the last ``INFERENCE_LOOKBACK`` closed candles, which makes EMA start-up effects
+negligible (seed weight of EMA50 after 500 bars ~ 2e-9). The parity test checks both paths agree.
 """
-Combines indicators + patterns + support/resistance into a single
-feature set for the latest candle. This is the shared input used by
-both the ML model (Phase 2) and the reasoning/orchestrator layer.
-"""
-import sys
-import os
 
-from ml.features.indicators import rsi, ema, macd, atr, bollinger_bands, volume_change
-from ml.features.patterns import detect_patterns_series
-from ml.features.support_resistance import calc_support_resistance
+from __future__ import annotations
 
+import numpy as np
+import pandas as pd
 
-def build_features(candles: list) -> dict:
-    """
-    candles: list of dicts [{time, open, high, low, close, volume}, ...]
-             chronological order, at least 30 candles recommended.
-    Returns a single dict of computed features for the latest candle.
-    """
-    if len(candles) < 20:
-        raise ValueError("Need at least 20 candles to compute reliable indicators")
+from ml.features import indicators as ind
+from ml.features.multi_timeframe import attach_higher_tf
+from ml.features.patterns import PATTERNS, detect_patterns
 
-    closes = [c["close"] for c in candles]
-    highs = [c["high"] for c in candles]
-    lows = [c["low"] for c in candles]
-    volumes = [c.get("volume", 0) for c in candles]
+WARMUP = 500  # rows dropped at the start of a training series (>= INFERENCE_LOOKBACK)
+INFERENCE_LOOKBACK = 500  # closed base candles used to compute a live signal
+INFERENCE_HTF_LOOKBACK = 200  # closed higher-TF candles used for the trend feature
 
-    rsi_val = rsi(closes)
-    ema20 = ema(closes, 20)
-    ema50 = ema(closes, 50) if len(closes) >= 50 else ema(closes, len(closes) - 1)
-    macd_line, macd_signal = macd(closes)
-    atr_val = atr(highs, lows, closes)
-    bb_upper, bb_mid, bb_lower = bollinger_bands(closes)
-    vol_change = volume_change(volumes)
-
-    resistance, support = calc_support_resistance(candles)
-    patterned = detect_patterns_series(candles)
-    latest_pattern = patterned[-1]
-
-    current_price = closes[-1]
-
-    return {
-        "current_price": current_price,          # kept for reference/backtest only — NOT fed to ML
-        "rsi": rsi_val,
-        "price_vs_ema20_pct": round((current_price - ema20) / ema20 * 100, 4),
-        "price_vs_ema50_pct": round((current_price - ema50) / ema50 * 100, 4),
-        "ema20_vs_ema50_pct": round((ema20 - ema50) / ema50 * 100, 4),
-        "macd_norm": round(macd_line / current_price * 100, 6),
-        "macd_signal_norm": round(macd_signal / current_price * 100, 6),
-        "macd_hist_norm": round((macd_line - macd_signal) / current_price * 100, 6),
-        "atr_pct": round(atr_val / current_price * 100, 4),
-        "price_vs_bollinger_upper_pct": round((current_price - bb_upper) / current_price * 100, 4),
-        "price_vs_bollinger_lower_pct": round((current_price - bb_lower) / current_price * 100, 4),
-        "bollinger_width_pct": round((bb_upper - bb_lower) / bb_mid * 100, 4),
-        "volume_change_pct": vol_change,
-        "price_vs_resistance_pct": round((current_price - resistance) / current_price * 100, 4),
-        "price_vs_support_pct": round((current_price - support) / current_price * 100, 4),
-        "resistance": resistance,   # reference only, not ML input
-        "support": support,         # reference only, not ML input
-        "pattern": latest_pattern["pattern"],
-        "pattern_context": latest_pattern["context"],
-        "pattern_book_rule": latest_pattern["book_rule"],
-        "candles_with_patterns": patterned,
-    }
+NUMERIC_FEATURES: tuple[str, ...] = (
+    "rsi",
+    "price_vs_ema20_pct",
+    "price_vs_ema50_pct",
+    "ema20_vs_ema50_pct",
+    "macd_norm",
+    "macd_signal_norm",
+    "macd_hist_norm",
+    "atr_pct",
+    "price_vs_bollinger_upper_pct",
+    "price_vs_bollinger_lower_pct",
+    "bollinger_width_pct",
+    "volume_change_pct",
+    "price_vs_resistance_pct",
+    "price_vs_support_pct",
+    "higher_tf_bullish",
+)
+PREV_VOCAB: tuple[str, ...] = (*PATTERNS, "None")
+# prev1 = previous candle's pattern, prev2 = two candles back, prev3 = three back.
+CATEGORICAL: dict[str, tuple[str, ...]] = {
+    "pattern": PATTERNS,
+    "prev1": PREV_VOCAB,
+    "prev2": PREV_VOCAB,
+    "prev3": PREV_VOCAB,
+}
+REFERENCE_COLUMNS = ("time", "current_price", "resistance", "support")  # never model inputs
 
 
-if __name__ == "__main__":
-    import random
-    demo_candles = []
-    price = 100
-    for i in range(40):
-        o = price
-        c = price + random.uniform(-1, 1)
-        h = max(o, c) + random.uniform(0, 0.5)
-        l = min(o, c) - random.uniform(0, 0.5)
-        demo_candles.append({"time": i, "open": o, "high": h, "low": l, "close": c, "volume": random.uniform(100, 500)})
-        price = c
+def feature_columns() -> list[str]:
+    cols = list(NUMERIC_FEATURES)
+    for prefix, vocab in CATEGORICAL.items():
+        cols += [f"{prefix}_{v}" for v in vocab]
+    return cols
 
-    features = build_features(demo_candles)
-    for k, v in features.items():
-        if k != "candles_with_patterns":
-            print(f"{k}: {v}")
+
+def compute_features(candles: pd.DataFrame, interval: str, htf_trend: pd.DataFrame | None) -> pd.DataFrame:
+    """Feature rows for every candle in ``candles`` (closed candles, sorted by time)."""
+    c = candles.reset_index(drop=True)
+    close, high, low = c["close"], c["high"], c["low"]
+    ema20, ema50 = ind.ema(close, 20), ind.ema(close, 50)
+    macd_line, macd_signal = ind.macd(close)
+    bb_upper, bb_mid, bb_lower = ind.bollinger(close)
+    resistance, support = ind.rolling_support_resistance(high, low)
+    pattern = detect_patterns(c)
+
+    f = pd.DataFrame({"time": c["time"], "current_price": close, "resistance": resistance, "support": support})
+    f["rsi"] = ind.rsi(close)
+    f["price_vs_ema20_pct"] = (close - ema20) / ema20 * 100
+    f["price_vs_ema50_pct"] = (close - ema50) / ema50 * 100
+    f["ema20_vs_ema50_pct"] = (ema20 - ema50) / ema50 * 100
+    f["macd_norm"] = macd_line / close * 100
+    f["macd_signal_norm"] = macd_signal / close * 100
+    f["macd_hist_norm"] = (macd_line - macd_signal) / close * 100
+    f["atr_pct"] = ind.atr(high, low, close) / close * 100
+    f["price_vs_bollinger_upper_pct"] = (close - bb_upper) / close * 100
+    f["price_vs_bollinger_lower_pct"] = (close - bb_lower) / close * 100
+    f["bollinger_width_pct"] = (bb_upper - bb_lower) / bb_mid * 100
+    f["volume_change_pct"] = ind.volume_change_pct(c["volume"])
+    f["price_vs_resistance_pct"] = (close - resistance) / close * 100
+    f["price_vs_support_pct"] = (close - support) / close * 100
+    f["higher_tf_bullish"] = (attach_higher_tf(c["time"], interval, htf_trend)
+                              if htf_trend is not None else np.nan)
+    f["pattern"] = pattern
+    for k in (1, 2, 3):
+        f[f"prev{k}"] = pattern.shift(k).fillna("None")
+    return f
+
+
+def to_model_matrix(rows: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFrame:
+    """Exact model input: float64, columns in ``feature_columns()`` order. Raises on missing values or
+    unknown categories instead of silently filling them (the old inference path filled missing with 0)."""
+    columns = columns or feature_columns()
+    missing = [c for c in NUMERIC_FEATURES if c not in rows.columns or rows[c].isna().any()]
+    if missing:
+        raise ValueError(f"Missing/NaN numeric features: {missing}")
+    out = pd.DataFrame(index=rows.index)
+    for name in NUMERIC_FEATURES:
+        out[name] = rows[name].astype("float64")
+    for prefix, vocab in CATEGORICAL.items():
+        unknown = set(rows[prefix].unique()) - set(vocab)
+        if unknown:
+            raise ValueError(f"Unknown {prefix} values: {sorted(unknown)}")
+        for v in vocab:
+            out[f"{prefix}_{v}"] = (rows[prefix] == v).astype("float64")
+    if list(out.columns) != columns:
+        raise ValueError("Model feature columns differ from the pipeline's feature_columns()")
+    return out

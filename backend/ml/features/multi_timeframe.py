@@ -1,64 +1,38 @@
+"""Higher-timeframe trend confirmation, using CLOSED higher-TF candles only.
+
+Lookahead fix: the old code merged on candle OPEN time, so a 15m candle at 10:15 saw the 1h candle that
+opened at 10:00 (and closes at 11:00), i.e. a close 45 minutes in the future. Now each higher-TF value
+is stamped with the time it becomes known (its close), and each base row with its decision time (its own
+close); a base row only sees higher-TF candles that had closed by then.
 """
-Multi-timeframe confirmation: checks whether a HIGHER timeframe's trend
-agrees with the current signal. Added as a feature so the ML model can
-learn "higher-timeframe-confirmed setups tend to be more reliable."
-"""
-import sys, os
+
+from __future__ import annotations
 
 import pandas as pd
-from ml.data.sources.binance import fetch_binance_ohlcv, fetch_binance_history
 
-HIGHER_TF_MAP = {"1m": "15m", "5m": "1h", "15m": "1h", "1h": "4h"}
-
-
-def _ema_trend(closes: list) -> int:
-    """1 if price above EMA20 (bullish), else 0."""
-    ema20 = pd.Series(closes).ewm(span=20, adjust=False).mean().iloc[-1]
-    return 1 if closes[-1] > ema20 else 0
+from ml.data.candles import interval_seconds
 
 
-def get_current_higher_tf_trend(symbol: str, base_interval: str) -> int:
-    """LIVE use (orchestrator/agent.py): fetch recent higher-tf candles, return trend."""
-    higher_tf = HIGHER_TF_MAP.get(base_interval)
-    if not higher_tf:
-        return 0
-    if "/" in symbol:
-        from ml.data.sources.twelvedata import fetch_forex_ohlcv
-        forex_map = {"15m": "15min", "1h": "1h", "5m": "5min", "1m": "1min", "4h": "4h"}
-        candles = fetch_forex_ohlcv(symbol, forex_map.get(higher_tf, higher_tf), outputsize=30)
-    else:
-        candles = fetch_binance_ohlcv(symbol, higher_tf, limit=30)
-    closes = [c["close"] for c in candles]
-    return _ema_trend(closes) if len(closes) >= 20 else 0
+def higher_tf_trend(htf_candles: pd.DataFrame, htf_interval: str, ema_period: int = 20) -> pd.DataFrame:
+    """Per closed higher-TF candle: ``available_at`` (its close time) and ``higher_tf_bullish``
+    (1 if close > EMA20 of closes, else 0). Pass only closed candles."""
+    if htf_candles.empty:
+        return pd.DataFrame({"available_at": pd.Series(dtype="int64"),
+                             "higher_tf_bullish": pd.Series(dtype="float64")})
+    close = htf_candles["close"].reset_index(drop=True)
+    ema = close.ewm(span=ema_period, adjust=False).mean()
+    return pd.DataFrame({
+        "available_at": (htf_candles["time"].to_numpy() + interval_seconds(htf_interval)).astype("int64"),
+        "higher_tf_bullish": (close > ema).astype("float64").to_numpy(),
+    })
 
 
-def build_higher_tf_series(symbol: str, base_interval: str, months: int) -> pd.DataFrame:
-    """
-    HISTORICAL use (dataset_builder.py): fetches higher-tf history once,
-    computes rolling EMA20 trend at each point, returns a time-indexed
-    DataFrame to merge onto the base-timeframe dataset via merge_asof.
-    Works for both crypto (Binance) and forex (Twelve Data).
-    """
-    higher_tf = HIGHER_TF_MAP.get(base_interval)
-    if not higher_tf:
-        return pd.DataFrame(columns=["time", "higher_tf_bullish"])
-
-    if "/" in symbol:  # forex
-        from ml.data.sources.twelvedata import fetch_forex_ohlcv
-        forex_map = {"15m": "15min", "1h": "1h", "5m": "5min", "1m": "1min", "4h": "4h"}
-        candles = fetch_forex_ohlcv(symbol, forex_map.get(higher_tf, higher_tf), outputsize=5000)
-    else:
-        candles = fetch_binance_history(symbol, higher_tf, months=months + 1)
-
-    closes = [c["close"] for c in candles]
-    times = [c["time"] for c in candles]
-
-    ema20 = pd.Series(closes).ewm(span=20, adjust=False).mean()
-    trend = (pd.Series(closes) > ema20).astype(int)
-
-    return pd.DataFrame({"time": times, "higher_tf_bullish": trend.values}).sort_values("time")
-
-
-if __name__ == "__main__":
-    print("Live trend (BTCUSDT, 15m base -> 1h higher):",
-          get_current_higher_tf_trend("BTCUSDT", "15m"))
+def attach_higher_tf(base_times: pd.Series, base_interval: str, htf_trend: pd.DataFrame) -> pd.Series:
+    """For each base candle open time, the latest higher-TF trend known at the base candle's close.
+    NaN when no higher-TF candle had closed yet."""
+    decision = pd.DataFrame({"decision_time": (base_times.to_numpy() + interval_seconds(base_interval)).astype("int64"),
+                             "_order": range(len(base_times))})
+    merged = pd.merge_asof(decision.sort_values("decision_time"), htf_trend.sort_values("available_at"),
+                           left_on="decision_time", right_on="available_at", direction="backward",
+                           allow_exact_matches=True)
+    return merged.sort_values("_order")["higher_tf_bullish"].reset_index(drop=True).set_axis(base_times.index)

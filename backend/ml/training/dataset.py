@@ -1,83 +1,70 @@
-"""
-Builds a labeled training dataset from historical candles.
-Reuses Phase 1's fetch_binance + feature_builder — no external dataset needed.
+"""Labelled datasets built from closed candles with the shared feature pipeline (vectorised: one pass
+over the whole history instead of recomputing indicators for every window).
 
-For each point in time, features are computed using ONLY candles up to
-that point (rolling window) to avoid lookahead bias. Label = did the
-NEXT candle close higher than the current one (1 = up/green, 0 = down/red).
+Label (horizon h): 1 if close[t+h] > close[t], 0 if lower. Flat outcomes (equal closes) are neither up
+nor down; they are excluded from training and from accuracy, and their rate is reported.
+``label_known_at`` is when the label is observable (close time of candle t+h); walk-forward uses it to
+purge training rows whose label overlaps the test period.
 """
-import sys
-import os
 
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
 import pandas as pd
-from ml.data.sources.binance import fetch_binance_history
-from ml.data.sources.twelvedata import fetch_forex_ohlcv
-from ml.features.builder import build_features
-from ml.features.multi_timeframe import build_higher_tf_series
 
-WINDOW = 60
-HISTORY_MONTHS = 12
+from ml.data.candles import HIGHER_TF, interval_seconds
+from ml.data.history import load_history
+from ml.features.builder import NUMERIC_FEATURES, WARMUP, compute_features
+from ml.features.multi_timeframe import higher_tf_trend
 
 
-def fetch_full_history(symbol: str, interval: str, months: int = HISTORY_MONTHS):
-    if "/" in symbol:  # forex pair, e.g. 'EUR/USD'
-        forex_interval = {"15m": "15min", "1h": "1h", "5m": "5min", "1m": "1min"}.get(interval, interval)
-        return fetch_forex_ohlcv(symbol, forex_interval, outputsize=5000)  # Twelve Data max per call
-    return fetch_binance_history(symbol, interval, months=months)
+@dataclass(frozen=True)
+class DatasetInfo:
+    n_candles: int
+    n_rows: int
+    n_flat: int
+    first_time: int | None
+    last_time: int | None
+
+    @property
+    def flat_rate(self) -> float:
+        labelled = self.n_rows + self.n_flat
+        return self.n_flat / labelled if labelled else 0.0
 
 
-def build_dataset(symbol: str = "BTCUSDT", interval: str = "15m", months: int = HISTORY_MONTHS,
-                   horizon: int = 1) -> pd.DataFrame:
-    """
-    horizon: how many candles ahead to check for the label.
-             1 = next candle (default). 5 = "trend over next 5 candles" (Option B).
-    """
-    candles = fetch_full_history(symbol, interval, months=months)
-    rows = []
-
-    for i in range(WINDOW, len(candles) - horizon):
-        window_candles = candles[i - WINDOW:i + 1]
-        try:
-            feats = build_features(window_candles)
-        except ValueError:
-            continue
-
-        # Pattern sequence: last 3 candle patterns before the current one
-        history = feats["candles_with_patterns"]
-        prev_patterns = [c["pattern"] for c in history[-4:-1]] if len(history) >= 4 else ["None", "None", "None"]
-        while len(prev_patterns) < 3:
-            prev_patterns.insert(0, "None")
-        feats["prev_pattern_1"], feats["prev_pattern_2"], feats["prev_pattern_3"] = prev_patterns
-
-        feats.pop("candles_with_patterns", None)  # not needed for ML rows
-        feats.pop("pattern_context", None)
-        feats.pop("pattern_book_rule", None)
-        # NOTE: current_price/resistance/support kept in row for reference
-        # (used by backtest.py for returns) but excluded from ML feature_cols
-        # in train.py/backtest.py — never fed as raw dollar values to the model.
-
-        next_close = candles[i + horizon]["close"]
-        current_close = candles[i]["close"]
-        feats["label"] = 1 if next_close > current_close else 0
-        feats["time"] = candles[i]["time"]
-        rows.append(feats)
-
-    df = pd.DataFrame(rows)
-    df = pd.get_dummies(df, columns=["pattern", "prev_pattern_1", "prev_pattern_2", "prev_pattern_3"],
-                         prefix=["pattern", "prev1", "prev2", "prev3"])
-
-    # Merge multi-timeframe confirmation feature (crypto + forex both)
-    higher_tf_df = build_higher_tf_series(symbol, interval, months)
-    if not higher_tf_df.empty:
-        df = df.sort_values("time")
-        df = pd.merge_asof(df, higher_tf_df.sort_values("time"), on="time", direction="backward")
-        df["higher_tf_bullish"] = df["higher_tf_bullish"].fillna(0).astype(int)
-
-    return df
+def make_labels(candles: pd.DataFrame, interval: str, horizon: int) -> pd.DataFrame:
+    close = candles["close"].reset_index(drop=True)
+    future = close.shift(-horizon)
+    label = np.where(future > close, 1.0, np.where(future < close, 0.0, np.nan))
+    label[future.isna().to_numpy()] = np.nan
+    known = candles["time"].reset_index(drop=True).shift(-horizon) + interval_seconds(interval)
+    return pd.DataFrame({"label": label, "label_known_at": known,
+                         "is_flat": (future == close).to_numpy()})
 
 
-if __name__ == "__main__":
-    df = build_dataset("BTCUSDT", "15m")
-    print(df.shape)
-    print(df.head())
-    df.to_csv("ml_model/dataset_cache.csv", index=False)
+def build_dataset(candles: pd.DataFrame, interval: str, htf_candles: pd.DataFrame | None,
+                  htf_interval: str | None, horizon: int = 1) -> tuple[pd.DataFrame, DatasetInfo]:
+    htf = higher_tf_trend(htf_candles, htf_interval) if htf_candles is not None and htf_interval else None
+    feats = compute_features(candles, interval, htf)
+    df = pd.concat([feats, make_labels(candles, interval, horizon)], axis=1).iloc[WARMUP:]
+    df["decision_time"] = df["time"] + interval_seconds(interval)
+    usable = df.dropna(subset=[*NUMERIC_FEATURES, "label_known_at"])
+    n_flat = int(usable["is_flat"].sum())
+    out = usable.dropna(subset=["label"]).drop(columns="is_flat").reset_index(drop=True)
+    out["label"] = out["label"].astype(int)
+    out["label_known_at"] = out["label_known_at"].astype("int64")
+    info = DatasetInfo(n_candles=len(candles), n_rows=len(out), n_flat=n_flat,
+                       first_time=int(out["time"].iloc[0]) if len(out) else None,
+                       last_time=int(out["time"].iloc[-1]) if len(out) else None)
+    return out, info
+
+
+def load_dataset(symbol: str, interval: str, horizon: int, months: float, offline: bool = False,
+                 now: float | None = None) -> tuple[pd.DataFrame, DatasetInfo]:
+    htf_interval = HIGHER_TF.get(interval)
+    candles = load_history(symbol, interval, months, now=now, offline=offline)
+    htf_candles = (load_history(symbol, htf_interval, months + 1, now=now, offline=offline)
+                   if htf_interval else None)  # +1 month so the higher-TF EMA is warmed up
+    return build_dataset(candles, interval, htf_candles, htf_interval, horizon)
