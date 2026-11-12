@@ -7,6 +7,10 @@ history_months:   # months of closed candles used per base interval
   15m: 12
   1h: 24
 
+# Label entry price: next_open = open of the candle after the signal (what a trader can act on);
+# close = signal candle's close (original definition; inflated by a close->next-open feed artifact).
+label_entry: next_open
+
 walk_forward:
   n_blocks: 6
   initial_train_frac: 0.4

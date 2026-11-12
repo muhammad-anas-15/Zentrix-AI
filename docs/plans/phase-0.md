@@ -42,7 +42,13 @@ Known problems from CLAUDE.md section 3, all confirmed in the code, plus:
 1. Work on local branch `phase-0`; nothing is pushed.
 2. Old `.pkl` models deleted (trained with the leaked feature). New artifacts are XGBoost JSON + metadata JSON shaped
    like `model_versions`, gitignored, rebuilt by the pipeline (about 0.43 MB per model).
-3. Flat outcomes excluded from training and accuracy; their rate is reported.
+3. **Label changed** (reversible: `label_entry` in `ml/config/models.yaml`). Up = close h candles after the
+   signal is above the **next candle's open** (the first price a trader can act on), not above the signal
+   candle's close. In the Twelve Data feed the next open often jumps back against the signal candle's body,
+   while the next body itself is close to a coin flip. A close-to-close label rewards predicting that jump
+   (smaller than the spread, untradeable). Under the old label XAU/USD 15m looked like 63% with every signal
+   "Strong". The report shows a per-model "feed check" for this effect. Phase 2 outcome resolution must use the
+   same definition. Flat outcomes are excluded from training and accuracy; their rate is reported.
 4. Platt calibration by default (isotonic available); headline metrics use blocks 2+, tier metrics blocks 3+.
 5. Strength tier levels (95% lower bound, Bonferroni over a 0.50-0.80 grid, min 100 signals): Strong 60%,
    Good 56%, Moderate 53%, Weak > 50%; otherwise "Very Weak - Wait".

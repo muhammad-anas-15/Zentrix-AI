@@ -82,8 +82,12 @@ later must come from the live track record in the database, not from this file.
   {', '.join(f'{t} {lvl:.0%}' for t, lvl in TIER_LEVELS[:-1])}, Weak > 50% (min {MIN_TIER_N} signals).
   Cuts for block k are chosen on earlier blocks; tier hit rates use blocks 3+. Everything else is
   "{NO_EDGE}" (no demonstrated edge).
-- **Label.** Close h candles ahead above (up) or below (down) the current close. Flat outcomes are
-  excluded from training and accuracy; their rate is listed.
+- **Label.** A signal is made at the close of candle t; the first price a trader can act on is the open of
+  candle t+1. Up = the close h candles after the signal is above that entry price; down = below. Flat outcomes
+  are excluded from training and accuracy; their rate is listed. The original label (close vs the signal
+  candle's close) is not used: in this feed the next candle's open often jumps back against the signal
+  candle's body (see "feed check" per model; 50% = no effect), which inflates close-to-close accuracy with a
+  move that is smaller than the spread and cannot be traded.
 - **Baselines.** (1) Majority: always predict the training data's majority direction. (2) Naive: the better
   (chosen after the fact) of "repeat the last candle's direction" and "reverse it". Short-timeframe quote data
   often mean-reverts slightly from one candle to the next; a model that only rediscovers that is not adding
@@ -120,7 +124,9 @@ def _model_section(run: dict[str, Any], m: dict[str, Any], data: dict[str, Any],
     blocks = ", ".join(f"B{b['block']} {_pct(b['rate'])}" for b in m["per_block"])
     return f"""### {_title(run)}
 
-Data: {data['n_candles']:,} closed candles, {data['n_rows']:,} labelled rows, flat outcomes {_pct(data['flat_rate'])}.
+Data: {data['n_candles']:,} closed candles, {data['n_rows']:,} labelled rows, flat outcomes {_pct(data['flat_rate'])},
+label entry `{data.get('label_entry', 'close')}`. Feed check: the next candle's open reversed the candle body
+{_pct(data.get('next_open_reversal_rate'))} of the time.
 Calibrated accuracy {_ci(m['accuracy'])} on {m['n_oos']:,} signals vs majority baseline
 {_pct(m['baseline_accuracy']['rate'])} (up-rate {_pct(m['up_rate'])}) and naive rule
 {_pct(m['naive_baseline']['rate'])} ({m['naive_baseline']['rule']}); raw-model accuracy

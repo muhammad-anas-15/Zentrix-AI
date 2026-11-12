@@ -10,7 +10,7 @@ from ml.data.candles import drop_unclosed
 from ml.features.builder import NUMERIC_FEATURES, compute_features
 from ml.features.multi_timeframe import attach_higher_tf, higher_tf_trend
 from ml.inference.features import latest_feature_row
-from ml.training.dataset import build_dataset, make_labels
+from ml.training.dataset import build_dataset, make_labels, next_open_reversal_rate
 from tests.conftest import T0, make_candles, resample
 
 H = 3600
@@ -65,15 +65,37 @@ def test_features_unchanged_when_future_is_altered(base_15m: pd.DataFrame, cut: 
     pd.testing.assert_frame_equal(original.loc[:cut, cols], altered.loc[:cut, cols])
 
 
-def test_labels_and_label_time() -> None:
-    candles = make_candles(50, "15m", seed=3, decimals=4)  # rounding creates flat outcomes
-    labels = make_labels(candles, "15m", horizon=2)
-    for i in range(48):
-        nxt, cur = candles["close"].iloc[i + 2], candles["close"].iloc[i]
-        expected = 1.0 if nxt > cur else 0.0 if nxt < cur else np.nan
-        assert labels["label"].iloc[i] == expected or (np.isnan(expected) and np.isnan(labels["label"].iloc[i]))
+def _with_gaps(n: int, seed: int) -> pd.DataFrame:
+    """Candles whose open differs from the previous close (like the real feed)."""
+    c = make_candles(n, "15m", seed=seed, decimals=4)
+    rng = np.random.default_rng(seed)
+    c["open"] = (c["close"].shift(1).fillna(c["open"]) + rng.normal(0, 0.0003, n)).round(4)
+    c["high"] = c[["open", "high", "close"]].max(axis=1)
+    c["low"] = c[["open", "low", "close"]].min(axis=1)
+    return c
+
+
+@pytest.mark.parametrize("entry", ["next_open", "close"])
+def test_labels_and_label_time(entry: str) -> None:
+    candles = _with_gaps(60, seed=3)  # rounding creates flat outcomes
+    labels = make_labels(candles, "15m", horizon=2, entry=entry)  # type: ignore[arg-type]
+    for i in range(57):
+        exit_ = candles["close"].iloc[i + 2]
+        entry_px = candles["open"].iloc[i + 1] if entry == "next_open" else candles["close"].iloc[i]
+        expected = 1.0 if exit_ > entry_px else 0.0 if exit_ < entry_px else np.nan
+        got = labels["label"].iloc[i]
+        assert got == expected or (np.isnan(expected) and np.isnan(got)), i
         assert labels["label_known_at"].iloc[i] == candles["time"].iloc[i + 2] + M15
     assert labels["label"].iloc[-2:].isna().all()
+
+
+def test_next_open_label_ignores_close_to_open_jump() -> None:
+    """A candle whose next open jumps against it: close-to-close says 'down', entry-based says 'up'."""
+    c = pd.DataFrame({"time": [0, 900, 1800], "open": [1.0, 1.2, 1.3], "high": [1.5, 1.35, 1.4],
+                      "low": [0.9, 1.15, 1.25], "close": [1.4, 1.3, 1.35], "volume": [0, 0, 0]})
+    assert make_labels(c, "15m", 1, entry="next_open")["label"].iloc[0] == 1.0  # 1.2 -> 1.3
+    assert make_labels(c, "15m", 1, entry="close")["label"].iloc[0] == 0.0  # 1.4 -> 1.3
+    assert next_open_reversal_rate(c) == 1.0  # body up, next open below the close
 
 
 def test_dataset_excludes_flats_and_unlabelled_rows() -> None:
