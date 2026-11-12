@@ -32,6 +32,15 @@
 **Recommendation:** train on the same feed that serves live signals (Twelve Data) where possible. If MT5 or
 HistData is used for depth, keep a Twelve Data out-of-sample period to check the model still holds on the live feed.
 
+## 2b. Live ingestion budget (Phase 2 worker)
+
+- **Twelve Data free plan:** 8 requests/min and 800/day. One request per (instrument, timeframe) per candle close:
+  6 instruments x (15m + 1h) is ~720 requests per weekday. The worker enforces a daily budget
+  (`TWELVE_DATA_DAILY_BUDGET`, default 780) and runs nothing below 15m live. Requests are 8 s apart, so the
+  last FX series of a quarter-hour is fetched ~100 s after the close (inside the 3-minute signal window).
+  More pairs or faster timeframes need a paid plan; enabling them is an `ingestion_targets` row, not code.
+- **Binance:** public klines, no daily budget at this volume (well under the request-weight limits).
+
 ## 3. Provider terms (CLAUDE.md item 10). Blocking for launch, not for research
 
 Checked 2026-11-12. Verify again before launch; terms change.

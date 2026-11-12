@@ -90,9 +90,9 @@ class TrackRecordOut(BaseModel):
     first_signal_at: datetime | None
     last_signal_at: datetime | None
     filters: dict[str, Any]
-    method: str = ("Live signals only (created within one timeframe of the candle close). Outcome: entry at the "
-                   "next candle's open, exit at the open after the horizon. Flat and void outcomes are excluded "
-                   "from the hit rate and listed separately.")
+    method: str = ("Live signals only (created within 20% of a candle, max 3 min, after its close). Outcome: "
+                   "entry at the next candle's open, exit at the open after the horizon. Flat and void outcomes "
+                   "are excluded from the hit rate and listed separately.")
     disclaimer: str = DISCLAIMER
 
 

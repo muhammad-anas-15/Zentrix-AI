@@ -19,8 +19,10 @@ endpoint matches the DB.
 6. Redis caching: latest signal per series; track-record responses keyed by an outcome counter.
 
 ## Assumptions (defaults; say if you want otherwise)
-- **Live-only signals.** A signal is stored only if generated within one timeframe of its candle's close.
-  Backfilled or late candles never create signals, so the track record cannot contain hindsight.
+- **Live-only signals.** A signal is stored only if generated within min(20% of the timeframe, 3 minutes) of
+  its candle's close (12 s for 1m, 3 min for 15m and above), stamped with the real time it was made. Backfilled
+  or late candles never create signals, so the track record cannot contain hindsight. (Changed from "one
+  timeframe" after a live run showed a 1m signal could otherwise be published after its outcome was known.)
 - **Every active model emits signals**, including models without a demonstrated edge: they show
   "Very Weak - Wait". The live track record is how marginal models get confirmed or rejected.
 - **Outcome = the model's label:** entry = open of candle t+1, exit = open of candle t+h+1 (open-to-open);

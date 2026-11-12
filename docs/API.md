@@ -41,7 +41,7 @@ silver on the free Twelve Data plan) or `disabled`. `active=false` instruments h
 ## Signals and track record (public for now; free/premium limits come in Phase 4)
 
 Signals are produced by the worker at every candle close for each active model, **only live** (stored within
-one timeframe of the candle's close, never backfilled). Each is resolved automatically with the model's label:
+min(20% of the timeframe, 3 minutes) of the candle's close, never backfilled; `created_at` is the real time). Each is resolved automatically with the model's label:
 entry = next candle's open, exit = the open after `horizon` candles; `win`/`loss` by direction, `flat` if equal,
 `void` if candles in that window are missing. The hit rate excludes flat and void (both are reported).
 
