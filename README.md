@@ -41,6 +41,14 @@ python -m app.workers.main                          # candles, signals, outcomes
 Push notifications need a Firebase service-account JSON (`FCM_CREDENTIALS_FILE`); without it alerts still
 reach the in-app inbox (`/v1/alerts/events`).
 
+Plans (no payments): every feature is unlocked while `PREMIUM_ENFORCED=false` (default); Premium features are
+labelled in the API (`GET /v1/plans`). Admins set plans via `/v1/admin`; make the first admin on the server:
+
+```bash
+python -m scripts.admin make-admin you@example.com  # after that account has signed in once
+python -m scripts.admin set-plan tester@example.com premium --until 2027-01-31 --reason "beta"
+```
+
 With Docker: `docker compose -f infra/docker-compose.yml up --build` (migrations, API, worker, Postgres, Redis).
 
 ML: `python -m ml.training.pipeline` (walk-forward, train, write docs/ML_REPORT.md);

@@ -21,11 +21,59 @@ a test fails if it is stale). Interactive docs at `/docs` when the server runs. 
 | `POST /v1/auth/refresh` | none (30/min per IP) | Rotate tokens |
 | `POST /v1/auth/logout` | none | Revoke this device's refresh token (idempotent, 204) |
 | `POST /v1/auth/logout-all` | bearer | Revoke all sessions incl. outstanding access tokens (204) |
-| `GET /v1/me` | bearer | Profile: plan, `premium_access`, locale (`en`/`ur`), timezone |
+| `GET /v1/me` | bearer | Profile: effective `plan`, `premium_access`, `premium_until`, locale (`en`/`ur`), timezone |
+| `GET /v1/me/access` | bearer | Plan and per-feature access (see Plans and Premium) |
 | `PATCH /v1/me` | bearer | Update `display_name`, `locale`, `timezone` (IANA) |
 | `DELETE /v1/me` | bearer | **Delete account and all data** (Play requirement). Irreversible, 204 |
 
 `premium_access` is `true` for everyone while `PREMIUM_ENFORCED=false` (billing is not built).
+
+## Plans and Premium (no payments)
+
+Billing is not integrated. Features are **Free** or **Premium**, and the server can lock Premium features, but
+while `PREMIUM_ENFORCED=false` (the default) **everything is unlocked for everyone**, anonymous callers included.
+Premium features are still labelled, so the app can show a "Premium" badge.
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `GET /v1/plans` | none | Catalogue: every feature with its tier, the free markets, `enforced`, a note. `purchasable` is always false for now |
+| `GET /v1/me/access` | bearer | Your effective `plan`, `source` (`plan`/`subscription`/`grant`), `premium_until`, `premium_access`, and per feature `available` + `via` (`free`, `open` = unlocked because not enforced, `plan`, `subscription`, `grant`, or null = locked) |
+
+**Labels in responses:**
+- Responses of premium features carry `premium: {"feature": "<key>", "label": "Premium"}`.
+- Free responses that withheld a premium part carry `premium_locked: ["<key>"]`. It is empty unless enforced.
+- In OpenAPI, premium operations end their summary with "(Premium)" and carry
+  `x-premium: {feature, scope: full|partial}`.
+
+**Premium features:**
+
+| Key | What | Where (while enforced) |
+|---|---|---|
+| `all_markets` | Live signals outside the free markets (default EUR/USD, GBP/USD, XAU/USD on 15m; `FREE_SIGNAL_SYMBOLS`, `FREE_SIGNAL_TIMEFRAMES`) | `GET /v1/signals/latest` refuses other markets. `GET /v1/signals`, watchlist quotes and the WebSocket withhold their *unresolved* signals |
+| `signal_alerts` | Push alerts on signals | Creating or resuming a `signal` alert; the worker skips users without it |
+| `trade_levels` | ATR stop/targets with base rates | `GET /v1/levels`, `GET /v1/signals/{id}/levels` |
+| `exit_advisor` | Exit advice | `POST /v1/exit-advice` |
+| `scenario` | Scenario path | `GET /v1/scenario` |
+| `journal` | Journal, stats, review | `POST /v1/journal`, `PATCH /v1/journal/{id}`, `GET /v1/journal/stats`, `GET /v1/journal/review` |
+| `risk_guard` | Daily-loss, overtrading and loss-streak warnings | `GET /v1/me/risk-status`; the daily-loss check in `POST /v1/risk/position-size` |
+
+Free: `market_conditions`, `news_guard`, `position_size`, `track_record`, `free_signals`, `watchlists`,
+`price_alerts` (price, % move and news alerts), `risk_profile`.
+
+**While enforced:**
+- An anonymous call to a premium endpoint gets `401`.
+- A signed-in user without access gets `403 premium_required`, with `details: {feature, title}`.
+
+**Who has Premium.** A user has Premium if any of these holds now:
+- `users.plan = premium`, and `plan_expires_at` is empty or still in the future (set by an admin);
+- an active subscription (written by billing later);
+- an active `premium` grant.
+
+A grant of a single feature key unlocks that feature only.
+
+**Your data is never locked.** Listing, reading, pausing and deleting what you saved (journal trades, alerts) and
+deleting the account always work. The public track record stays complete: resolved signals of every market are
+always shown, and `/v1/track-record` is never filtered.
 
 ## Market reference data (public, 120/min per IP)
 
@@ -38,7 +86,7 @@ a test fails if it is stale). Interactive docs at `/docs` when the server runs. 
 Each instrument lists its venue feeds (`listings`) with a status: `active`, `planned`, `restricted` (for example
 silver on the free Twelve Data plan) or `disabled`. `active=false` instruments have no usable feed yet.
 
-## Signals and track record (public for now; free/premium limits come in Phase 4)
+## Signals and track record (public; live signals outside the free markets are Premium: `all_markets`)
 
 Signals are produced by the worker at every candle close for each active model, **only live** (stored within
 min(20% of the timeframe, 3 minutes) of the candle's close, never backfilled; `created_at` is the real time). Each is resolved automatically with the model's label:
@@ -49,7 +97,7 @@ entry = next candle's open, exit = the open after `horizon` candles; `win`/`loss
 |---|---|
 | `GET /v1/candles?symbol=&timeframe=&venue=&limit=&end=` | Closed, market-hours candles for charts (oldest first, <= 1000) |
 | `GET /v1/signals?symbol=&timeframe=&horizon=&strength=&status=&limit=&before_id=` | Every signal with its outcome, newest first; cursor `next_before_id` |
-| `GET /v1/signals/latest?symbol=&timeframe=&horizon=` | Latest signal (cached); 404 `no_signal` if none yet |
+| `GET /v1/signals/latest?symbol=&timeframe=&horizon=` | Latest signal (cached); 404 `no_signal` if none yet. Premium outside the free markets |
 | `GET /v1/track-record?symbol=&timeframe=&horizon=&since=` | Live stats from the database: counts, hit rate, 95% Wilson interval, by strength |
 | `GET /v1/models?symbol=&active_only=` | Models behind the signals: out-of-sample backtest, `has_demonstrated_edge` and the reasons |
 
@@ -57,6 +105,9 @@ Each signal carries `confidence` (calibrated probability of its direction), `str
 out-of-sample, or "Very Weak - Wait"), `model.has_demonstrated_edge`, and `backtest_tier` (out-of-sample
 **backtest** stats of that tier, to be labelled as backtest in the app; live numbers come from
 `/v1/track-record`). Symbols are canonical: `EUR/USD`, `XAU/USD`, `BTC/USDT` (spot), `BTC/USDT:PERP`.
+Signals of markets outside the free tier carry `premium: {"feature": "all_markets", ...}`. While enforced,
+callers without `all_markets` see those signals in `GET /v1/signals` once they are resolved
+(`premium_locked: ["all_markets"]`).
 
 ## Trader-protection tools
 
@@ -65,8 +116,8 @@ stored data and is labelled as what it is: a base rate, a measured coverage, or 
 Responses carry `disclaimer` ("Not financial advice ...").
 
 Data used: stored, closed candles of the instrument's primary listing (or `venue=`). A series that is not
-ingested returns 404 `no_data`. Free/premium gating comes in Phase 4; until then everything is open, and
-Premium features carry `premium: true`.
+ingested returns 404 `no_data`. Levels, exit advice, scenario, journal writes and analytics, and the risk
+status are Premium (see Plans and Premium); they are open to everyone while `PREMIUM_ENFORCED=false`.
 
 ### News guard (public)
 
@@ -86,15 +137,15 @@ Premium features carry `premium: true`.
 - **Source:** the ForexFactory weekly feed, refreshed hourly by the worker. It is unofficial and must be
   replaced before launch.
 
-### Market conditions, levels, exit advice, scenario (public)
+### Market conditions (free), levels, exit advice, scenario (Premium)
 
 | Endpoint | Purpose |
 |---|---|
 | `GET /v1/conditions?symbol=&timeframe=15m` | `light` green/amber/red with `factors`: market open, data freshness, trend (ADX), volatility (ATR percentile), session liquidity, news |
-| `GET /v1/levels?symbol=&side=long\|short&timeframe=&entry=&sl_atr=1.5&rr=1&rr=2&max_bars=50` | ATR stop and R-multiple targets. Each target's `base_rate` is how often it was hit before the stop on past candles, next to `break_even_hit_rate` |
-| `GET /v1/signals/{id}/levels` | The same for a signal, using only candles known when the signal was made |
-| `POST /v1/exit-advice` | Body: `symbol, timeframe, side, entry_price, stop_loss?, take_profit?, opened_at?` |
-| `GET /v1/scenario?symbol=&timeframe=&steps=5` | **Premium.** Price band for the next 1-5 candles; see below |
+| `GET /v1/levels?symbol=&side=long\|short&timeframe=&entry=&sl_atr=1.5&rr=1&rr=2&max_bars=50` | **Premium** (`trade_levels`). ATR stop and R-multiple targets. Each target's `base_rate` is how often it was hit before the stop on past candles, next to `break_even_hit_rate` |
+| `GET /v1/signals/{id}/levels` | **Premium** (`trade_levels`). The same for a signal, using only candles known when the signal was made. An unresolved signal outside the free markets also needs `all_markets` |
+| `POST /v1/exit-advice` | **Premium** (`exit_advisor`). Body: `symbol, timeframe, side, entry_price, stop_loss?, take_profit?, opened_at?` |
+| `GET /v1/scenario?symbol=&timeframe=&steps=5` | **Premium** (`scenario`). Price band for the next 1-5 candles; see below |
 
 **Conditions light:**
 - Red: market closed, stale data, news blackout, or extreme volatility.
@@ -118,7 +169,7 @@ accuracy, with `reliable=false` when the model has no demonstrated edge.
 | `POST /v1/risk/position-size` | optional bearer | Size from `entry`, `stop`, `take_profit?`, `balance` + `risk_pct` or `risk_amount`, `account_currency`, `conversion_rate?`, `leverage?`, `lot_step`, `size_step?` |
 | `GET /v1/me/risk-profile` | bearer | Risk rules (defaults until saved: 1% per trade, 3% daily loss, 6 trades/day, 3-loss streak) |
 | `PUT /v1/me/risk-profile` | bearer | Save `account_currency`, `balance`, `risk_per_trade_pct`, `max_daily_loss_pct`, `max_trades_per_day`, `max_consecutive_losses`, `leverage` |
-| `GET /v1/me/risk-status` | bearer | `level` ok/warning/stop with warnings (codes below), today's P&L, loss limit used and left, trades today, open risk, loss streak; "today" in the user's timezone |
+| `GET /v1/me/risk-status` | bearer | **Premium** (`risk_guard`). `level` ok/warning/stop with warnings (codes below), today's P&L, loss limit used and left, trades today, open risk, loss streak; "today" in the user's timezone |
 
 **Position size:**
 - The stop decides the side.
@@ -136,7 +187,8 @@ accuracy, with `reliable=false` when the model has no demonstrated edge.
   - R:R below 1;
   - stop tighter than 0.5 x ATR;
   - margin above balance;
-  - more risk than today's remaining loss budget (signed in).
+  - more risk than today's remaining loss budget (signed in; Premium `risk_guard`, else
+    `premium_locked: ["risk_guard"]` while enforced).
 
 **Risk-status warning codes:**
 - `daily_loss_limit_reached` (level `stop`)
@@ -146,15 +198,15 @@ accuracy, with `reliable=false` when the model has no demonstrated edge.
 - `loss_streak`
 - `recent_loss` (a new trade within 15 min of a loss)
 
-### Journal (bearer)
+### Journal (bearer; Premium `journal`, but your trades are never locked)
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /v1/journal` | Add a trade. Required: `symbol, side, quantity` (units), `entry_price, entry_at`. Optional: `exit_price` + `exit_at`, `stop_loss`, `take_profit`, `fees`, `account_currency`, `fx_rate`, `timeframe`, `signal_id`, `setup`, `tags` (up to 10), `notes` |
+| `POST /v1/journal` | **Premium.** Add a trade. Required: `symbol, side, quantity` (units), `entry_price, entry_at`. Optional: `exit_price` + `exit_at`, `stop_loss`, `take_profit`, `fees`, `account_currency`, `fx_rate`, `timeframe`, `signal_id`, `setup`, `tags` (up to 10), `notes` |
 | `GET /v1/journal?status=all\|open\|closed&symbol=&since=&until=&limit=&before_id=` | Newest first, cursor `next_before_id` |
-| `GET/PATCH/DELETE /v1/journal/{id}` | One trade; PATCH `exit_price` + `exit_at` closes it |
-| `GET /v1/journal/stats?since=&until=&currency=` | Win rate, net P&L, average win/loss, profit factor, expectancy, average R, worst losing streak, per instrument |
-| `GET /v1/journal/review` | Rule-based observations (at least 5 closed trades); codes listed below |
+| `GET/PATCH/DELETE /v1/journal/{id}` | One trade; PATCH (**Premium**) `exit_price` + `exit_at` closes it. GET and DELETE are never locked |
+| `GET /v1/journal/stats?since=&until=&currency=` | **Premium.** Win rate, net P&L, average win/loss, profit factor, expectancy, average R, worst losing streak, per instrument |
+| `GET /v1/journal/review` | **Premium.** Rule-based observations (at least 5 closed trades); codes listed below |
 
 **P&L and R are computed by the server:**
 - P&L is calculated in the quote currency, then converted to account currency (at the stored rate at exit, or
@@ -179,7 +231,7 @@ accuracy, with `reliable=false` when the model has no demonstrated edge.
 | `PATCH /v1/watchlists/{id}`, `DELETE /v1/watchlists/{id}` | Rename / reorder / delete |
 | `PUT /v1/watchlists/{id}/items {symbols}` | Replace items in this order |
 | `POST /v1/watchlists/{id}/items {symbol}`, `DELETE /v1/watchlists/{id}/items?symbol=` | Add at the end / remove |
-| `GET /v1/watchlists/{id}/quotes` | Per item: last **closed** candle price + `as_of`, 24h change, news state + next event, latest signal (with `has_demonstrated_edge`) |
+| `GET /v1/watchlists/{id}/quotes` | Per item: last **closed** candle price + `as_of`, 24h change, news state + next event, latest signal (with `has_demonstrated_edge`; while enforced without `all_markets`, the latest one you may see) |
 
 ### Alerts and push (bearer)
 
@@ -198,7 +250,7 @@ Alert kinds (`params` are validated per kind):
 |---|---|---|---|
 | `price_cross` | `symbol`, `timeframe` (default 15m; must be ingested, else 422 `series_not_ingested`) | `level`, `direction` above/below | A closed candle crosses the level from the other side (the wick counts) |
 | `pct_move` | `symbol`, `timeframe` | `pct`, `window_candles` (default 4), `direction` up/down/either | The close moved at least `pct`% over the window |
-| `signal` | `symbol`, `watchlist_id`, or neither (all your watchlists); optional `timeframe` | `min_strength` (Strong/Good/Moderate/Weak), `horizons?` | A new signal meets the strength. "Very Weak - Wait" and models without an edge never alert |
+| `signal` (**Premium** `signal_alerts`) | `symbol`, `watchlist_id`, or neither (all your watchlists); optional `timeframe` | `min_strength` (Strong/Good/Moderate/Weak), `horizons?` | A new signal meets the strength. "Very Weak - Wait" and models without an edge never alert |
 | `news` | `symbol`, `watchlist_id`, or neither | `lead_minutes` (default 30), `min_impact` high/medium | A relevant calendar event starts within the lead time |
 
 **When alerts fire:**
@@ -223,14 +275,37 @@ Alert kinds (`params` are validated per kind):
 Client sends:
 - `{"action": "subscribe", "symbols": ["EUR/USD"], "timeframes": ["15m"], "types": ["candle", "signal"]}`
   (at most 50 symbols; each subscribe replaces the previous one);
+- `{"action": "auth", "access_token": "..."}` (optional; see below);
 - `{"action": "ping"}`.
 
 Server sends:
-- `hello` on connect, `subscribed`, `pong`, `error`;
+- `hello` on connect (with `premium_enforced` and `free_markets`), `subscribed`, `authenticated`
+  (`plan`, `all_markets`, `expires_at`), `pong`, `error`;
 - `candle` events (`{symbol, venue, timeframe, candle: {t, o, h, l, c, v}}`), when a candle closes;
 - `signal` events (the same shape as `GET /v1/signals` items).
 
 If Redis is down the server closes with code 1011 and the app falls back to polling.
+
+While enforced, `signal` events outside the free markets go only to a connection authenticated as a user with
+`all_markets`, and only until that access token expires. Send `auth` again with a fresh token to continue.
+Such events carry `premium: {"feature": "all_markets", ...}`.
+
+## Admin (bearer, admins only)
+
+Admins are users with `is_admin`. That flag can only be set on the server with the CLI (`python -m scripts.admin
+make-admin <email>`), never through the API. Everyone else gets `403 forbidden`. Every change is written to
+`audit_log`, with the acting admin and the reason.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /v1/admin/users?q=&plan=&limit=&offset=` | Find users (email or name contains `q`); each with assigned `plan`, `plan_expires_at`, `effective_plan`, `premium_source`, `premium_until`, `is_admin` |
+| `GET /v1/admin/users/{id}` | One user, plus `entitlements` (grants, with `active`) and `subscriptions` |
+| `PUT /v1/admin/users/{id}/plan {plan, expires_at?, reason}` | Set the plan. `expires_at` applies to premium only and must be in the future; `free` clears it |
+| `POST /v1/admin/users/{id}/entitlements {key, source?, starts_at?, ends_at?, note?}` | Grant `premium` or one premium feature (source `admin`/`promo`) for a period |
+| `DELETE /v1/admin/users/{id}/entitlements/{grant_id}?reason=` | End a grant now (the row is kept as history) |
+
+CLI (from `backend/`): `python -m scripts.admin show|make-admin|revoke-admin <email or id>` and
+`python -m scripts.admin set-plan <email or id> premium|free [--until 2027-01-31] --reason "..."`.
 
 ## Ops
 
@@ -258,5 +333,9 @@ Always `{"error": {"code": "...", "message": "...", "details": ...}}`.
 - `conversion_unavailable` (422)
 - `invalid_risk_input` (422)
 - `series_not_ingested` (422)
+
+**Phase 4 codes:**
+- `premium_required` (403; `details.feature`, `details.title`)
+- `forbidden` (403: admin endpoints)
 - `name_taken` (409)
 - `limit_reached` (409)

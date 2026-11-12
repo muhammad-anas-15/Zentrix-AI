@@ -41,14 +41,14 @@ Design rules, so new assets, venues and timeframes are inserts, not schema refac
 | `instruments` | `symbol` (unique canonical: `EUR/USD`, `BTC/USDT`, `BTC/USDT:PERP`), `asset_class`, `instrument_type` (spot / perpetual / future / cfd), `base`, `quote`, `settle`, `expiry`, `contract_size`, `price_decimals`, `session`, `meta`, `active` |
 | `instrument_listings` | `instrument_id`, `venue_id`, `venue_symbol`, `status` (active / planned / restricted), `is_primary`, `note`; unique (`venue_id`, `venue_symbol`); one primary per instrument |
 | `candles` | PK (`listing_id`, `timeframe`, `ts`), OHLC, `volume`, `quote_volume`, `trades`, `ingested_at`; **range-partitioned by month on `ts`** (`zx_ensure_candle_partitions()` creates partitions) |
-| `users` | `id` UUID, `email`, `display_name`, `plan` (free / premium), `locale` (en / ur), `timezone` |
+| `users` | `id` UUID, `email`, `display_name`, `plan` (free / premium) + `plan_expires_at`, `is_admin`, `locale` (en / ur), `timezone` |
 | `auth_identities` | (`provider`, `subject`) unique, `user_id` |
 | `refresh_tokens` | `token_hash` (SHA-256, unique), `family_id` (rotation + reuse detection), `expires_at`, `revoked_at` |
 | `devices` | `fcm_token` unique, `platform`, `user_id` |
-| `subscriptions`, `entitlements` | entitlement model; billing not integrated (`PREMIUM_ENFORCED=false`) |
+| `subscriptions`, `entitlements` | entitlement model (section 6); billing not integrated (`PREMIUM_ENFORCED=false`). Entitlements = time-boxed grants (`key` = `premium` or one feature, `source`, `starts_at`, `ends_at`, `note`, `granted_by`) |
 | `audit_log` | security events; survives account deletion without personal data |
 
-### Built in Phases 2 and 3 (additive migrations 0003, 0004)
+### Built in Phases 2 and 3 (additive migrations 0003, 0004; Phase 4 added columns in 0005)
 
 | Table | References | Phase |
 |---|---|---|
@@ -86,6 +86,7 @@ display rights). The ingestion worker picks the provider from the listing's venu
 | Position-size and risk calculator | pure service using `contract_size`, `price_decimals`, quote/account currency conversion | 3 |
 | Journal and portfolio tracking | `journal_entries`; P&L in account currency | 3 |
 | Market-condition light, news countdown | sessions, ATR regime, `news_events` | 3 |
+| Free / Premium tiers (no payments) | feature registry + entitlement resolution + gate dependency (section 6) | 4 |
 
 Flow: provider -> ingestion worker (closed candles only, upsert into `candles`) -> signal job + outcome resolver +
 alert evaluator -> Postgres (`alert_events` outbox) -> FCM; candle and signal events -> Redis pub/sub (`zx:events`)
@@ -96,3 +97,26 @@ alert evaluator -> Postgres (`alert_events` outbox) -> FCM; candle and signal ev
 - Analysis only: no trading, deposits or wallets. Play's crypto exchange/wallet policy targets those; keep the
   app clearly outside it. Do not market for binary options (CLAUDE.md section 9).
 - Market-data display needs licensed feeds before launch (DATA_SOURCES.md).
+
+## 6. Plans and entitlements (Phase 4, no payments)
+
+- **One feature registry** (`app/services/entitlements.py`, `FEATURES`): every product feature with its tier.
+  Gates, response labels, `GET /v1/plans` and the docs come from it.
+- **Effective access** (`resolve_access`) = any of: `users.plan = premium` (not past `plan_expires_at`), an
+  `active`/`grace` subscription, or an active `entitlements` grant (`premium`, or one feature key). It is computed
+  per request, so expiry needs no job.
+- **The gate** (`app/api/premium.py`):
+  - `**premium("scenario")` on a route adds `require_premium` and the OpenAPI mark `x-premium`.
+  - Partly premium routes take `GateDep` and call `gate.allows()` / `gate.require()`.
+  - While `PREMIUM_ENFORCED=false`, the gate parses no token and runs no query.
+  - When enforced: anonymous callers get 401, users without access get 403 `premium_required`.
+- **Never locked:** reading, pausing and deleting a user's own data, account deletion, and the public track record
+  (resolved signals of every market, and `/v1/track-record`).
+- **Admins:** `users.is_admin` is set only by the server CLI (`python -m scripts.admin`). The `/v1/admin`
+  endpoints set plans and grants and write `audit_log`.
+- **Adding billing later:**
+  - a store webhook writes `subscriptions` rows;
+  - `resolve_access` already counts them;
+  - flip `PREMIUM_ENFORCED=true`.
+
+  No endpoint changes.
