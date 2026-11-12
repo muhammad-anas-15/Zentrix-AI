@@ -131,6 +131,9 @@ async def _clean(app: FastAPI, fake_redis: fakeredis.FakeAsyncRedis) -> AsyncIte
     yield
     async with app.state.engine.begin() as conn:
         await conn.execute(text("TRUNCATE users, audit_log RESTART IDENTITY CASCADE"))
+        await conn.execute(text("TRUNCATE signal_outcomes, signals, model_versions, candles RESTART IDENTITY CASCADE"))
+        await conn.execute(text("DELETE FROM ingestion_targets WHERE reason <> 'chart'"))
+        await conn.execute(text("UPDATE ingestion_targets SET enabled = true"))
     await fake_redis.flushall()
 
 
