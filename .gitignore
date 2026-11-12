@@ -1,2 +1,42 @@
+# --- Python ---
 .venv/
+venv/
 __pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Secrets: never commit. Copy backend/.env.example to backend/.env ---
+.env
+.env.*
+!.env.example
+
+# --- Data and artifacts: rebuilt by scripts, never committed ---
+backend/data_cache/
+backend/ml/artifacts/
+backend/knowledge/vector_store/
+*.db
+*.sqlite3
+*.pkl
+*.parquet
+
+# --- Flutter / Android (mobile/) ---
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/android/key.properties
+*.jks
+*.keystore
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
