@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from ml.calibration.strength import TIER_ORDER, confidence, direction, wilson_interval
+from ml.calibration.strength import MIN_TIER_N, TIER_LEVELS, TIER_ORDER, confidence, direction, wilson_interval
 
 RELIABILITY_BINS: tuple[float, ...] = (0.50, 0.52, 0.54, 0.56, 0.58, 0.60, 0.65, 1.0)
 # If a trivial last-candle rule already predicts the label this well, the label is dominated by feed structure
@@ -90,6 +90,29 @@ def summarize(pred: pd.DataFrame) -> dict[str, Any]:
         "per_block": [{"block": int(b), **_rate(direction(g["p_cal"].to_numpy(float)) == g["label"].to_numpy(int))}
                       for b, g in cal.groupby("block")],
         "tiers": tier_stats,
+        "tier_validation": validate_tiers(tiers),
     }
     out["usability"] = assess_usability(out)
     return out
+
+
+def validate_tiers(tiers: pd.DataFrame, min_n: int = MIN_TIER_N) -> dict[str, dict[str, Any]]:
+    """Did each tier hold up out-of-sample? Cuts for block k were chosen on earlier blocks, so the signals they
+    assigned in blocks 3+ are a clean test. Tier T is validated when signals labelled T or stronger (the set
+    'confidence >= cut') reached T's level with 95% confidence (Weak: strictly above 50%)."""
+    out: dict[str, dict[str, Any]] = {}
+    for i, (tier, level) in enumerate(TIER_LEVELS):
+        stronger = {t for t, _ in TIER_LEVELS[: i + 1]}
+        sel = tiers[tiers["strength"].isin(stronger)]
+        stats = _rate(direction(sel["p_cal"].to_numpy(dtype=float)) == sel["label"].to_numpy(dtype=int))
+        lo = stats["ci95"][0] if stats["n"] else None
+        ok = stats["n"] >= min_n and lo is not None and (lo > level if level == 0.5 else lo >= level)
+        out[tier] = {**stats, "validated": bool(ok)}
+    return out
+
+
+def served_cuts(cuts: dict[str, float | None], m: dict[str, Any]) -> dict[str, float | None]:
+    """Cuts actually used for live signals: only for a usable model, and only tiers validated out-of-sample."""
+    if not m["usability"]["usable"]:
+        return {t: None for t in cuts}
+    return {t: (c if m["tier_validation"].get(t, {}).get("validated") else None) for t, c in cuts.items()}

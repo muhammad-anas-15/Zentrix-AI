@@ -14,7 +14,7 @@ from typing import Any
 
 from ml.calibration.strength import MIN_TIER_N, NO_EDGE, TIER_LEVELS, TIER_ORDER
 from ml.demo_trading_logger import store
-from ml.evaluation.metrics import MAX_NAIVE_RATE, summarize
+from ml.evaluation.metrics import MAX_NAIVE_RATE, served_cuts, summarize
 from ml.settings import get_settings
 from ml.training.model import git_commit
 
@@ -42,13 +42,15 @@ def _title(run: dict[str, Any]) -> str:
 def build_report(conn: sqlite3.Connection, generated_at: datetime | None = None) -> str:
     generated_at = generated_at or datetime.now(UTC)
     runs = store.latest_runs(conn).to_dict("records")
-    sections, summary_rows = [], []
+    sections, summary_rows, n_usable = [], [], 0
     for run in runs:
         pred = store.load_predictions(conn, run["run_id"])
         m = summarize(pred)
         data, cfg, cuts = json.loads(run["data_json"]), json.loads(run["config_json"]), json.loads(run["cuts_json"])
         usable = m["usability"]["usable"]
-        earned = [t for t, _ in TIER_LEVELS if cuts.get(t) is not None] if usable else []
+        n_usable += int(usable)
+        served = served_cuts(cuts, m)
+        earned = [t for t, _ in TIER_LEVELS if served.get(t) is not None]
         acc, base, naive = m["accuracy"], m["baseline_accuracy"], m["naive_baseline"]
         best = max(base["rate"], naive["rate"])
         beats = "yes" if usable else "**no**"
@@ -81,7 +83,8 @@ later must come from the live track record in the database, not from this file.
 - **Strength tiers.** A tier is earned when signals at or above a confidence cut (grid 0.50-0.80) have a
   lower confidence bound on hit rate (Wilson, Bonferroni-adjusted over the grid) of at least:
   {', '.join(f'{t} {lvl:.0%}' for t, lvl in TIER_LEVELS[:-1])}, Weak > 50% (min {MIN_TIER_N} signals).
-  Cuts for block k are chosen on earlier blocks; tier hit rates use blocks 3+. Everything else is
+  Cuts for block k are chosen on earlier blocks; tier hit rates use blocks 3+. A tier is served live only if it
+  also held up there (signals labelled with it or stronger reached its level, 95% bound). Everything else is
   "{NO_EDGE}" (no demonstrated edge).
 - **Label (open to open).** A signal is made at the close of candle t. Entry = open of candle t+1 (the first
   price a trader can act on); exit = open of candle t+h+1 (the first price after candle t+h closes). Up = exit
@@ -109,10 +112,18 @@ later must come from the live track record in the database, not from this file.
 
 ## Summary
 
+{verdict(n_usable, len(runs))}
+
 | Model | OOS period (UTC) | OOS signals | Accuracy (95% CI) | Majority | Naive last-candle rule | Edge vs better baseline | Usable for signals | Flat | ECE raw -> calibrated | Tiers earned |
 |---|---|---|---|---|---|---|---|---|---|---|
 """
     return header + "\n".join(summary_rows) + "\n\n## Per model\n\n" + "\n".join(sections)
+
+
+def verdict(n_usable: int, n_models: int) -> str:
+    return (f"**{n_usable} of {n_models} models are usable for signals.** Each model's edge is tested at a one-sided "
+            f"2.5% level, so with {n_models} models about {n_models * 0.025:.1f} would pass by chance alone: a "
+            "marginal pass is weak evidence until the live track record confirms it.")
 
 
 def cfg_blocks(runs: list[dict[str, Any]]) -> str:
@@ -125,10 +136,19 @@ def _model_section(run: dict[str, Any], m: dict[str, Any], data: dict[str, Any],
     rel = "\n".join(
         f"| {r['bin'][0]:.2f}-{r['bin'][1]:.2f} | {r['n']:,} | {_pct(r['mean_confidence'])} | {_ci(r)} |"
         for r in m["reliability"] if r["n"])
-    tiers = "\n".join(
-        f"| {t} | {'-' if t == NO_EDGE else ('not earned' if cuts.get(t) is None else f'{cuts[t]:.3f}')} "
-        f"| {m['tiers'][t]['n']:,} | {_pct(m['tiers'][t]['share'])} | {_ci(m['tiers'][t])} |"
-        for t in TIER_ORDER)
+    served = served_cuts(cuts, m)
+
+    def _tier_row(t: str) -> str:
+        band = m["tiers"][t]
+        if t == NO_EDGE:
+            return f"| {t} | - | {band['n']:,} | {_pct(band['share'])} | {_ci(band)} | - | always |"
+        cut = "not found" if cuts.get(t) is None else f"{cuts[t]:.2f}"
+        check = m["tier_validation"][t]
+        held = f"{_ci(check)} {'(held)' if check['validated'] else '(did not hold)'}" if check["n"] else "n/a"
+        return (f"| {t} | {cut} | {band['n']:,} | {_pct(band['share'])} | {_ci(band)} | {held} "
+                f"| {'yes' if served.get(t) is not None else 'no'} |")
+
+    tiers = "\n".join(_tier_row(t) for t in TIER_ORDER)
     blocks = ", ".join(f"B{b['block']} {_pct(b['rate'])}" for b in m["per_block"])
     usability = ("yes" if m["usability"]["usable"]
                  else "**no** - " + "; ".join(m["usability"]["reasons"]) + '. Tiers below are not served.')
@@ -151,10 +171,11 @@ Reliability (calibrated, stated confidence vs observed hit rate):
 |---|---|---|---|
 {rel}
 
-Strength tiers (cut = production confidence threshold; hit rates from blocks 3+):
+Strength tiers (walk-forward, blocks 3+). "Cut" = confidence threshold found on all OOS blocks; "held" = signals
+labelled with this tier or stronger reached the tier's level out-of-sample. Only usable models serve held tiers:
 
-| Tier | Cut | Signals | Share | Hit rate (95% CI) |
-|---|---|---|---|---|
+| Tier | Cut | Signals (this tier) | Share | Hit rate (95% CI) | This tier or stronger | Served live |
+|---|---|---|---|---|---|---|
 {tiers}
 """
 

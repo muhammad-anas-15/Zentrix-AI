@@ -22,7 +22,7 @@ from ml.calibration.strength import MIN_TIER_N, TIER_LEVELS
 from ml.data.candles import HIGHER_TF
 from ml.demo_trading_logger import store
 from ml.demo_trading_logger.accuracy_report import generate_report
-from ml.evaluation.metrics import summarize
+from ml.evaluation.metrics import served_cuts, summarize
 from ml.features.builder import INFERENCE_HTF_LOOKBACK, INFERENCE_LOOKBACK, WARMUP, feature_columns
 from ml.training.dataset import LabelMode, load_dataset
 from ml.training.model import MODEL_PARAMS, git_commit, model_key, save_artifact
@@ -53,7 +53,7 @@ def run_model(spec: dict[str, Any], months: float, cfg: WalkForwardConfig, offli
     }, result.predictions)
 
     usability = metrics["usability"]
-    served_cuts = result.cuts if usability["usable"] else {t: None for t in result.cuts}
+    served = served_cuts(result.cuts, metrics)
     model = fit_final_model(ds, cfg.seed)
     metadata = {
         "key": key, "symbol": symbol, "interval": interval, "horizon": horizon,
@@ -72,14 +72,15 @@ def run_model(spec: dict[str, Any], months: float, cfg: WalkForwardConfig, offli
                                             "brier", "log_loss", "ece_raw", "ece_cal")},
         "calibration": result.calibrator.to_dict(),
         "usability": usability,
-        "strength": {"cuts": served_cuts, "cuts_before_usability_gate": result.cuts,
-                     "levels": dict(TIER_LEVELS), "min_n": cfg.min_tier_n, "tier_stats": metrics["tiers"]},
+        "strength": {"cuts": served, "cuts_before_gates": result.cuts, "levels": dict(TIER_LEVELS),
+                     "min_n": cfg.min_tier_n, "tier_stats": metrics["tiers"],
+                     "tier_validation": metrics["tier_validation"]},
     }
     path = save_artifact(model, metadata, artifacts_root)
     acc = metrics["accuracy"]
     log.info("%s: OOS accuracy %.3f (n=%d) vs majority %.3f / naive %.3f; usable=%s; served tiers %s -> %s",
              key, acc["rate"], acc["n"], metrics["baseline_accuracy"]["rate"], metrics["naive_baseline"]["rate"],
-             usability["usable"], {t: c for t, c in served_cuts.items() if c}, path)
+             usability["usable"], {t: c for t, c in served.items() if c}, path)
     return metadata
 
 

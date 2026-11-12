@@ -65,3 +65,27 @@ def test_gate_rejects_feed_dominated_labels() -> None:
     m = summarize(_preds(30_000, 0.66, MAX_NAIVE_RATE + 0.03))
     assert not m["usability"]["usable"]
     assert any("feed artifact" in r for r in assess_usability(m)["reasons"])
+
+
+def test_tiers_are_served_only_if_they_held_out_of_sample() -> None:
+    from ml.evaluation.metrics import served_cuts, validate_tiers
+
+    rng = np.random.default_rng(3)
+    n = 2_000
+    label = rng.integers(0, 2, n)
+    strength = np.where(np.arange(n) < 1_000, "Weak", "Very Weak - Wait")
+    hit = np.where(strength == "Weak", rng.uniform(size=n) < 0.50, rng.uniform(size=n) < 0.53)  # Weak did not hold
+    p_cal = np.where(hit == (label == 1), 0.52, 0.48)
+    tiers = pd.DataFrame({"block": 3, "label": label, "p_cal": p_cal, "strength": strength})
+    v = validate_tiers(tiers)
+    assert not v["Weak"]["validated"]
+    usable = {"usability": {"usable": True}, "tier_validation": v}
+    assert served_cuts({"Strong": None, "Good": None, "Moderate": None, "Weak": 0.5}, usable)["Weak"] is None
+
+    strong_hit = rng.uniform(size=n) < 0.70
+    tiers2 = tiers.assign(strength="Strong", p_cal=np.where(strong_hit == (label == 1), 0.6, 0.4))
+    v2 = validate_tiers(tiers2)
+    assert v2["Strong"]["validated"] and v2["Weak"]["validated"]  # cumulative: Strong signals count for Weak too
+    cuts = {"Strong": 0.6, "Good": 0.56, "Moderate": 0.53, "Weak": 0.5}
+    assert served_cuts(cuts, {"usability": {"usable": True}, "tier_validation": v2}) == cuts
+    assert all(c is None for c in served_cuts(cuts, {"usability": {"usable": False}, "tier_validation": v2}).values())
