@@ -13,7 +13,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
 from app.api import health
-from app.api.v1 import alerts, auth, journal, market, me, news, risk, signals, stream, tools, watchlists
+from app.api.v1 import (
+    admin,
+    alerts,
+    auth,
+    journal,
+    market,
+    me,
+    news,
+    plans,
+    risk,
+    signals,
+    stream,
+    tools,
+    watchlists,
+)
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
@@ -21,11 +35,14 @@ from app.core.ratelimit import RateLimiter
 from app.db.session import make_engine, make_sessionmaker
 from app.services.auth.google import GoogleTokenVerifier, http_jwks_fetcher
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 DESCRIPTION = """Zentrix: trading analysis and risk tools for FX, metals, commodities and crypto.
 
 **Not financial advice.** Signals are probabilities based on past data, not guarantees. Accuracy figures come
-only from the out-of-sample track record."""
+only from the out-of-sample track record.
+
+**Premium** features are marked "(Premium)" and with `x-premium` on the operation. Billing is not integrated: while
+`PREMIUM_ENFORCED=false` (the default) every feature is unlocked for everyone. See `GET /v1/plans`."""
 
 log = get_logger("app")
 
@@ -66,6 +83,8 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
                                 {"name": "journal", "description": "Trade journal, statistics, review"},
                                 {"name": "watchlists", "description": "Watchlists and quotes"},
                                 {"name": "alerts", "description": "Devices (FCM), alerts, alert inbox"},
+                                {"name": "plans", "description": "Free and Premium features (no billing yet)"},
+                                {"name": "admin", "description": "Admins: user plans and entitlement grants"},
                                 {"name": "ops", "description": "Health checks"}])
     install_error_handlers(app)
     if settings.cors_origins:
@@ -89,7 +108,8 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
 
     app.include_router(health.router)
     for router in (auth.router, me.router, market.router, signals.router, news.router, tools.router,
-                   risk.router, journal.router, watchlists.router, alerts.router, stream.router):
+                   risk.router, journal.router, watchlists.router, alerts.router, stream.router, plans.router,
+                   admin.router):
         app.include_router(router, prefix="/v1")
     return app
 

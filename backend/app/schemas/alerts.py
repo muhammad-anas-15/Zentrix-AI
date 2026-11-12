@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.plans import PremiumBadge, locked_field
 from ml.calibration.strength import TIER_LEVELS
 
 EarnedTier = Literal["Strong", "Good", "Moderate", "Weak"]
@@ -58,6 +59,7 @@ class QuoteSignalOut(BaseModel):
     confidence: float
     created_at: datetime
     has_demonstrated_edge: bool
+    premium: PremiumBadge | None = Field(default=None, description="Set for markets outside the free tier")
 
 
 class QuoteOut(BaseModel):
@@ -75,6 +77,7 @@ class QuoteOut(BaseModel):
 class QuotesOut(BaseModel):
     watchlist_id: int
     items: list[QuoteOut]
+    premium_locked: list[str] = locked_field()
     note: str = "Prices are the last closed candle, not live ticks. Not financial advice."
 
 
@@ -169,6 +172,7 @@ class AlertOut(BaseModel):
     last_triggered_at: datetime | None
     trigger_count: int
     created_at: datetime
+    premium: PremiumBadge | None = Field(default=None, description="Set for signal alerts (signal_alerts)")
 
 
 class AlertEventOut(BaseModel):

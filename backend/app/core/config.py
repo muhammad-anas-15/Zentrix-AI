@@ -44,8 +44,12 @@ class Settings(BaseSettings):
     rate_limit_user: str = "240/60"  # per user
 
     gemini_api_key: SecretStr = SecretStr("")
-    # Billing is out of scope: while False, premium features are unlocked for every user.
+    # Billing is out of scope: while False, premium features are unlocked for every user (anonymous too).
+    # True locks them to users with premium access (plan, subscription or grant; app/services/entitlements.py).
     premium_enforced: bool = False
+    # Free tier: live signals for these markets; everything else is the premium feature "all_markets".
+    free_signal_symbols: CsvList = Field(default_factory=lambda: ["EUR/USD", "GBP/USD", "XAU/USD"])
+    free_signal_timeframes: CsvList = Field(default_factory=lambda: ["15m"])
 
     # Worker (candle ingestion, signals, outcomes)
     artifacts_dir: Path = BACKEND_DIR / "ml" / "artifacts"  # same env var as ml.settings (ARTIFACTS_DIR)
@@ -75,7 +79,8 @@ class Settings(BaseSettings):
     max_watchlist_items: int = 100
     push_max_attempts: int = 3
 
-    @field_validator("cors_origins", "google_client_ids", "news_calendar_urls", mode="before")
+    @field_validator("cors_origins", "google_client_ids", "news_calendar_urls", "free_signal_symbols",
+                     "free_signal_timeframes", mode="before")
     @classmethod
     def _split_csv(cls, v: object) -> object:
         if isinstance(v, str):

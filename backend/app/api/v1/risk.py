@@ -1,10 +1,11 @@
-"""Risk profile and daily risk status (signed-in users)."""
+"""Risk profile (free) and daily risk status (Premium: risk_guard), for signed-in users."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, DbDep, NowDep
+from app.api.premium import premium
 from app.models.tools import RiskProfile
 from app.schemas.journal import RiskProfileIn, RiskProfileOut, RiskStatusOut
 from app.services.risk.status import profile_values, risk_status
@@ -32,6 +33,7 @@ async def put_risk_profile(body: RiskProfileIn, user: CurrentUser, db: DbDep) ->
 
 
 @router.get("/risk-status", response_model=RiskStatusOut,
-            summary="Today's risk: loss limit, overtrading, loss streak, quick re-entry after a loss")
+            summary="Today's risk: loss limit, overtrading, loss streak, quick re-entry after a loss (Premium)",
+            **premium("risk_guard"))
 async def get_risk_status(user: CurrentUser, db: DbDep, now: NowDep) -> RiskStatusOut:
     return RiskStatusOut(**await risk_status(db, user, now))

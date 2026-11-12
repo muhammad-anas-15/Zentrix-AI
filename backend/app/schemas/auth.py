@@ -24,9 +24,11 @@ class UserOut(BaseModel):
     email: str | None
     display_name: str | None
     avatar_url: str | None
-    plan: Literal["free", "premium"]
+    plan: Literal["free", "premium"] = Field(description="Effective plan now (plan expiry, subscriptions and "
+                                                         "grants counted; details: GET /v1/me/access)")
     premium_access: bool = Field(description="True when premium features are usable (always, while billing "
                                              "is not enforced)")
+    premium_until: datetime | None = Field(default=None, description="When premium ends (null = open-ended or free)")
     locale: Literal["en", "ur"]
     timezone: str
     created_at: datetime

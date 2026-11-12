@@ -20,6 +20,7 @@ ALGORITHM = "HS256"
 class AccessClaims:
     user_id: uuid.UUID
     version: int  # must equal users.token_version (bumped by logout-all)
+    expires_at: int = 0  # epoch seconds (exp)
 
 
 def create_access_token(settings: Settings, user_id: uuid.UUID, version: int,
@@ -51,7 +52,7 @@ def decode_access_token(settings: Settings, token: str) -> AccessClaims:
         user_id = uuid.UUID(claims["sub"])
     except ValueError:
         raise unauthorized("Invalid access token", "invalid_token") from None
-    return AccessClaims(user_id=user_id, version=claims["ver"])
+    return AccessClaims(user_id=user_id, version=claims["ver"], expires_at=int(claims["exp"]))
 
 
 def new_refresh_token() -> str:

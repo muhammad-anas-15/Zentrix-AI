@@ -1,4 +1,8 @@
-"""Devices (FCM tokens), alerts and the alert inbox (signed-in users)."""
+"""Devices (FCM tokens), alerts and the alert inbox (signed-in users).
+
+Signal alerts are Premium (``signal_alerts``): creating or resuming one needs it while PREMIUM_ENFORCED=true, and
+the worker does not fire them for users without it. Listing, pausing, editing and deleting are never locked.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +13,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbDep, NowDep, SettingsDep
+from app.api.premium import GateDep, partly_premium
 from app.api.v1.watchlists import own_list
 from app.core.errors import AppError
 from app.models.market import InstrumentListing, Timeframe
@@ -26,6 +31,7 @@ from app.schemas.alerts import (
     DeviceOut,
     MarkReadIn,
 )
+from app.schemas.plans import PremiumBadge
 from app.services.marketdata.lookup import instrument_by_symbol
 
 router = APIRouter(tags=["alerts"])
@@ -71,7 +77,8 @@ def alert_out(a: Alert) -> AlertOut:
     return AlertOut(id=a.id, kind=a.kind, symbol=a.instrument.symbol if a.instrument else None,  # type: ignore[arg-type]
                     watchlist_id=a.watchlist_id, timeframe=a.timeframe, params=a.params, active=a.active,
                     recurring=a.recurring, cooldown_s=a.cooldown_s, note=a.note,
-                    last_triggered_at=a.last_triggered_at, trigger_count=a.trigger_count, created_at=a.created_at)
+                    last_triggered_at=a.last_triggered_at, trigger_count=a.trigger_count, created_at=a.created_at,
+                    premium=PremiumBadge(feature="signal_alerts") if a.kind == "signal" else None)
 
 
 async def own_alert(db: AsyncSession, user: User, alert_id: int) -> Alert:
@@ -81,9 +88,12 @@ async def own_alert(db: AsyncSession, user: User, alert_id: int) -> Alert:
     return a
 
 
-@router.post("/alerts", response_model=AlertOut, status_code=status.HTTP_201_CREATED, summary="Create an alert")
-async def create_alert(body: AlertIn, user: CurrentUser, db: DbDep, settings: SettingsDep,
-                       now: NowDep) -> AlertOut:
+@router.post("/alerts", response_model=AlertOut, status_code=status.HTTP_201_CREATED,
+             summary="Create an alert (signal alerts: Premium)", **partly_premium("signal_alerts"))
+async def create_alert(body: AlertIn, user: CurrentUser, db: DbDep, settings: SettingsDep, now: NowDep,
+                       gate: GateDep) -> AlertOut:
+    if body.kind == "signal":
+        gate.require("signal_alerts")
     active = await db.scalar(select(func.count()).select_from(Alert).where(Alert.user_id == user.id, Alert.active))
     if (active or 0) >= settings.max_alerts_per_user:
         raise AppError(409, "limit_reached", f"At most {settings.max_alerts_per_user} active alerts")
@@ -156,11 +166,15 @@ async def get_alert(user: CurrentUser, db: DbDep, alert_id: Id) -> AlertOut:
     return alert_out(await own_alert(db, user, alert_id))
 
 
-@router.patch("/alerts/{alert_id}", response_model=AlertOut, summary="Change, pause or resume an alert")
-async def update_alert(body: AlertUpdate, user: CurrentUser, db: DbDep, settings: SettingsDep,
+@router.patch("/alerts/{alert_id}", response_model=AlertOut,
+              summary="Change, pause or resume an alert (resuming a signal alert: Premium)",
+              **partly_premium("signal_alerts"))
+async def update_alert(body: AlertUpdate, user: CurrentUser, db: DbDep, settings: SettingsDep, gate: GateDep,
                        alert_id: Id) -> AlertOut:
     a = await own_alert(db, user, alert_id)
     changes = body.model_dump(exclude_unset=True)
+    if a.kind == "signal" and changes.get("active") and not a.active:
+        gate.require("signal_alerts")
     if "params" in changes and changes["params"] is not None:
         try:
             a.params = PARAMS[a.kind].model_validate(changes.pop("params")).model_dump()

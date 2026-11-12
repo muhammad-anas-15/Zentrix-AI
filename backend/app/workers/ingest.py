@@ -213,7 +213,9 @@ class Worker:
             if result.created:
                 for sig in await cache_latest_signals(db, self.redis, result.created):
                     await publish(self.redis, {"type": "signal", **sig})
-                report.alerts += await evaluator.on_signals(db, result.created, now_dt)
+                report.alerts += await evaluator.on_signals(
+                    db, result.created, now_dt, premium_enforced=self.settings.premium_enforced,
+                    free_markets=(self.settings.free_signal_symbols, self.settings.free_signal_timeframes))
             if got.prev_last is not None:  # never alert on a first backfill
                 report.alerts += await evaluator.on_candles(db, t.instrument_id, t.listing_id, t.timeframe,
                                                             got.prev_last, now_dt)

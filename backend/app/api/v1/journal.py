@@ -1,4 +1,8 @@
-"""Trade journal (signed-in users): CRUD with server-side P&L, statistics and a rule-based review."""
+"""Trade journal (signed-in users): CRUD with server-side P&L, statistics and a rule-based review.
+
+Premium (``journal``): adding and editing trades, statistics and the review. Listing, reading and deleting your
+own trades are never locked, so a user who loses premium keeps access to their data.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbDep, NowDep, SettingsDep
+from app.api.premium import premium
 from app.core.errors import AppError
 from app.models.market import Timeframe
 from app.models.signals import Signal
@@ -74,7 +79,8 @@ async def _check_signal(db: AsyncSession, signal_id: int | None, instrument_id: 
             raise AppError(422, "validation_error", "signal_id does not exist for this instrument")
 
 
-@router.post("", response_model=JournalOut, status_code=status.HTTP_201_CREATED, summary="Add a trade")
+@router.post("", response_model=JournalOut, status_code=status.HTTP_201_CREATED, summary="Add a trade (Premium)",
+             **premium("journal"))
 async def create_entry(body: JournalIn, user: CurrentUser, db: DbDep, now: NowDep) -> JournalOut:
     inst = await instrument_by_symbol(db, body.symbol)
     await _check_signal(db, body.signal_id, inst.id)
@@ -92,7 +98,7 @@ async def create_entry(body: JournalIn, user: CurrentUser, db: DbDep, now: NowDe
     return out(e, notes)
 
 
-@router.get("", response_model=JournalPage, summary="List trades (newest first)")
+@router.get("", response_model=JournalPage, summary="List trades (newest first; never locked)")
 async def list_entries(
     user: CurrentUser, db: DbDep,
     state: Annotated[Literal["all", "open", "closed"], Query(alias="status")] = "all",
@@ -126,7 +132,8 @@ async def _window(db: AsyncSession, user: User, since: datetime | None, until: d
     return list((await db.scalars(stmt.order_by(JournalEntry.entry_at).limit(5000))).unique().all())
 
 
-@router.get("/stats", response_model=JournalStatsOut, summary="Statistics of closed trades")
+@router.get("/stats", response_model=JournalStatsOut, summary="Statistics of closed trades (Premium)",
+            **premium("journal"))
 async def journal_stats(user: CurrentUser, db: DbDep, since: datetime | None = None,
                         until: datetime | None = None,
                         currency: Annotated[str | None, Query(max_length=8)] = None) -> JournalStatsOut:
@@ -134,7 +141,8 @@ async def journal_stats(user: CurrentUser, db: DbDep, since: datetime | None = N
     return JournalStatsOut(**compute_stats(await _window(db, user, since, until), account))
 
 
-@router.get("/review", response_model=JournalReviewOut, summary="Rule-based review of your trading habits")
+@router.get("/review", response_model=JournalReviewOut,
+            summary="Rule-based review of your trading habits (Premium)", **premium("journal"))
 async def journal_review(user: CurrentUser, db: DbDep, settings: SettingsDep, since: datetime | None = None,
                          until: datetime | None = None) -> JournalReviewOut:
     pv = await profile_values(db, user)
@@ -143,12 +151,13 @@ async def journal_review(user: CurrentUser, db: DbDep, settings: SettingsDep, si
     return JournalReviewOut(**data)
 
 
-@router.get("/{entry_id}", response_model=JournalOut, summary="One trade")
+@router.get("/{entry_id}", response_model=JournalOut, summary="One trade (never locked)")
 async def get_entry(user: CurrentUser, db: DbDep, entry_id: Annotated[int, Path(ge=1)]) -> JournalOut:
     return out(await _own(db, user, entry_id))
 
 
-@router.patch("/{entry_id}", response_model=JournalOut, summary="Edit or close a trade")
+@router.patch("/{entry_id}", response_model=JournalOut, summary="Edit or close a trade (Premium)",
+              **premium("journal"))
 async def update_entry(body: JournalUpdate, user: CurrentUser, db: DbDep, now: NowDep,
                        entry_id: Annotated[int, Path(ge=1)]) -> JournalOut:
     e = await _own(db, user, entry_id)
@@ -178,7 +187,7 @@ async def update_entry(body: JournalUpdate, user: CurrentUser, db: DbDep, now: N
     return out(e, notes)
 
 
-@router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a trade")
+@router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a trade (never locked)")
 async def delete_entry(user: CurrentUser, db: DbDep, entry_id: Annotated[int, Path(ge=1)]) -> Response:
     await db.delete(await _own(db, user, entry_id))
     await db.commit()

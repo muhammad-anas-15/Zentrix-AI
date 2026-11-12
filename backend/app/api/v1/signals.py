@@ -1,4 +1,9 @@
-"""Candles, signals, latest signal, live track record and model transparency. Public (tier limits: Phase 4)."""
+"""Candles, signals, latest signal, live track record and model transparency. Public.
+
+Premium (``all_markets``, only while PREMIUM_ENFORCED=true): live signals outside the free markets. The latest
+signal of such a market needs it; the history withholds their *unresolved* signals from callers without it, so
+every signal still appears there with its outcome. The accuracy stats are never filtered.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DbDep
+from app.api.premium import GateDep, market_badge, partly_premium
 from app.core.errors import AppError
 from app.core.ratelimit import limit_by_ip
 from app.models.market import Candle, Instrument, InstrumentListing, Venue
@@ -23,6 +29,7 @@ from app.schemas.signals import (
     SignalPage,
     TrackRecordOut,
 )
+from app.services.entitlements import visible_signals
 from app.services.signals.cache import get_cached, latest_key, set_cached, track_record_version
 from app.services.signals.serialize import signal_to_dict
 from app.services.signals.track_record import Filters, compute_track_record
@@ -57,10 +64,17 @@ async def get_candles(db: DbDep, symbol: Symbol, timeframe: TimeframeQ,
         CandleOut(t=c.ts, o=c.open, h=c.high, l=c.low, c=c.close, v=c.volume) for c in reversed(rows)])
 
 
+def _signal_out(gate: GateDep, data: dict[str, Any]) -> SignalOut:
+    out = SignalOut.model_validate(data)
+    out.premium = market_badge(gate.settings, out.symbol, out.timeframe)
+    return out
+
+
 @router.get("/signals", response_model=SignalPage, tags=["signals"],
-            summary="Signal history with outcomes (the public track record, newest first)")
+            summary="Signal history with outcomes (the public track record, newest first)",
+            **partly_premium("all_markets"))
 async def list_signals(
-    db: DbDep,
+    db: DbDep, gate: GateDep,
     symbol: Annotated[str | None, Query(max_length=40)] = None,
     timeframe: Annotated[str | None, Query(max_length=8)] = None,
     horizon: Annotated[int | None, Query(ge=1, le=50)] = None,
@@ -83,17 +97,22 @@ async def list_signals(
         stmt = stmt.where(resolved if status == "resolved" else ~resolved)
     if before_id:
         stmt = stmt.where(Signal.id < before_id)
+    locked = gate.locked("all_markets")
+    if locked:
+        stmt = stmt.where(visible_signals(gate.settings))
     rows = (await db.scalars(stmt.order_by(Signal.id.desc()).limit(limit + 1))).unique().all()
     page = rows[:limit]
-    return SignalPage(items=[SignalOut.model_validate(signal_to_dict(s)) for s in page],
-                      next_before_id=page[-1].id if len(rows) > limit else None)
+    return SignalPage(items=[_signal_out(gate, signal_to_dict(s)) for s in page],
+                      next_before_id=page[-1].id if len(rows) > limit else None, premium_locked=locked)
 
 
 @router.get("/signals/latest", response_model=SignalOut, tags=["signals"], responses={404: {"description": "None yet"}},
-            summary="Latest signal for an instrument/timeframe (cached)")
-async def latest_signal(request: Request, db: DbDep, symbol: Symbol, timeframe: TimeframeQ,
+            summary="Latest signal for an instrument/timeframe (cached; Premium outside the free markets)",
+            **partly_premium("all_markets"))
+async def latest_signal(request: Request, db: DbDep, gate: GateDep, symbol: Symbol, timeframe: TimeframeQ,
                         horizon: Annotated[int, Query(ge=1, le=50)] = 1,
                         venue: Annotated[str | None, Query(max_length=32)] = None) -> SignalOut:
+    gate.require_market(symbol, timeframe)
     listing, _ = await _listing(db, symbol, venue)
     cached = await get_cached(request.app.state.redis, latest_key(listing.id, timeframe, horizon))
     if cached is None:
@@ -103,7 +122,7 @@ async def latest_signal(request: Request, db: DbDep, symbol: Symbol, timeframe: 
         if s is None:
             raise AppError(404, "no_signal", f"No signal yet for {symbol} {timeframe}")
         cached = signal_to_dict(s)
-    return SignalOut.model_validate(cached)
+    return _signal_out(gate, cached)
 
 
 @router.get("/track-record", response_model=TrackRecordOut, tags=["signals"],

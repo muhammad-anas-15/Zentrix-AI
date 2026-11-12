@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.plans import PremiumBadge, locked_field, premium_field
 from app.schemas.signals import DISCLAIMER
 
 Side = Literal["long", "short"]
@@ -68,6 +69,7 @@ class LevelsOut(BaseModel):
     signal_id: int | None = None
     notes: list[str] = []
     method: str
+    premium: PremiumBadge = premium_field("trade_levels")
     disclaimer: str = DISCLAIMER
 
 
@@ -109,8 +111,10 @@ class PositionSizeOut(BaseModel):
     margin: float | None
     conversion_rate: float
     conversion_notes: list[str]
-    daily_loss_left: float | None = Field(description="Signed-in users: remaining daily loss budget")
+    daily_loss_left: float | None = Field(description="Signed-in users: remaining daily loss budget (Premium: "
+                                                      "risk_guard)")
     warnings: list[str]
+    premium_locked: list[str] = locked_field()
     disclaimer: str = DISCLAIMER
 
 
@@ -152,6 +156,8 @@ class ExitAdviceOut(BaseModel):
     target_distance_atr: float | None
     news_state: str
     method: str
+    premium: PremiumBadge = premium_field("exit_advisor")
+    premium_locked: list[str] = locked_field()
     disclaimer: str = DISCLAIMER
 
 
@@ -188,7 +194,7 @@ class ScenarioOut(BaseModel):
     as_of: datetime
     steps: list[ScenarioStepOut]
     direction: list[ScenarioDirectionOut]
-    premium: bool = Field(default=True,
-                          description="Premium feature (unlocked for everyone while PREMIUM_ENFORCED=false)")
+    premium: PremiumBadge = premium_field("scenario")
+    premium_locked: list[str] = locked_field()
     method: str
     disclaimer: str = DISCLAIMER

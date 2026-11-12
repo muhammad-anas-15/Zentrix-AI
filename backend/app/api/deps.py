@@ -45,6 +45,9 @@ NowDep = Annotated[datetime, Depends(get_now)]
 
 async def get_current_user(request: Request, db: DbDep, settings: SettingsDep,
                            creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> User:
+    cached: User | None = getattr(request.state, "user", None)
+    if cached is not None:  # resolved once per request (CurrentUser, OptionalUser and the premium gate share it)
+        return cached
     if creds is None:
         raise unauthorized()
     claims = decode_access_token(settings, creds.credentials)
@@ -54,6 +57,7 @@ async def get_current_user(request: Request, db: DbDep, settings: SettingsDep,
     if claims.version != user.token_version:
         raise unauthorized("Session was revoked; sign in again", "token_revoked")
     await enforce(request, "user", str(user.id), settings.rate_limit_user)
+    request.state.user = user
     return user
 
 

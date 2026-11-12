@@ -110,7 +110,7 @@ async def test_scenario(app: FastAPI, client: httpx.AsyncClient, clock: Clock) -
     clock.t = NOW.timestamp()
     await seed_candles(app, "EUR/USD", "15m", series())
     sc = (await client.get("/v1/scenario", params={"symbol": "EUR/USD", "steps": 3})).json()
-    assert [s["k"] for s in sc["steps"]] == [1, 2, 3] and sc["premium"] is True
+    assert [s["k"] for s in sc["steps"]] == [1, 2, 3] and sc["premium"] == {"feature": "scenario", "label": "Premium"}
     assert all(s["coverage_tested"] == 250 and 0.6 < s["coverage"] < 0.95 for s in sc["steps"])
     assert sc["steps"][0]["low"] < sc["last_close"] < sc["steps"][0]["high"]
     assert sc["direction"] == []

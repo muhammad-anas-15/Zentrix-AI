@@ -1,7 +1,7 @@
 """Trader-protection tools: market conditions, ATR levels, position size, exit advice, scenario path.
 
 Public with the IP rate limit; the position-size calculator personalises (risk profile, daily loss budget) when
-a valid access token is sent. Premium gating comes in Phase 4.
+a valid access token is sent. Levels, exit advice and the scenario path are Premium (``app/api/premium.py``).
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy import select
 
 from app.api.deps import DbDep, NowDep, OptionalUser, SettingsDep
+from app.api.premium import GateDep, partly_premium, premium
 from app.core.errors import AppError
 from app.core.ratelimit import limit_by_ip
 from app.models.signals import ModelVersion, Signal
@@ -93,7 +94,8 @@ def _levels_out(s: Series, side: str, entry: float | None, sl_atr: float, rr: tu
 
 
 @router.get("/levels", response_model=LevelsOut, tags=["tools"],
-            summary="ATR stop-loss / take-profit levels with their historical base rate")
+            summary="ATR stop-loss / take-profit levels with their historical base rate (Premium)",
+            **premium("trade_levels"))
 async def get_levels(
     db: DbDep, symbol: SymbolQ, side: Annotated[str, Query(pattern="^(long|short)$")],
     timeframe: TimeframeQ = "15m", venue: VenueQ = None,
@@ -110,13 +112,16 @@ async def get_levels(
 
 
 @router.get("/signals/{signal_id}/levels", response_model=LevelsOut, tags=["signals"],
-            summary="ATR levels for a signal, computed from the candles known when it was made")
-async def signal_levels(db: DbDep, signal_id: Annotated[int, Path(ge=1)],
+            summary="ATR levels for a signal, computed from the candles known when it was made (Premium)",
+            **premium("trade_levels"))
+async def signal_levels(db: DbDep, gate: GateDep, signal_id: Annotated[int, Path(ge=1)],
                         sl_atr: Annotated[float, Query(gt=0, le=10)] = 1.5,
                         max_bars: Annotated[int, Query(ge=5, le=200)] = 50) -> LevelsOut:
     sig = await db.get(Signal, signal_id)
     if sig is None:
         raise AppError(404, "not_found", f"No signal {signal_id}")
+    if sig.outcome is None:  # the side would reveal a live signal of a premium market
+        gate.require_market(sig.instrument.symbol, sig.timeframe)
     candles = await load_series(db, sig.listing_id, sig.timeframe, 1100, until=sig.candle_ts)
     if len(candles) < 60:
         raise AppError(404, "no_data", "Not enough stored candles before this signal")
@@ -129,8 +134,10 @@ async def signal_levels(db: DbDep, signal_id: Annotated[int, Path(ge=1)],
 
 
 @router.post("/risk/position-size", response_model=PositionSizeOut, tags=["risk"],
-             summary="Position size, money at risk, pip value, R:R and margin, with warnings")
-async def post_position_size(body: PositionSizeIn, db: DbDep, now: NowDep, user: OptionalUser) -> PositionSizeOut:
+             summary="Position size, money at risk, pip value, R:R and margin, with warnings",
+             **partly_premium("risk_guard"))
+async def post_position_size(body: PositionSizeIn, db: DbDep, now: NowDep, user: OptionalUser,
+                             gate: GateDep) -> PositionSizeOut:
     inst = await instrument_by_symbol(db, body.symbol)
     pv = await profile_values(db, user) if user else None
     account = (body.account_currency or (pv.account_currency if pv else "USD")).upper()
@@ -153,9 +160,12 @@ async def post_position_size(body: PositionSizeIn, db: DbDep, now: NowDep, user:
             atr_value = float(a) if a == a else None
         except AppError:
             atr_value = None
-    left = None
+    left, locked = None, []
     if user is not None and pv is not None and account == pv.account_currency:
-        left = (await risk_status(db, user, now))["daily_loss_left"]
+        if gate.allows("risk_guard"):
+            left = (await risk_status(db, user, now))["daily_loss_left"]
+        else:
+            locked = ["risk_guard"]
     spec = Spec(inst.symbol, inst.asset_class, inst.base, inst.quote, inst.contract_size, inst.price_decimals)
     try:
         res = position_size(spec, SizeInput(body.entry, body.stop, body.take_profit, balance, risk_pct,
@@ -165,7 +175,7 @@ async def post_position_size(body: PositionSizeIn, db: DbDep, now: NowDep, user:
         raise AppError(422, "invalid_risk_input", str(exc)) from exc
     return PositionSizeOut(symbol=inst.symbol, account_currency=account, contract_size=inst.contract_size,
                            conversion_rate=rate, conversion_notes=rate_notes, daily_loss_left=left,
-                           **res.as_dict())
+                           premium_locked=locked, **res.as_dict())
 
 
 async def _latest_signal(db: DbDep, listing_id: int, timeframe: str, candle_ts: datetime,
@@ -178,37 +188,43 @@ async def _latest_signal(db: DbDep, listing_id: int, timeframe: str, candle_ts: 
 
 
 @router.post("/exit-advice", response_model=ExitAdviceOut, tags=["tools"],
-             summary="Exit advisor for an open position (hold / tighten stop / take partial / consider exit)")
-async def post_exit_advice(body: ExitAdviceIn, db: DbDep, now: NowDep, settings: SettingsDep) -> ExitAdviceOut:
+             summary="Exit advisor for an open position (hold / tighten stop / take partial / consider exit) "
+                     "(Premium)", **premium("exit_advisor"))
+async def post_exit_advice(body: ExitAdviceIn, db: DbDep, now: NowDep, settings: SettingsDep,
+                           gate: GateDep) -> ExitAdviceOut:
     s = await load_market(db, body.symbol, body.timeframe, body.venue, n=300, min_candles=30)
     guard = await _guard(db, s, now, settings)
     last_open = ts_to_dt(int(s.candles["time"].iloc[-1]))
-    sig = await _latest_signal(db, s.ref.listing.id, body.timeframe, last_open)
+    market_open = gate.market_open(body.symbol, body.timeframe)  # else: no live signal of a premium market
+    sig = await _latest_signal(db, s.ref.listing.id, body.timeframe, last_open) if market_open else None
     opened = int(body.opened_at.timestamp()) // interval_seconds(body.timeframe) * interval_seconds(body.timeframe) \
         if body.opened_at else None
     out = exit_advisor.advise(s.candles, body.side, body.entry_price, body.stop_loss, body.take_profit, opened,
                               guard, signal_to_dict(sig) if sig else None)
     return ExitAdviceOut(symbol=body.symbol, timeframe=body.timeframe, side=body.side, as_of=_as_of(s),
-                         news_state=guard.state, method=exit_advisor.METHOD, **out)
+                         news_state=guard.state, method=exit_advisor.METHOD,
+                         premium_locked=[] if market_open else ["all_markets"], **out)
 
 
 @router.get("/scenario", response_model=ScenarioOut, tags=["tools"],
-            summary="Scenario path for the next 1-5 candles with measured band coverage (Premium)")
-async def get_scenario(db: DbDep, symbol: SymbolQ, timeframe: TimeframeQ = "15m", venue: VenueQ = None,
-                       steps: Annotated[int, Query(ge=1, le=5)] = 5) -> ScenarioOut:
+            summary="Scenario path for the next 1-5 candles with measured band coverage (Premium)",
+            **premium("scenario"))
+async def get_scenario(db: DbDep, gate: GateDep, symbol: SymbolQ, timeframe: TimeframeQ = "15m",
+                       venue: VenueQ = None, steps: Annotated[int, Query(ge=1, le=5)] = 5) -> ScenarioOut:
     s = await load_market(db, symbol, timeframe, venue, n=1300, min_candles=300)
     tf_s = interval_seconds(timeframe)
     as_of = _as_of(s)
     step_rows = [ScenarioStepOut(at=as_of + timedelta(seconds=tf_s * b["k"]), **b)
                  for b in scenario.bands(s.candles, steps)]
     last_open = ts_to_dt(int(s.candles["time"].iloc[-1]))
+    market_open = gate.market_open(symbol, timeframe)  # else: no live signal of a premium market
     directions = []
     versions = (await db.scalars(select(ModelVersion).where(
         ModelVersion.listing_id == s.ref.listing.id, ModelVersion.timeframe == timeframe, ModelVersion.active)
         .order_by(ModelVersion.horizon))).all()
     for mv in versions:
-        sig = (await db.scalars(select(Signal).where(Signal.model_version_id == mv.id,
-                                                     Signal.candle_ts == last_open))).unique().first()
+        sig = None if not market_open else (await db.scalars(select(Signal).where(
+            Signal.model_version_id == mv.id, Signal.candle_ts == last_open))).unique().first()
         tr: dict[str, Any] = (await compute_track_record(db, Filters(model_version_id=mv.id)))["overall"]
         acc = (mv.metrics or {}).get("accuracy") or {}
         directions.append(ScenarioDirectionOut(
@@ -218,5 +234,6 @@ async def get_scenario(db: DbDep, symbol: SymbolQ, timeframe: TimeframeQ = "15m"
             signal_id=sig.id if sig else None, live_track_record=tr, backtest_accuracy=acc.get("rate")))
     return ScenarioOut(symbol=symbol, venue=s.ref.venue, timeframe=timeframe,
                        last_close=float(s.candles["close"].iloc[-1]), as_of=as_of, steps=step_rows,
-                       direction=directions, method=scenario.METHOD)
+                       direction=directions, method=scenario.METHOD,
+                       premium_locked=[] if market_open else ["all_markets"])
 

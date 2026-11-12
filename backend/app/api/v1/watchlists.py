@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbDep, NowDep, SettingsDep
+from app.api.premium import GateDep, market_badge, partly_premium
 from app.core.errors import AppError
 from app.models.market import Instrument, InstrumentListing
 from app.models.signals import Signal
@@ -27,6 +28,7 @@ from app.schemas.alerts import (
     WatchlistOut,
     WatchlistUpdate,
 )
+from app.services.entitlements import visible_signals
 from app.services.marketdata.lookup import last_price
 from app.services.news.guard import GuardConfig, calendar_updated_at, evaluate_guard, instrument_currencies, load_events
 
@@ -138,14 +140,18 @@ async def remove_item(user: CurrentUser, db: DbDep, list_id: ListId,
 
 
 @router.get("/{list_id}/quotes", response_model=QuotesOut,
-            summary="Last closed price, 24h change, latest signal and news state per item")
-async def quotes(user: CurrentUser, db: DbDep, now: NowDep, settings: SettingsDep, list_id: ListId) -> QuotesOut:
+            summary="Last closed price, 24h change, latest signal and news state per item",
+            **partly_premium("all_markets"))
+async def quotes(user: CurrentUser, db: DbDep, now: NowDep, settings: SettingsDep, gate: GateDep,
+                 list_id: ListId) -> QuotesOut:
     w = await own_list(db, user, list_id)
     inst_ids = [i.instrument_id for i in w.items]
     listings = dict((await db.execute(select(InstrumentListing.instrument_id, InstrumentListing.id).where(
         InstrumentListing.instrument_id.in_(inst_ids), InstrumentListing.is_primary))).all())
+    locked = gate.locked("all_markets")  # then: the latest signal each caller may see
     latest = {s.instrument_id: s for s in (await db.scalars(
-        select(Signal).where(Signal.instrument_id.in_(inst_ids)).ext(distinct_on(Signal.instrument_id))
+        select(Signal).where(Signal.instrument_id.in_(inst_ids), *([visible_signals(settings)] if locked else []))
+        .ext(distinct_on(Signal.instrument_id))
         .order_by(Signal.instrument_id, Signal.candle_ts.desc(), Signal.id.desc()))).unique().all()}
     cfg = GuardConfig.from_settings(settings)
     scopes = {i.instrument_id: instrument_currencies(i.instrument.asset_class, i.instrument.base,
@@ -171,5 +177,6 @@ async def quotes(user: CurrentUser, db: DbDep, now: NowDep, settings: SettingsDe
             latest_signal=QuoteSignalOut(id=s.id, timeframe=s.timeframe, horizon=s.horizon,
                                          direction=s.direction, strength=s.strength,  # type: ignore[arg-type]
                                          confidence=s.confidence, created_at=s.created_at,
-                                         has_demonstrated_edge=s.model_usable) if s else None))
-    return QuotesOut(watchlist_id=w.id, items=out)
+                                         has_demonstrated_edge=s.model_usable,
+                                         premium=market_badge(settings, inst.symbol, s.timeframe)) if s else None))
+    return QuotesOut(watchlist_id=w.id, items=out, premium_locked=locked)

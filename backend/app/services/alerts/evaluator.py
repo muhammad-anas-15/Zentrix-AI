@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.market import Instrument
 from app.models.signals import Signal
 from app.models.tools import Alert, AlertEvent, NewsEvent, Watchlist, WatchlistItem
+from app.services.entitlements import users_with_feature
 from app.services.marketdata.candles import load_series, ts_to_dt
 from app.services.news.guard import instrument_currencies
 from ml.calibration.strength import NO_EDGE, TIER_ORDER
@@ -126,8 +127,11 @@ async def _scope(db: AsyncSession, alerts: list[Alert]) -> dict[int, set[int] | 
     return out
 
 
-async def on_signals(db: AsyncSession, signal_ids: list[int], now: datetime) -> list[int]:
-    """Signal alerts. Only earned strength tiers can meet a ``min_strength``; 'Very Weak - Wait' never alerts."""
+async def on_signals(db: AsyncSession, signal_ids: list[int], now: datetime, *, premium_enforced: bool = False,
+                     free_markets: tuple[list[str], list[str]] = ([], [])) -> list[int]:
+    """Signal alerts. Only earned strength tiers can meet a ``min_strength``; 'Very Weak - Wait' never alerts.
+    While premium is enforced, an alert fires only for users with ``signal_alerts`` (and ``all_markets`` for a
+    signal outside ``free_markets`` = (symbols, timeframes))."""
     if not signal_ids:
         return []
     signals = [s for s in (await db.scalars(select(Signal).where(Signal.id.in_(signal_ids)))).unique().all()
@@ -135,11 +139,20 @@ async def on_signals(db: AsyncSession, signal_ids: list[int], now: datetime) -> 
     if not signals:
         return []
     alerts = list((await db.scalars(select(Alert).where(Alert.active, Alert.kind == "signal"))).unique().all())
+    everywhere: set[Any] = set()  # users who may get alerts on signals outside the free markets
+    if premium_enforced and alerts:
+        owners = {a.user_id for a in alerts}
+        entitled = await users_with_feature(db, owners, "signal_alerts", now)
+        everywhere = await users_with_feature(db, entitled, "all_markets", now)
+        alerts = [a for a in alerts if a.user_id in entitled]
     scope = await _scope(db, alerts)
     fired: list[int] = []
     for s in signals:
+        free = s.instrument.symbol in free_markets[0] and s.timeframe in free_markets[1]
         for a in alerts:
             if not a.active or s.instrument_id not in (scope.get(a.id) or set()):
+                continue
+            if premium_enforced and not free and a.user_id not in everywhere:
                 continue
             if a.timeframe and a.timeframe != s.timeframe:
                 continue

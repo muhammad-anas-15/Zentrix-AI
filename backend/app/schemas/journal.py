@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.schemas.plans import PremiumBadge, premium_field
 from app.schemas.signals import DISCLAIMER
 
 Side = Literal["long", "short"]
@@ -90,11 +91,13 @@ class JournalOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     calc_notes: list[str] = []
+    premium: PremiumBadge = premium_field("journal")
 
 
 class JournalPage(BaseModel):
     items: list[JournalOut]
     next_before_id: int | None
+    premium: PremiumBadge = premium_field("journal")
 
 
 class JournalStatsOut(BaseModel):
@@ -116,6 +119,7 @@ class JournalStatsOut(BaseModel):
     avg_r: float | None
     max_consecutive_losses: int
     by_instrument: list[dict[str, Any]]
+    premium: PremiumBadge = premium_field("journal")
     disclaimer: str = "Statistics of your own journal. Past results do not predict future results."
 
 
@@ -130,6 +134,7 @@ class JournalReviewOut(BaseModel):
     trades_reviewed: int
     insights: list[InsightOut]
     note: str
+    premium: PremiumBadge = premium_field("journal")
     method: str = ("Rules over your closed trades: holding time of losers vs winners, missing stops, risk "
                    "consistency, winner size in R, trades opened in high-impact news windows, days above your trade "
                    "limit, re-entries within 15 minutes of a loss.")
@@ -168,6 +173,7 @@ class RiskStatusOut(BaseModel):
     max_trades_per_day: int
     open_positions: int
     open_risk: float = Field(description="Sum of money at risk on open journal trades with a stop")
+    premium: PremiumBadge = premium_field("risk_guard")
     consecutive_losses: int
     profile_is_default: bool
     excluded_other_currency: int

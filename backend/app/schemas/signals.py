@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.plans import PremiumBadge, locked_field
+
 DISCLAIMER = ("Not financial advice. Signals are probabilities from past data; the live track record below "
               "is the only measure of how they perform.")
 
@@ -60,11 +62,14 @@ class SignalOut(BaseModel):
     backtest_tier: dict[str, Any] | None = Field(description="Out-of-sample BACKTEST stats of this strength tier "
                                                              "for this model (not live results)")
     outcome: SignalOutcomeOut | None
+    premium: PremiumBadge | None = Field(default=None, description="Set for markets outside the free tier "
+                                                                   "(all_markets)")
 
 
 class SignalPage(BaseModel):
     items: list[SignalOut]
     next_before_id: int | None
+    premium_locked: list[str] = locked_field()
     disclaimer: str = DISCLAIMER
 
 
