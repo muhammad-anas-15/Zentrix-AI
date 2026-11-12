@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
-KEY_ASSIGNMENT = re.compile(r"(?i)(api[_-]?key|apikey|secret|token)\s*[=:]\s*['\"]?([A-Za-z0-9_\-]{24,})")
+# [ \t] not \s: an empty "API_KEY=" must not swallow the next line as its value.
+KEY_ASSIGNMENT = re.compile(r"(?i)(api[_-]?key|apikey|secret|token)[ \t]*[=:][ \t]*['\"]?([A-Za-z0-9_\-]{24,})")
 
 
 def _tracked() -> list[str]:
