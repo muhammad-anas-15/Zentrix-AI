@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbDep, NowDep, SettingsDep
 from app.core.errors import AppError
+from app.models.market import Timeframe
 from app.models.signals import Signal
 from app.models.tools import JournalEntry
 from app.models.user import User
@@ -61,6 +62,11 @@ def _check(e: JournalEntry, now: datetime) -> None:
         raise AppError(422, "validation_error", f"stop_loss must be {'below' if s == 1 else 'above'} entry")
 
 
+async def _check_timeframe(db: AsyncSession, timeframe: str | None) -> None:
+    if timeframe is not None and await db.scalar(select(Timeframe.code).where(Timeframe.code == timeframe)) is None:
+        raise AppError(422, "unknown_timeframe", f"Unknown timeframe {timeframe}")
+
+
 async def _check_signal(db: AsyncSession, signal_id: int | None, instrument_id: int) -> None:
     if signal_id is not None:
         sig = await db.get(Signal, signal_id)
@@ -72,6 +78,7 @@ async def _check_signal(db: AsyncSession, signal_id: int | None, instrument_id: 
 async def create_entry(body: JournalIn, user: CurrentUser, db: DbDep, now: NowDep) -> JournalOut:
     inst = await instrument_by_symbol(db, body.symbol)
     await _check_signal(db, body.signal_id, inst.id)
+    await _check_timeframe(db, body.timeframe)
     account = body.account_currency or (await profile_values(db, user)).account_currency
     data = body.model_dump(exclude={"symbol", "account_currency", "fx_rate"}, exclude_none=True)
     e = JournalEntry(user_id=user.id, instrument_id=inst.id, account_currency=account, **({"fees": 0.0, "tags": []}
@@ -154,6 +161,8 @@ async def update_entry(body: JournalUpdate, user: CurrentUser, db: DbDep, now: N
         changes["fees"] = 0.0
     if "tags" in changes and changes["tags"] is None:
         changes["tags"] = []
+    if "timeframe" in changes:
+        await _check_timeframe(db, changes["timeframe"])
     if "signal_id" in changes:
         await _check_signal(db, changes["signal_id"], e.instrument_id)
     for k, v in changes.items():

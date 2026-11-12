@@ -89,6 +89,7 @@ async def test_journal_crud_and_pnl(app: FastAPI, client: httpx.AsyncClient, goo
     {"stop_loss": 1.2},  # wrong side for a long
     {"side": None},
     {"signal_id": 999999},
+    {"timeframe": "7m"},
 ])
 async def test_journal_validation(client: httpx.AsyncClient, google: FakeGoogle, clock: Clock,
                                   patch: dict[str, Any]) -> None:
