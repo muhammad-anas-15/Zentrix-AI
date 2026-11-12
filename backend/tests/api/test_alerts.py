@@ -150,7 +150,8 @@ def flat(n: int, price: float = 1.1, t_last: int = LAST_OPEN) -> pd.DataFrame:
 
 async def make_alert(app: FastAPI, uid: str, **kw: Any) -> int:
     async with app.state.sessionmaker() as db:
-        a = Alert(**({"user_id": uid, "active": True, "trigger_count": 0, "cooldown_s": 0, "recurring": False} | kw))
+        a = Alert(**({"user_id": uid, "active": True, "trigger_count": 0, "cooldown_s": 0, "recurring": False,
+                      "created_at": NOW - timedelta(days=1)} | kw))
         db.add(a)
         await db.commit()
         return int(a.id)
@@ -192,6 +193,34 @@ async def test_price_and_move_alerts_fire_once_on_recent_closed_candles(app: Fas
     assert rows[0][1] == "EUR/USD above 1.10600" and "Not financial advice" in rows[0][2]
     assert "+0.50% in 4 x 15m" in rows[1][1]
     assert states == {cross: False, below: True, move: True, other_tf: True}  # one-shot switched off
+
+
+async def test_catch_up_never_bursts_old_candles_or_fires_before_creation(
+        app: FastAPI, client: httpx.AsyncClient, google: FakeGoogle) -> None:
+    """Regression (live run): after a catch-up, a new alert fired on 14 one-minute candles that had closed before
+    it was created. Only the last two candles count, and only those closing after the alert was created."""
+    await sign_in(client, google)
+    uid = await uid_of(app)
+    inst = await scalar(app, "SELECT id FROM instruments WHERE symbol = 'EUR/USD'")
+    lid = await listing_id(app, "EUR/USD")
+    df = flat(60)
+    df.loc[50:, "close"] = [1.1 + 0.0001 * (i % 2) for i in range(10)]  # every candle moves
+    await seed_candles(app, "EUR/USD", "15m", df)
+    params = {"pct": 0.001, "window_candles": 1, "direction": "either"}
+    old = await make_alert(app, uid, kind="pct_move", instrument_id=inst, timeframe="15m", recurring=True,
+                           params=params)
+    second_last_close = datetime.fromtimestamp(LAST_OPEN, tz=UTC)  # close of the second-to-last candle
+    new = await make_alert(app, uid, kind="pct_move", instrument_id=inst, timeframe="15m", recurring=True,
+                           params=params, created_at=second_last_close + timedelta(seconds=1))
+    now = datetime.fromtimestamp(LAST_OPEN + 900 + 5, tz=UTC)
+    async with app.state.sessionmaker() as db:
+        fired = await evaluator.on_candles(db, inst, lid, "15m", LAST_OPEN - 900 * 10, now)  # 10 new candles
+        await db.commit()
+    async with app.state.engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT alert_id, triggered_at FROM alert_events ORDER BY id"))).all()
+    assert len(fired) == 3
+    assert [r[0] for r in rows] == [old, old, new]
+    assert rows[-1][1] == now - timedelta(seconds=5)
 
 
 async def test_signal_and_news_alerts(app: FastAPI, client: httpx.AsyncClient, google: FakeGoogle) -> None:
@@ -335,6 +364,7 @@ class FakeTwelveData:
 async def test_worker_evaluates_alerts_publishes_events_and_pushes(
         app: FastAPI, client: httpx.AsyncClient, google: FakeGoogle, settings: Settings,
         fake_redis: fakeredis.FakeAsyncRedis, clock: Clock) -> None:
+    clock.t = NOW.timestamp()  # the alert is created at 14:05; the crossing candle closes at 14:15
     h = await user(client, google)
     await client.post("/v1/devices", headers=h, json={"fcm_token": "tok-" + "z" * 30, "platform": "android"})
     df = flat(300, t_last=LAST_OPEN + 900)

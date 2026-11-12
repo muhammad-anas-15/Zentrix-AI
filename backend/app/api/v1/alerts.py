@@ -82,7 +82,8 @@ async def own_alert(db: AsyncSession, user: User, alert_id: int) -> Alert:
 
 
 @router.post("/alerts", response_model=AlertOut, status_code=status.HTTP_201_CREATED, summary="Create an alert")
-async def create_alert(body: AlertIn, user: CurrentUser, db: DbDep, settings: SettingsDep) -> AlertOut:
+async def create_alert(body: AlertIn, user: CurrentUser, db: DbDep, settings: SettingsDep,
+                       now: NowDep) -> AlertOut:
     active = await db.scalar(select(func.count()).select_from(Alert).where(Alert.user_id == user.id, Alert.active))
     if (active or 0) >= settings.max_alerts_per_user:
         raise AppError(409, "limit_reached", f"At most {settings.max_alerts_per_user} active alerts")
@@ -103,7 +104,8 @@ async def create_alert(body: AlertIn, user: CurrentUser, db: DbDep, settings: Se
     recurring = body.recurring if body.recurring is not None else body.kind in ("signal", "news")
     a = Alert(user_id=user.id, kind=body.kind, instrument_id=inst.id if inst else None,
               watchlist_id=body.watchlist_id, timeframe=body.timeframe, params=body.params, recurring=recurring,
-              cooldown_s=body.cooldown_s or 0, note=body.note, active=True, trigger_count=0)
+              cooldown_s=body.cooldown_s or 0, note=body.note, active=True, trigger_count=0,
+              created_at=now)  # alerts only fire on candles that close after this
     db.add(a)
     await db.commit()
     await db.refresh(a)

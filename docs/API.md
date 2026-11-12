@@ -204,8 +204,8 @@ Alert kinds (`params` are validated per kind):
 **When alerts fire:**
 - Price and signal alerts are evaluated by the worker on each newly closed candle and each new signal; news
   alerts every tick.
-- Only candles closed in the last two candles (at least 15 min) count. After downtime or a backfill, old
-  crossings never fire.
+- Only candles that closed within the last two candle lengths (at least 3 min), and after the alert was
+  created, count. After downtime or a catch-up, old crossings never fire.
 - One-shot alerts (the default for price and % alerts) switch off after firing. Recurring alerts respect
   `cooldown_s`.
 - Each trigger is stored once (de-duplicated per alert and trigger).

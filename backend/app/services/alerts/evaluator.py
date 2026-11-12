@@ -47,8 +47,9 @@ async def fire(db: AsyncSession, alert: Alert, dedupe_key: str, title: str, body
 
 async def on_candles(db: AsyncSession, instrument_id: int, listing_id: int, timeframe: str,
                      new_since: int, now: datetime) -> list[int]:
-    """Price-cross and %-move alerts on the candles of (listing, timeframe) that opened after ``new_since`` and
-    closed within the last two candles (min 15 min) of ``now``. Caller commits."""
+    """Price-cross and %-move alerts on the candles of (listing, timeframe) that opened after ``new_since``, closed
+    within the last two candles (at least 3 min) before ``now``, and closed after the alert was created.
+    Caller commits."""
     alerts = (await db.scalars(select(Alert).where(
         Alert.active, Alert.kind.in_(("price_cross", "pct_move")), Alert.instrument_id == instrument_id,
         Alert.timeframe == timeframe))).unique().all()
@@ -59,9 +60,9 @@ async def on_candles(db: AsyncSession, instrument_id: int, listing_id: int, time
     window = max([int(a.params.get("window_candles", 1)) for a in alerts] + [1])
     tf_s = interval_seconds(timeframe)
     series = await load_series(db, listing_id, timeframe, 200 + window)
-    # only candles that closed recently: after downtime or a backfill, old crossings are not news any more
-    oldest = now.timestamp() - max(2 * tf_s, 900) - tf_s
-    new_idx = [i for i, t in enumerate(series["time"]) if t > new_since and t >= oldest]
+    # only candles that closed recently: after downtime or a catch-up, old crossings are not news any more
+    oldest_close = now.timestamp() - max(2 * tf_s, 180)
+    new_idx = [i for i, t in enumerate(series["time"]) if t > new_since and t + tf_s >= oldest_close]
     fired: list[int] = []
     d = instrument.price_decimals
     for a in alerts:
@@ -70,6 +71,8 @@ async def on_candles(db: AsyncSession, instrument_id: int, listing_id: int, time
                 break
             c = series.iloc[i]
             close_at = ts_to_dt(int(c["time"]) + tf_s)
+            if close_at <= a.created_at:  # never fire on a candle that closed before the alert existed
+                continue
             data = {"symbol": instrument.symbol, "timeframe": timeframe, "price": float(c["close"]),
                     "candle_time": ts_to_dt(int(c["time"])).isoformat()}
             if a.kind == "price_cross" and i > 0:
