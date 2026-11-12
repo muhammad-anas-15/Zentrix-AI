@@ -23,7 +23,8 @@ log = logging.getLogger(__name__)
 
 BASE_URL = "https://api.twelvedata.com/time_series"
 MAX_OUTPUTSIZE = 5000
-TD_INTERVALS = {"1m": "1min", "5m": "5min", "15m": "15min", "1h": "1h", "4h": "4h", "1d": "1day"}
+TD_INTERVALS = {"1m": "1min", "5m": "5min", "15m": "15min", "30m": "30min", "1h": "1h", "2h": "2h", "4h": "4h",
+                "1d": "1day", "1w": "1week"}
 
 _last_call = 0.0
 
