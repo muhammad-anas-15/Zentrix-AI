@@ -1,4 +1,4 @@
-# Backend image (API now; worker in Phase 2). Build context: ../backend
+# Backend image for the API and the worker. Build context: ../backend
 #   docker build -f infra/Dockerfile backend
 FROM python:3.12-slim
 

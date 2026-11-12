@@ -1,5 +1,6 @@
 # Local stack: docker compose -f infra/docker-compose.yml up --build
-# The worker (candle ingestion + per-candle-close signal jobs) is added in Phase 2.
+# Model artifacts live in the ml_data volume (/data/artifacts). Register them once (and after each retrain):
+#   docker compose -f infra/docker-compose.yml run --rm worker python -m app.workers.register_models
 name: zentrix
 
 x-backend: &backend
@@ -28,6 +29,19 @@ services:
       - ml_data:/data   # model artifacts + candle cache (never baked into the image)
     ports:
       - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:    # candle ingestion, per-candle-close signals, outcome resolver
+    <<: *backend
+    command: ["python", "-m", "app.workers.main"]
+    volumes:
+      - ml_data:/data
+    healthcheck:
+      disable: true
     depends_on:
       migrate:
         condition: service_completed_successfully

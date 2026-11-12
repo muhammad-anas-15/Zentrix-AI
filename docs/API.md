@@ -38,6 +38,26 @@ a test fails if it is stale). Interactive docs at `/docs` when the server runs. 
 Each instrument lists its venue feeds (`listings`) with a status: `active`, `planned`, `restricted` (for example
 silver on the free Twelve Data plan) or `disabled`. `active=false` instruments have no usable feed yet.
 
+## Signals and track record (public for now; free/premium limits come in Phase 4)
+
+Signals are produced by the worker at every candle close for each active model, **only live** (stored within
+one timeframe of the candle's close, never backfilled). Each is resolved automatically with the model's label:
+entry = next candle's open, exit = the open after `horizon` candles; `win`/`loss` by direction, `flat` if equal,
+`void` if candles in that window are missing. The hit rate excludes flat and void (both are reported).
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /v1/candles?symbol=&timeframe=&venue=&limit=&end=` | Closed, market-hours candles for charts (oldest first, <= 1000) |
+| `GET /v1/signals?symbol=&timeframe=&horizon=&strength=&status=&limit=&before_id=` | Every signal with its outcome, newest first; cursor `next_before_id` |
+| `GET /v1/signals/latest?symbol=&timeframe=&horizon=` | Latest signal (cached); 404 `no_signal` if none yet |
+| `GET /v1/track-record?symbol=&timeframe=&horizon=&since=` | Live stats from the database: counts, hit rate, 95% Wilson interval, by strength |
+| `GET /v1/models?symbol=&active_only=` | Models behind the signals: out-of-sample backtest, `has_demonstrated_edge` and the reasons |
+
+Each signal carries `confidence` (calibrated probability of its direction), `strength` (a tier earned
+out-of-sample, or "Very Weak - Wait"), `model.has_demonstrated_edge`, and `backtest_tier` (out-of-sample
+**backtest** stats of that tier, to be labelled as backtest in the app; live numbers come from
+`/v1/track-record`). Symbols are canonical: `EUR/USD`, `XAU/USD`, `BTC/USDT` (spot), `BTC/USDT:PERP`.
+
 ## Ops
 
 `GET /health` (liveness), `GET /ready` (database + Redis; 503 when not ready). Every response has `X-Request-ID`.

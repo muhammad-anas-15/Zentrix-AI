@@ -16,7 +16,8 @@ CsvList = Annotated[list[str], NoDecode]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
+    # env_ignore_empty: "KEY=" in .env means "use the default", never an empty value
+    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore", env_ignore_empty=True)
 
     app_env: Literal["dev", "test", "staging", "prod"] = "dev"
     log_json: bool = False  # JSON logs (set true outside dev)

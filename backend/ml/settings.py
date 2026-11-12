@@ -11,7 +11,7 @@ REPO_DIR = BACKEND_DIR.parent
 
 
 class MLSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore", env_ignore_empty=True)
 
     twelve_data_api_key: SecretStr = SecretStr("")
     twelve_data_min_interval_s: float = 8.0  # free plan: 8 requests/minute

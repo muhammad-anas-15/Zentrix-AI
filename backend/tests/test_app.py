@@ -49,3 +49,10 @@ def test_dev_gets_ephemeral_secret_and_tokens_round_trip() -> None:
     other = Settings(_env_file=None, app_env="dev")  # type: ignore[call-arg]
     with pytest.raises(Exception, match="Invalid access token"):
         decode_access_token(other, token)  # different secret
+
+
+def test_empty_env_values_mean_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ARTIFACTS_DIR", "")
+    monkeypatch.setenv("TWELVE_DATA_DAILY_BUDGET", "")
+    s = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert s.artifacts_dir.name == "artifacts" and s.twelve_data_daily_budget == 780

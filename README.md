@@ -31,7 +31,14 @@ alembic upgrade head
 uvicorn app.main:app --reload                       # http://127.0.0.1:8000/docs
 ```
 
-With Docker: `docker compose -f infra/docker-compose.yml up --build` (runs migrations, then the API).
+Live signals (worker): register the trained models, then run the worker next to the API.
+
+```bash
+python -m app.workers.register_models               # ml/artifacts -> model_versions (+ ingestion targets)
+python -m app.workers.main                          # ingest candles, signal at each candle close, resolve outcomes
+```
+
+With Docker: `docker compose -f infra/docker-compose.yml up --build` (migrations, API, worker, Postgres, Redis).
 
 ML: `python -m ml.training.pipeline` (walk-forward, train, write docs/ML_REPORT.md);
 `python -m scripts.check_signal EUR/USD 15m` (signal for the last closed candle).
