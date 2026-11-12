@@ -48,7 +48,7 @@ Design rules, so new assets, venues and timeframes are inserts, not schema refac
 | `subscriptions`, `entitlements` | entitlement model; billing not integrated (`PREMIUM_ENFORCED=false`) |
 | `audit_log` | security events; survives account deletion without personal data |
 
-### Designed now, migrated in the phase that builds them (additive migrations)
+### Built in Phases 2 and 3 (additive migrations 0003, 0004)
 
 | Table | References | Phase |
 |---|---|---|
@@ -56,10 +56,10 @@ Design rules, so new assets, venues and timeframes are inserts, not schema refac
 | `signals` | `listing_id`, `instrument_id`, `timeframe`, `candle_ts`, `model_version_id`; unique (`model_version_id`, `listing_id`, `candle_ts`) | 2 |
 | `signal_outcomes` | `signal_id`, entry/exit per the model's `label_mode` | 2 |
 | `watchlists`, `watchlist_items` | `user_id`; items -> `instrument_id`, `sort_order` | 3 |
-| `alerts`, `alert_events` | `user_id`, `instrument_id`, optional `listing_id`/`timeframe`, `kind`, `params`, `cooldown_s`, `last_triggered_at` | 3 |
-| `journal_entries` | `user_id`, `instrument_id`, side, qty, entry/exit price and time, fees, tags | 3 |
-| `risk_profiles` | `user_id`, account currency, balance, risk %, daily loss limit | 3 |
-| `news_events` | currency/country tags, impact, time; mapped to instruments via base/quote | 3 |
+| `alerts`, `alert_events` | `user_id`, `instrument_id` or `watchlist_id`, `timeframe`, `kind`, `params` (JSONB, validated per kind), `recurring`, `cooldown_s`; events unique per (alert, dedupe key), delivery state = push outbox and in-app inbox | 3 |
+| `journal_entries` | `user_id`, `instrument_id`, side, qty, entry/exit price and time, stop/target, fees, tags; server-computed `pnl_quote`, `pnl_account`, `r_multiple`, `risk_account` | 3 |
+| `risk_profiles` | `user_id` (PK), account currency, balance, risk %, daily loss %, max trades/day, loss-streak limit, leverage | 3 |
+| `news_events` | source + external id (unique), currency, impact, `event_at`; mapped to instruments via base/quote (`app/services/news/guard.py`) | 3 |
 
 ## 3. Market-data providers
 
@@ -81,14 +81,15 @@ display rights). The ingestion worker picks the provider from the listing's venu
 | Feature (as in TradingView / Binance / MT5 apps) | Backend support | Phase |
 |---|---|---|
 | Interactive candlestick charts, any timeframe | `GET` candles by listing + timeframe (cursor paging); live updates over WebSocket | 2 / 5 |
-| Fast watchlists with live prices | watchlist tables; Redis-cached last price per listing; WebSocket fan-out | 3 |
-| Price / % move / signal-threshold alerts | alert evaluator on each closed candle and ticker update; FCM push with cooldown and dedupe | 3 |
+| Fast watchlists with prices | watchlist tables; quotes from the last closed candle; WebSocket `candle` events (tick prices need a streaming feed) | 3 |
+| Price / % move / signal / news alerts | alert evaluator on each closed candle, new signal and worker tick; FCM push with cooldown and dedupe | 3 |
 | Position-size and risk calculator | pure service using `contract_size`, `price_decimals`, quote/account currency conversion | 3 |
 | Journal and portfolio tracking | `journal_entries`; P&L in account currency | 3 |
 | Market-condition light, news countdown | sessions, ATR regime, `news_events` | 3 |
 
-Flow: provider -> ingestion worker (closed candles only, upsert into `candles`) -> Redis pub/sub
-(`candles:{listing}:{tf}`) -> signal job + alert evaluator -> Postgres + FCM -> WebSocket to the app.
+Flow: provider -> ingestion worker (closed candles only, upsert into `candles`) -> signal job + outcome resolver +
+alert evaluator -> Postgres (`alert_events` outbox) -> FCM; candle and signal events -> Redis pub/sub (`zx:events`)
+-> WebSocket `/v1/stream` to the app. The worker also refreshes the economic calendar hourly.
 
 ## 5. Compliance notes
 

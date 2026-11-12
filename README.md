@@ -35,8 +35,11 @@ Live signals (worker): register the trained models, then run the worker next to 
 
 ```bash
 python -m app.workers.register_models               # ml/artifacts -> model_versions (+ ingestion targets)
-python -m app.workers.main                          # ingest candles, signal at each candle close, resolve outcomes
+python -m app.workers.main                          # candles, signals, outcomes, calendar, alerts, push
 ```
+
+Push notifications need a Firebase service-account JSON (`FCM_CREDENTIALS_FILE`); without it alerts still
+reach the in-app inbox (`/v1/alerts/events`).
 
 With Docker: `docker compose -f infra/docker-compose.yml up --build` (migrations, API, worker, Postgres, Redis).
 

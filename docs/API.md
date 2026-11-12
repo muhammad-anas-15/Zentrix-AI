@@ -58,13 +58,205 @@ out-of-sample, or "Very Weak - Wait"), `model.has_demonstrated_edge`, and `backt
 **backtest** stats of that tier, to be labelled as backtest in the app; live numbers come from
 `/v1/track-record`). Symbols are canonical: `EUR/USD`, `XAU/USD`, `BTC/USDT` (spot), `BTC/USDT:PERP`.
 
+## Trader-protection tools
+
+None of these predicts profit. Each response states its method, and every "how often" number in it comes from
+stored data and is labelled as what it is: a base rate, a measured coverage, or the live track record.
+Responses carry `disclaimer` ("Not financial advice ...").
+
+Data used: stored, closed candles of the instrument's primary listing (or `venue=`). A series that is not
+ingested returns 404 `no_data`. Free/premium gating comes in Phase 4; until then everything is open, and
+Premium features carry `premium: true`.
+
+### News guard (public)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /v1/news/events?currency=USD,EUR&impact=medium&start=&end=&limit=` | Economic calendar (minimum impact), with `in_s` countdown |
+| `GET /v1/news/guard?symbol=` | `state`: `blackout` / `caution` / `clear` / `unknown`, plus reasons, active events, next event and countdown, `blackout_until` |
+
+- **Rules:**
+  - High impact: blackout from 30 min before to 30 min after; caution if within 2 h.
+  - Medium impact: caution from 15 min before to 15 min after.
+- **Currencies:**
+  - FX: base and quote.
+  - Metals and commodities: USD.
+  - Crypto: high-impact USD events only.
+- **Stale or missing calendar:** reported as `unknown`, never `clear`.
+- **Source:** the ForexFactory weekly feed, refreshed hourly by the worker. It is unofficial and must be
+  replaced before launch.
+
+### Market conditions, levels, exit advice, scenario (public)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /v1/conditions?symbol=&timeframe=15m` | `light` green/amber/red with `factors`: market open, data freshness, trend (ADX), volatility (ATR percentile), session liquidity, news |
+| `GET /v1/levels?symbol=&side=long\|short&timeframe=&entry=&sl_atr=1.5&rr=1&rr=2&max_bars=50` | ATR stop and R-multiple targets. Each target's `base_rate` is how often it was hit before the stop on past candles, next to `break_even_hit_rate` |
+| `GET /v1/signals/{id}/levels` | The same for a signal, using only candles known when the signal was made |
+| `POST /v1/exit-advice` | Body: `symbol, timeframe, side, entry_price, stop_loss?, take_profit?, opened_at?` |
+| `GET /v1/scenario?symbol=&timeframe=&steps=5` | **Premium.** Price band for the next 1-5 candles; see below |
+
+**Conditions light:**
+- Red: market closed, stale data, news blackout, or extreme volatility.
+- Amber: high volatility, news caution or unknown, or low-liquidity hours (FX rollover, Friday close).
+
+**Exit advice** returns `action` (`consider_exit`, `take_partial`, `tighten_stop` or `hold`), the reasons,
+`r_multiple`, `suggested_stop` and an ATR `trailing_stop`. Signals without a demonstrated edge are listed in
+`notes` as ignored.
+
+**Scenario** returns, per step:
+- `low` / `median` / `high` price;
+- `coverage`: the measured out-of-sample share of past cases inside the 80% band.
+
+Its `direction` comes only from registered models. Each one shows its live track record and backtest
+accuracy, with `reliable=false` when the model has no demonstrated edge.
+
+### Risk calculator, risk profile, daily status
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `POST /v1/risk/position-size` | optional bearer | Size from `entry`, `stop`, `take_profit?`, `balance` + `risk_pct` or `risk_amount`, `account_currency`, `conversion_rate?`, `leverage?`, `lot_step`, `size_step?` |
+| `GET /v1/me/risk-profile` | bearer | Risk rules (defaults until saved: 1% per trade, 3% daily loss, 6 trades/day, 3-loss streak) |
+| `PUT /v1/me/risk-profile` | bearer | Save `account_currency`, `balance`, `risk_per_trade_pct`, `max_daily_loss_pct`, `max_trades_per_day`, `max_consecutive_losses`, `leverage` |
+| `GET /v1/me/risk-status` | bearer | `level` ok/warning/stop with warnings (codes below), today's P&L, loss limit used and left, trades today, open risk, loss streak; "today" in the user's timezone |
+
+**Position size:**
+- The stop decides the side.
+- Output:
+  - units, plus lots of `contract_size` (FX 100,000; XAU 100; XAG 5,000);
+  - `risk_amount` and `risk_pct`;
+  - stop distance in pips (FX), points and ATR;
+  - `pip_value_per_lot`, `risk_reward`, `notional`, `margin`.
+- Sizes are rounded **down**, so the money at risk never exceeds the request.
+- Conversion: quote-to-account uses stored prices (direct, inverse or via USD), or the client's
+  `conversion_rate`. USDT counts as USD. With no price available the response is 422
+  `conversion_unavailable`.
+- Warnings:
+  - risk above 2% (above 5% is a strong warning);
+  - R:R below 1;
+  - stop tighter than 0.5 x ATR;
+  - margin above balance;
+  - more risk than today's remaining loss budget (signed in).
+
+**Risk-status warning codes:**
+- `daily_loss_limit_reached` (level `stop`)
+- `daily_loss_limit_near`
+- `open_risk_exceeds_limit`
+- `overtrading`
+- `loss_streak`
+- `recent_loss` (a new trade within 15 min of a loss)
+
+### Journal (bearer)
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/journal` | Add a trade. Required: `symbol, side, quantity` (units), `entry_price, entry_at`. Optional: `exit_price` + `exit_at`, `stop_loss`, `take_profit`, `fees`, `account_currency`, `fx_rate`, `timeframe`, `signal_id`, `setup`, `tags` (up to 10), `notes` |
+| `GET /v1/journal?status=all\|open\|closed&symbol=&since=&until=&limit=&before_id=` | Newest first, cursor `next_before_id` |
+| `GET/PATCH/DELETE /v1/journal/{id}` | One trade; PATCH `exit_price` + `exit_at` closes it |
+| `GET /v1/journal/stats?since=&until=&currency=` | Win rate, net P&L, average win/loss, profit factor, expectancy, average R, worst losing streak, per instrument |
+| `GET /v1/journal/review` | Rule-based observations (at least 5 closed trades); codes listed below |
+
+**P&L and R are computed by the server:**
+- P&L is calculated in the quote currency, then converted to account currency (at the stored rate at exit, or
+  `fx_rate`) minus fees.
+- R = price move / stop distance.
+- `calc_notes` explains a missing conversion.
+
+**Review observation codes:**
+- `losers_held_longer`
+- `missing_stops`
+- `inconsistent_risk`
+- `small_winners`
+- `news_blackout_trades`
+- `overtrading_days`
+- `quick_reentry_after_loss`
+
+### Watchlists (bearer)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /v1/watchlists`, `POST /v1/watchlists {name, symbols?}` | Lists (max 20) with ordered items (max 100) |
+| `PATCH /v1/watchlists/{id}`, `DELETE /v1/watchlists/{id}` | Rename / reorder / delete |
+| `PUT /v1/watchlists/{id}/items {symbols}` | Replace items in this order |
+| `POST /v1/watchlists/{id}/items {symbol}`, `DELETE /v1/watchlists/{id}/items?symbol=` | Add at the end / remove |
+| `GET /v1/watchlists/{id}/quotes` | Per item: last **closed** candle price + `as_of`, 24h change, news state + next event, latest signal (with `has_demonstrated_edge`) |
+
+### Alerts and push (bearer)
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/devices {fcm_token, platform, app_version?}` | Register/refresh the FCM token (re-registering moves a token to the signed-in user) |
+| `GET /v1/devices`, `DELETE /v1/devices/{id}` | List (token hint only) / unregister on sign-out |
+| `POST /v1/alerts` | Create (max 50 active). See kinds below |
+| `GET /v1/alerts?active=`, `GET/PATCH/DELETE /v1/alerts/{id}` | Manage; PATCH `active` pauses/resumes, `params` are re-validated |
+| `GET /v1/alerts/events?unread_only=&limit=&before_id=` | In-app inbox (also the push outbox): `delivery` pending/sent/partial/failed/no_devices/disabled, `unread` count |
+| `POST /v1/alerts/events/read {ids \| all: true}` | Mark read |
+
+Alert kinds (`params` are validated per kind):
+
+| `kind` | Scope | `params` | Fires when |
+|---|---|---|---|
+| `price_cross` | `symbol`, `timeframe` (default 15m; must be ingested, else 422 `series_not_ingested`) | `level`, `direction` above/below | A closed candle crosses the level from the other side (the wick counts) |
+| `pct_move` | `symbol`, `timeframe` | `pct`, `window_candles` (default 4), `direction` up/down/either | The close moved at least `pct`% over the window |
+| `signal` | `symbol`, `watchlist_id`, or neither (all your watchlists); optional `timeframe` | `min_strength` (Strong/Good/Moderate/Weak), `horizons?` | A new signal meets the strength. "Very Weak - Wait" and models without an edge never alert |
+| `news` | `symbol`, `watchlist_id`, or neither | `lead_minutes` (default 30), `min_impact` high/medium | A relevant calendar event starts within the lead time |
+
+**When alerts fire:**
+- Price and signal alerts are evaluated by the worker on each newly closed candle and each new signal; news
+  alerts every tick.
+- Only candles closed in the last two candles (at least 15 min) count. After downtime or a backfill, old
+  crossings never fire.
+- One-shot alerts (the default for price and % alerts) switch off after firing. Recurring alerts respect
+  `cooldown_s`.
+- Each trigger is stored once (de-duplicated per alert and trigger).
+
+**Push delivery:**
+- Pushes go through FCM HTTP v1 (`FCM_CREDENTIALS_FILE` = a service-account JSON).
+- Tokens that FCM reports as `UNREGISTERED` are deleted.
+- Failed sends are retried up to 3 times.
+- Without credentials, events stay in the inbox with delivery `disabled`.
+
+### Live stream (WebSocket, public)
+
+`GET /v1/stream` (WebSocket) carries live public events.
+
+Client sends:
+- `{"action": "subscribe", "symbols": ["EUR/USD"], "timeframes": ["15m"], "types": ["candle", "signal"]}`
+  (at most 50 symbols; each subscribe replaces the previous one);
+- `{"action": "ping"}`.
+
+Server sends:
+- `hello` on connect, `subscribed`, `pong`, `error`;
+- `candle` events (`{symbol, venue, timeframe, candle: {t, o, h, l, c, v}}`), when a candle closes;
+- `signal` events (the same shape as `GET /v1/signals` items).
+
+If Redis is down the server closes with code 1011 and the app falls back to polling.
+
 ## Ops
 
 `GET /health` (liveness), `GET /ready` (database + Redis; 503 when not ready). Every response has `X-Request-ID`.
 
 ## Errors
 
-Always `{"error": {"code": "...", "message": "...", "details": ...}}`. Codes: `unauthorized`, `invalid_token`,
-`token_expired`, `token_revoked`, `invalid_google_token`, `google_token_expired`, `email_not_verified`,
-`invalid_refresh_token`, `refresh_token_expired`, `refresh_token_reused`, `rate_limited` (429 + `Retry-After`),
-`validation_error` (422), `not_found`, `auth_not_configured` / `google_keys_unavailable` (503).
+Always `{"error": {"code": "...", "message": "...", "details": ...}}`.
+
+**Auth codes:**
+- `unauthorized`, `invalid_token`, `token_expired`, `token_revoked`
+- `invalid_google_token`, `google_token_expired`, `email_not_verified`
+- `invalid_refresh_token`, `refresh_token_expired`, `refresh_token_reused`
+
+**General codes:**
+- `rate_limited` (429 + `Retry-After`)
+- `validation_error` (422)
+- `not_found`
+- `auth_not_configured` / `google_keys_unavailable` (503)
+
+**Phase 3 codes:**
+- `unknown_instrument` (404, or 422 in lists)
+- `unknown_timeframe` (422)
+- `no_data` (404: series not ingested or too short)
+- `conversion_unavailable` (422)
+- `invalid_risk_input` (422)
+- `series_not_ingested` (422)
+- `name_taken` (409)
+- `limit_reached` (409)

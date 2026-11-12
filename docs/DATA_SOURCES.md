@@ -6,8 +6,8 @@
 |---|---|---|---|
 | Forex + gold candles | Twelve Data REST (`time_series`) | training, live signals | Free plan: 8 req/min, 800 req/day, <=5000 candles/call. Timestamps requested in UTC. |
 | Crypto candles | Binance USD-M futures klines (public) | research models only | No key. Product targets forex and gold. |
-| Economic calendar | `nfs.faireconomy.media` (ForexFactory weekly JSON) | news risk flag | Unofficial feed, no published terms or SLA. |
-| Headlines | RSS (investing.com; Reuters feed is dead since 2020) | keyword risk flag | Needs replacing in Phase 3 (news guard). |
+| Economic calendar | `nfs.faireconomy.media` (ForexFactory weekly JSON) | news guard, news alerts, journal review | Unofficial feed, no published terms or SLA. Worker fetches it hourly into `news_events`. |
+| Headlines | none | - | RSS keyword flags were removed in Phase 3 (dead Reuters feed, noisy keywords). A licensed news API can be added later. |
 
 ## 2. Forex history (CLAUDE.md item 5)
 

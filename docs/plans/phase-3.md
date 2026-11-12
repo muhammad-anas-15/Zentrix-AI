@@ -84,7 +84,7 @@ journal, watchlists and push alerts.
   - Close beyond the recent swing (structure break).
   - News blackout ahead, volatility spike, and an opposing signal (only if its model has a demonstrated edge).
 - **Scenario path:**
-  - Band = 10th-90th percentile of past k-candle open-to-open moves, k = 1..5, from the last 1,000 stored
+  - Band = 10th-90th percentile of past k-candle close-to-close moves from the latest close, k = 1..5, last 1,000 stored
     candles.
   - Coverage is checked out of sample on the most recent 250 cases, each using only earlier data, and reported
     next to the nominal 80%.

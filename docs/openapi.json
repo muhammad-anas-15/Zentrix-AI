@@ -1,6 +1,401 @@
 {
   "components": {
     "schemas": {
+      "AlertEventOut": {
+        "properties": {
+          "alert_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Id"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "delivery": {
+            "enum": [
+              "pending",
+              "sent",
+              "partial",
+              "failed",
+              "no_devices",
+              "disabled"
+            ],
+            "title": "Delivery",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "triggered_at": {
+            "format": "date-time",
+            "title": "Triggered At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "alert_id",
+          "kind",
+          "title",
+          "body",
+          "data",
+          "triggered_at",
+          "delivery",
+          "read_at"
+        ],
+        "title": "AlertEventOut",
+        "type": "object"
+      },
+      "AlertEventPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlertEventOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_before_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before Id"
+          },
+          "unread": {
+            "title": "Unread",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread",
+          "next_before_id"
+        ],
+        "title": "AlertEventPage",
+        "type": "object"
+      },
+      "AlertIn": {
+        "properties": {
+          "cooldown_s": {
+            "anyOf": [
+              {
+                "maximum": 604800.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cooldown S"
+          },
+          "kind": {
+            "enum": [
+              "price_cross",
+              "pct_move",
+              "signal",
+              "news"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "recurring": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default: false for price/pct, true for signal/news",
+            "title": "Recurring"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required for price_cross and pct_move",
+            "title": "Symbol"
+          },
+          "timeframe": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "price/pct: candles to evaluate (default 15m); signal: filter",
+            "title": "Timeframe"
+          },
+          "watchlist_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "signal/news: every instrument in a list",
+            "title": "Watchlist Id"
+          }
+        },
+        "required": [
+          "kind",
+          "params"
+        ],
+        "title": "AlertIn",
+        "type": "object"
+      },
+      "AlertOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "cooldown_s": {
+            "title": "Cooldown S",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "price_cross",
+              "pct_move",
+              "signal",
+              "news"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_triggered_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Triggered At"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "recurring": {
+            "title": "Recurring",
+            "type": "boolean"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Symbol"
+          },
+          "timeframe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeframe"
+          },
+          "trigger_count": {
+            "title": "Trigger Count",
+            "type": "integer"
+          },
+          "watchlist_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watchlist Id"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "symbol",
+          "watchlist_id",
+          "timeframe",
+          "params",
+          "active",
+          "recurring",
+          "cooldown_s",
+          "note",
+          "last_triggered_at",
+          "trigger_count",
+          "created_at"
+        ],
+        "title": "AlertOut",
+        "type": "object"
+      },
+      "AlertUpdate": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "cooldown_s": {
+            "anyOf": [
+              {
+                "maximum": 604800.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cooldown S"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params"
+          },
+          "recurring": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurring"
+          }
+        },
+        "title": "AlertUpdate",
+        "type": "object"
+      },
       "BacktestOut": {
         "properties": {
           "accuracy": {
@@ -71,6 +466,85 @@
           "period"
         ],
         "title": "BacktestOut",
+        "type": "object"
+      },
+      "BaseRateOut": {
+        "properties": {
+          "break_even_hit_rate": {
+            "description": "1 / (1 + R): hit rate needed to break even before costs",
+            "title": "Break Even Hit Rate",
+            "type": "number"
+          },
+          "ci95": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci95"
+          },
+          "entries": {
+            "title": "Entries",
+            "type": "integer"
+          },
+          "hit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "target_first / (target_first + stop_first) on past candles",
+            "title": "Hit Rate"
+          },
+          "max_bars": {
+            "title": "Max Bars",
+            "type": "integer"
+          },
+          "neither_within_max_bars": {
+            "title": "Neither Within Max Bars",
+            "type": "integer"
+          },
+          "r": {
+            "title": "R",
+            "type": "number"
+          },
+          "stop_first": {
+            "title": "Stop First",
+            "type": "integer"
+          },
+          "target_first": {
+            "title": "Target First",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "r",
+          "entries",
+          "target_first",
+          "stop_first",
+          "neither_within_max_bars",
+          "max_bars",
+          "hit_rate",
+          "ci95",
+          "break_even_hit_rate"
+        ],
+        "title": "BaseRateOut",
         "type": "object"
       },
       "CandleOut": {
@@ -150,6 +624,92 @@
           "candles"
         ],
         "title": "CandlesOut",
+        "type": "object"
+      },
+      "ConditionsOut": {
+        "properties": {
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/FactorOut"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "last_candle_close": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Candle Close"
+          },
+          "light": {
+            "enum": [
+              "green",
+              "amber",
+              "red",
+              "unknown"
+            ],
+            "title": "Light",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "sessions": {
+            "description": "FX centres open now (local business hours)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "trend": {
+            "additionalProperties": true,
+            "title": "Trend",
+            "type": "object"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          },
+          "volatility": {
+            "additionalProperties": true,
+            "title": "Volatility",
+            "type": "object"
+          }
+        },
+        "required": [
+          "symbol",
+          "venue",
+          "timeframe",
+          "light",
+          "factors",
+          "trend",
+          "volatility",
+          "sessions",
+          "last_candle_close",
+          "method"
+        ],
+        "title": "ConditionsOut",
         "type": "object"
       },
       "CountsOut": {
@@ -232,6 +792,367 @@
         "title": "CountsOut",
         "type": "object"
       },
+      "DeviceIn": {
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "fcm_token": {
+            "maxLength": 4096,
+            "minLength": 20,
+            "title": "Fcm Token",
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "android",
+              "ios",
+              "web"
+            ],
+            "title": "Platform",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fcm_token",
+          "platform"
+        ],
+        "title": "DeviceIn",
+        "type": "object"
+      },
+      "DeviceOut": {
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "token_hint": {
+            "description": "Last 6 characters of the FCM token",
+            "title": "Token Hint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "platform",
+          "app_version",
+          "token_hint",
+          "created_at",
+          "last_seen_at"
+        ],
+        "title": "DeviceOut",
+        "type": "object"
+      },
+      "ExitAdviceIn": {
+        "properties": {
+          "entry_price": {
+            "exclusiveMinimum": 0.0,
+            "title": "Entry Price",
+            "type": "number"
+          },
+          "opened_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opened At"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "stop_loss": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Loss"
+          },
+          "symbol": {
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Symbol",
+            "type": "string"
+          },
+          "take_profit": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Profit"
+          },
+          "timeframe": {
+            "default": "15m",
+            "maxLength": 8,
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "venue": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue"
+          }
+        },
+        "required": [
+          "symbol",
+          "side",
+          "entry_price"
+        ],
+        "title": "ExitAdviceIn",
+        "type": "object"
+      },
+      "ExitAdviceOut": {
+        "properties": {
+          "action": {
+            "enum": [
+              "consider_exit",
+              "take_partial",
+              "tighten_stop",
+              "hold"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atr"
+          },
+          "best_price": {
+            "title": "Best Price",
+            "type": "number"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "news_state": {
+            "title": "News State",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "r_multiple": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Open profit in units of the initial stop distance",
+            "title": "R Multiple"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "stop_distance_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Distance Atr"
+          },
+          "suggested_stop": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Stop"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "target_distance_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Distance Atr"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "trailing_stop": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailing Stop"
+          }
+        },
+        "required": [
+          "symbol",
+          "timeframe",
+          "side",
+          "action",
+          "reasons",
+          "notes",
+          "price",
+          "as_of",
+          "atr",
+          "r_multiple",
+          "best_price",
+          "suggested_stop",
+          "trailing_stop",
+          "stop_distance_atr",
+          "target_distance_atr",
+          "news_state",
+          "method"
+        ],
+        "title": "ExitAdviceOut",
+        "type": "object"
+      },
+      "FactorOut": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "info",
+              "caution",
+              "danger",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "value",
+          "detail"
+        ],
+        "title": "FactorOut",
+        "type": "object"
+      },
       "GoogleSignIn": {
         "properties": {
           "device_name": {
@@ -260,6 +1181,121 @@
         "title": "GoogleSignIn",
         "type": "object"
       },
+      "GuardOut": {
+        "properties": {
+          "active_events": {
+            "items": {
+              "$ref": "#/components/schemas/NewsEventOut"
+            },
+            "title": "Active Events",
+            "type": "array"
+          },
+          "blackout_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blackout Until"
+          },
+          "calendar_updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Updated At"
+          },
+          "countdown_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Seconds until the next relevant high/medium-impact event",
+            "title": "Countdown S"
+          },
+          "currencies": {
+            "description": "Calendar currencies that affect this instrument",
+            "items": {
+              "type": "string"
+            },
+            "title": "Currencies",
+            "type": "array"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "next_event": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NewsEventOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "rules": {
+            "default": "High impact: blackout 30 min before to 30 min after; caution if within 2 h. Medium impact: caution 15 min before to 15 min after. Crypto: high-impact USD events only.",
+            "title": "Rules",
+            "type": "string"
+          },
+          "source": {
+            "default": "ForexFactory weekly calendar (unofficial feed; to be replaced by a licensed calendar)",
+            "title": "Source",
+            "type": "string"
+          },
+          "state": {
+            "description": "blackout: inside a high-impact event window; caution: medium-impact window or high-impact event soon; unknown: calendar missing/stale (never reported as clear)",
+            "enum": [
+              "blackout",
+              "unknown",
+              "caution",
+              "clear"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "state",
+          "reasons",
+          "active_events",
+          "next_event",
+          "countdown_s",
+          "blackout_until",
+          "currencies",
+          "calendar_updated_at"
+        ],
+        "title": "GuardOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -271,6 +1307,39 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "InsightOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "warning"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "message",
+          "evidence"
+        ],
+        "title": "InsightOut",
         "type": "object"
       },
       "InstrumentOut": {
@@ -405,6 +1474,1009 @@
         "title": "InstrumentPage",
         "type": "object"
       },
+      "JournalIn": {
+        "properties": {
+          "account_currency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "USD",
+                  "EUR",
+                  "GBP",
+                  "JPY",
+                  "CHF",
+                  "AUD",
+                  "CAD",
+                  "NZD",
+                  "USDT"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default: risk profile or USD",
+            "title": "Account Currency"
+          },
+          "entry_at": {
+            "format": "date-time",
+            "title": "Entry At",
+            "type": "string"
+          },
+          "entry_price": {
+            "exclusiveMinimum": 0.0,
+            "title": "Entry Price",
+            "type": "number"
+          },
+          "exit_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit At"
+          },
+          "exit_price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Price"
+          },
+          "fees": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Total costs in account currency",
+            "title": "Fees"
+          },
+          "fx_rate": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "1 quote-currency unit in account currency; default: stored rate",
+            "title": "Fx Rate"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "quantity": {
+            "description": "Units of the base asset (1 standard FX lot = 100000)",
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity",
+            "type": "number"
+          },
+          "setup": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setup"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "signal_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Signal that motivated the trade, if any",
+            "title": "Signal Id"
+          },
+          "stop_loss": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Loss"
+          },
+          "symbol": {
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Symbol",
+            "type": "string"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "take_profit": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Profit"
+          },
+          "timeframe": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeframe"
+          }
+        },
+        "required": [
+          "symbol",
+          "side",
+          "quantity",
+          "entry_price",
+          "entry_at"
+        ],
+        "title": "JournalIn",
+        "type": "object"
+      },
+      "JournalOut": {
+        "properties": {
+          "account_currency": {
+            "title": "Account Currency",
+            "type": "string"
+          },
+          "calc_notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Calc Notes",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entry_at": {
+            "format": "date-time",
+            "title": "Entry At",
+            "type": "string"
+          },
+          "entry_price": {
+            "title": "Entry Price",
+            "type": "number"
+          },
+          "exit_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit At"
+          },
+          "exit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Price"
+          },
+          "fees": {
+            "title": "Fees",
+            "type": "number"
+          },
+          "fx_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fx Rate"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "pnl_account": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "After fees",
+            "title": "Pnl Account"
+          },
+          "pnl_quote": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Quote"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "r_multiple": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R Multiple"
+          },
+          "risk_account": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Money at risk at the stop, account currency",
+            "title": "Risk Account"
+          },
+          "setup": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setup"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "signal_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signal Id"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "stop_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Loss"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "take_profit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Profit"
+          },
+          "timeframe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeframe"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "symbol",
+          "side",
+          "status",
+          "quantity",
+          "entry_price",
+          "entry_at",
+          "exit_price",
+          "exit_at",
+          "stop_loss",
+          "take_profit",
+          "fees",
+          "account_currency",
+          "fx_rate",
+          "risk_account",
+          "pnl_quote",
+          "pnl_account",
+          "r_multiple",
+          "timeframe",
+          "signal_id",
+          "setup",
+          "tags",
+          "notes",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "JournalOut",
+        "type": "object"
+      },
+      "JournalPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/JournalOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_before_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before Id"
+          }
+        },
+        "required": [
+          "items",
+          "next_before_id"
+        ],
+        "title": "JournalPage",
+        "type": "object"
+      },
+      "JournalReviewOut": {
+        "properties": {
+          "insights": {
+            "items": {
+              "$ref": "#/components/schemas/InsightOut"
+            },
+            "title": "Insights",
+            "type": "array"
+          },
+          "method": {
+            "default": "Rules over your closed trades: holding time of losers vs winners, missing stops, risk consistency, winner size in R, trades opened in high-impact news windows, days above your trade limit, re-entries within 15 minutes of a loss.",
+            "title": "Method",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "trades_reviewed": {
+            "title": "Trades Reviewed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "trades_reviewed",
+          "insights",
+          "note"
+        ],
+        "title": "JournalReviewOut",
+        "type": "object"
+      },
+      "JournalStatsOut": {
+        "properties": {
+          "account_currency": {
+            "title": "Account Currency",
+            "type": "string"
+          },
+          "avg_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Loss"
+          },
+          "avg_r": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg R"
+          },
+          "avg_win": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Win"
+          },
+          "breakeven": {
+            "title": "Breakeven",
+            "type": "integer"
+          },
+          "by_instrument": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "By Instrument",
+            "type": "array"
+          },
+          "closed": {
+            "title": "Closed",
+            "type": "integer"
+          },
+          "counted": {
+            "description": "Closed trades in this account currency with a computed P&L",
+            "title": "Counted",
+            "type": "integer"
+          },
+          "disclaimer": {
+            "default": "Statistics of your own journal. Past results do not predict future results.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "excluded": {
+            "title": "Excluded",
+            "type": "integer"
+          },
+          "expectancy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Average P&L per counted trade",
+            "title": "Expectancy"
+          },
+          "losses": {
+            "title": "Losses",
+            "type": "integer"
+          },
+          "max_consecutive_losses": {
+            "title": "Max Consecutive Losses",
+            "type": "integer"
+          },
+          "net_pnl": {
+            "title": "Net Pnl",
+            "type": "number"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "profit_factor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit Factor"
+          },
+          "trades": {
+            "title": "Trades",
+            "type": "integer"
+          },
+          "win_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Rate"
+          },
+          "wins": {
+            "title": "Wins",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "account_currency",
+          "trades",
+          "open",
+          "closed",
+          "counted",
+          "excluded",
+          "wins",
+          "losses",
+          "breakeven",
+          "win_rate",
+          "net_pnl",
+          "avg_win",
+          "avg_loss",
+          "profit_factor",
+          "expectancy",
+          "avg_r",
+          "max_consecutive_losses",
+          "by_instrument"
+        ],
+        "title": "JournalStatsOut",
+        "type": "object"
+      },
+      "JournalUpdate": {
+        "description": "Partial update; send exit_price + exit_at to close an open trade, or null both to reopen.",
+        "properties": {
+          "entry_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry At"
+          },
+          "entry_price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Price"
+          },
+          "exit_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit At"
+          },
+          "exit_price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Price"
+          },
+          "fees": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Total costs in account currency",
+            "title": "Fees"
+          },
+          "fx_rate": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "1 quote-currency unit in account currency; default: stored rate",
+            "title": "Fx Rate"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "setup": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setup"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "enum": [
+                  "long",
+                  "short"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Side"
+          },
+          "signal_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Signal that motivated the trade, if any",
+            "title": "Signal Id"
+          },
+          "stop_loss": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Loss"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "take_profit": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Profit"
+          },
+          "timeframe": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeframe"
+          }
+        },
+        "title": "JournalUpdate",
+        "type": "object"
+      },
+      "LevelsOut": {
+        "properties": {
+          "as_of": {
+            "description": "Close time of the candle the levels are computed from",
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atr"
+          },
+          "atr_period": {
+            "default": 14,
+            "title": "Atr Period",
+            "type": "integer"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "entry": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "resistance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resistance"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "signal_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signal Id"
+          },
+          "sl_atr": {
+            "title": "Sl Atr",
+            "type": "number"
+          },
+          "stop": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop"
+          },
+          "support": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetOut"
+            },
+            "title": "Targets",
+            "type": "array"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "venue",
+          "timeframe",
+          "side",
+          "entry",
+          "atr",
+          "sl_atr",
+          "stop",
+          "targets",
+          "support",
+          "resistance",
+          "as_of",
+          "method"
+        ],
+        "title": "LevelsOut",
+        "type": "object"
+      },
       "ListingOut": {
         "properties": {
           "is_primary": {
@@ -449,6 +2521,32 @@
           "note"
         ],
         "title": "ListingOut",
+        "type": "object"
+      },
+      "MarkReadIn": {
+        "properties": {
+          "all": {
+            "default": false,
+            "title": "All",
+            "type": "boolean"
+          },
+          "ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "maxItems": 500,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ids"
+          }
+        },
+        "title": "MarkReadIn",
         "type": "object"
       },
       "ModelOut": {
@@ -529,6 +2627,656 @@
         "title": "ModelOut",
         "type": "object"
       },
+      "NewsEventOut": {
+        "properties": {
+          "actual": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "currency": {
+            "description": "Calendar country code: USD, EUR, ... or All",
+            "title": "Currency",
+            "type": "string"
+          },
+          "event_at": {
+            "format": "date-time",
+            "title": "Event At",
+            "type": "string"
+          },
+          "forecast": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast"
+          },
+          "impact": {
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              "holiday",
+              "none"
+            ],
+            "title": "Impact",
+            "type": "string"
+          },
+          "in_s": {
+            "description": "Seconds from now (negative = already happened)",
+            "title": "In S",
+            "type": "integer"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "currency",
+          "impact",
+          "event_at",
+          "in_s"
+        ],
+        "title": "NewsEventOut",
+        "type": "object"
+      },
+      "NewsEventsOut": {
+        "properties": {
+          "calendar_updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Updated At"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NewsEventOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "source": {
+            "default": "ForexFactory weekly calendar (unofficial feed; to be replaced by a licensed calendar)",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "calendar_updated_at"
+        ],
+        "title": "NewsEventsOut",
+        "type": "object"
+      },
+      "PositionSizeIn": {
+        "properties": {
+          "account_currency": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default: risk profile or USD",
+            "title": "Account Currency"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default: risk profile",
+            "title": "Balance"
+          },
+          "conversion_rate": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "1 unit of the quote currency in account currency",
+            "title": "Conversion Rate"
+          },
+          "entry": {
+            "exclusiveMinimum": 0.0,
+            "title": "Entry",
+            "type": "number"
+          },
+          "leverage": {
+            "anyOf": [
+              {
+                "maximum": 3000.0,
+                "minimum": 1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leverage"
+          },
+          "lot_step": {
+            "default": 0.01,
+            "exclusiveMinimum": 0.0,
+            "title": "Lot Step",
+            "type": "number"
+          },
+          "risk_amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Overrides balance x risk_pct",
+            "title": "Risk Amount"
+          },
+          "risk_pct": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 100.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default: risk profile or 1%",
+            "title": "Risk Pct"
+          },
+          "size_step": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Unit step for non-lot assets (crypto)",
+            "title": "Size Step"
+          },
+          "stop": {
+            "description": "Stop-loss price; it decides the side (below entry = long)",
+            "exclusiveMinimum": 0.0,
+            "title": "Stop",
+            "type": "number"
+          },
+          "symbol": {
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Symbol",
+            "type": "string"
+          },
+          "take_profit": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Profit"
+          },
+          "timeframe": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "15m",
+            "description": "ATR timeframe for the stop check",
+            "title": "Timeframe"
+          }
+        },
+        "required": [
+          "symbol",
+          "entry",
+          "stop"
+        ],
+        "title": "PositionSizeIn",
+        "type": "object"
+      },
+      "PositionSizeOut": {
+        "properties": {
+          "account_currency": {
+            "title": "Account Currency",
+            "type": "string"
+          },
+          "contract_size": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contract Size"
+          },
+          "conversion_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conversion Notes",
+            "type": "array"
+          },
+          "conversion_rate": {
+            "title": "Conversion Rate",
+            "type": "number"
+          },
+          "daily_loss_left": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Signed-in users: remaining daily loss budget",
+            "title": "Daily Loss Left"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "lots": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lots of instruments.contract_size (null for crypto)",
+            "title": "Lots"
+          },
+          "margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin"
+          },
+          "notional": {
+            "title": "Notional",
+            "type": "number"
+          },
+          "pip_size": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pip Size"
+          },
+          "pip_value_per_lot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pip Value Per Lot"
+          },
+          "point_size": {
+            "title": "Point Size",
+            "type": "number"
+          },
+          "reward_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reward Amount"
+          },
+          "risk_amount": {
+            "description": "Money lost if the stop is hit (account currency, before costs)",
+            "title": "Risk Amount",
+            "type": "number"
+          },
+          "risk_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Pct"
+          },
+          "risk_reward": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Reward"
+          },
+          "side": {
+            "enum": [
+              "long",
+              "short"
+            ],
+            "title": "Side",
+            "type": "string"
+          },
+          "stop_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Atr"
+          },
+          "stop_distance": {
+            "title": "Stop Distance",
+            "type": "number"
+          },
+          "stop_pips": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Pips"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "units": {
+            "title": "Units",
+            "type": "number"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "symbol",
+          "side",
+          "account_currency",
+          "units",
+          "lots",
+          "contract_size",
+          "risk_amount",
+          "risk_pct",
+          "stop_distance",
+          "stop_pips",
+          "stop_atr",
+          "pip_size",
+          "pip_value_per_lot",
+          "point_size",
+          "reward_amount",
+          "risk_reward",
+          "notional",
+          "margin",
+          "conversion_rate",
+          "conversion_notes",
+          "daily_loss_left",
+          "warnings"
+        ],
+        "title": "PositionSizeOut",
+        "type": "object"
+      },
+      "QuoteOut": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "change_24h_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change 24H Pct"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "latest_signal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuoteSignalOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "news_state": {
+            "title": "News State",
+            "type": "string"
+          },
+          "next_event": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Event"
+          },
+          "next_event_in_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Event In S"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Close of the latest stored closed candle",
+            "title": "Price"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "display_name",
+          "price",
+          "as_of",
+          "change_24h_pct",
+          "news_state",
+          "next_event",
+          "next_event_in_s",
+          "latest_signal"
+        ],
+        "title": "QuoteOut",
+        "type": "object"
+      },
+      "QuoteSignalOut": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "has_demonstrated_edge": {
+            "title": "Has Demonstrated Edge",
+            "type": "boolean"
+          },
+          "horizon": {
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "strength": {
+            "title": "Strength",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "timeframe",
+          "horizon",
+          "direction",
+          "strength",
+          "confidence",
+          "created_at",
+          "has_demonstrated_edge"
+        ],
+        "title": "QuoteSignalOut",
+        "type": "object"
+      },
+      "QuotesOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "note": {
+            "default": "Prices are the last closed candle, not live ticks. Not financial advice.",
+            "title": "Note",
+            "type": "string"
+          },
+          "watchlist_id": {
+            "title": "Watchlist Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "watchlist_id",
+          "items"
+        ],
+        "title": "QuotesOut",
+        "type": "object"
+      },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
@@ -542,6 +3290,550 @@
           "refresh_token"
         ],
         "title": "RefreshRequest",
+        "type": "object"
+      },
+      "RiskProfileIn": {
+        "properties": {
+          "account_currency": {
+            "default": "USD",
+            "enum": [
+              "USD",
+              "EUR",
+              "GBP",
+              "JPY",
+              "CHF",
+              "AUD",
+              "CAD",
+              "NZD",
+              "USDT"
+            ],
+            "title": "Account Currency",
+            "type": "string"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance"
+          },
+          "leverage": {
+            "anyOf": [
+              {
+                "maximum": 3000.0,
+                "minimum": 1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leverage"
+          },
+          "max_consecutive_losses": {
+            "default": 3,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Max Consecutive Losses",
+            "type": "integer"
+          },
+          "max_daily_loss_pct": {
+            "default": 3.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Max Daily Loss Pct",
+            "type": "number"
+          },
+          "max_trades_per_day": {
+            "default": 6,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Max Trades Per Day",
+            "type": "integer"
+          },
+          "risk_per_trade_pct": {
+            "default": 1.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Risk Per Trade Pct",
+            "type": "number"
+          }
+        },
+        "title": "RiskProfileIn",
+        "type": "object"
+      },
+      "RiskProfileOut": {
+        "properties": {
+          "account_currency": {
+            "default": "USD",
+            "enum": [
+              "USD",
+              "EUR",
+              "GBP",
+              "JPY",
+              "CHF",
+              "AUD",
+              "CAD",
+              "NZD",
+              "USDT"
+            ],
+            "title": "Account Currency",
+            "type": "string"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance"
+          },
+          "is_default": {
+            "description": "True until the user saves a profile",
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "leverage": {
+            "anyOf": [
+              {
+                "maximum": 3000.0,
+                "minimum": 1.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leverage"
+          },
+          "max_consecutive_losses": {
+            "default": 3,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Max Consecutive Losses",
+            "type": "integer"
+          },
+          "max_daily_loss_pct": {
+            "default": 3.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Max Daily Loss Pct",
+            "type": "number"
+          },
+          "max_trades_per_day": {
+            "default": 6,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Max Trades Per Day",
+            "type": "integer"
+          },
+          "risk_per_trade_pct": {
+            "default": 1.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Risk Per Trade Pct",
+            "type": "number"
+          }
+        },
+        "required": [
+          "is_default"
+        ],
+        "title": "RiskProfileOut",
+        "type": "object"
+      },
+      "RiskStatusOut": {
+        "properties": {
+          "account_currency": {
+            "title": "Account Currency",
+            "type": "string"
+          },
+          "consecutive_losses": {
+            "title": "Consecutive Losses",
+            "type": "integer"
+          },
+          "daily_loss_left": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Loss Left"
+          },
+          "daily_loss_limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "balance x max_daily_loss_pct; null without a balance",
+            "title": "Daily Loss Limit"
+          },
+          "daily_loss_used": {
+            "title": "Daily Loss Used",
+            "type": "number"
+          },
+          "day_start": {
+            "format": "date-time",
+            "title": "Day Start",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "excluded_other_currency": {
+            "title": "Excluded Other Currency",
+            "type": "integer"
+          },
+          "level": {
+            "enum": [
+              "ok",
+              "warning",
+              "stop"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "max_trades_per_day": {
+            "title": "Max Trades Per Day",
+            "type": "integer"
+          },
+          "open_positions": {
+            "title": "Open Positions",
+            "type": "integer"
+          },
+          "open_risk": {
+            "description": "Sum of money at risk on open journal trades with a stop",
+            "title": "Open Risk",
+            "type": "number"
+          },
+          "profile_is_default": {
+            "title": "Profile Is Default",
+            "type": "boolean"
+          },
+          "realized_pnl_today": {
+            "title": "Realized Pnl Today",
+            "type": "number"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "trades_today": {
+            "title": "Trades Today",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/RiskWarningOut"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "level",
+          "warnings",
+          "day_start",
+          "timezone",
+          "account_currency",
+          "realized_pnl_today",
+          "daily_loss_limit",
+          "daily_loss_used",
+          "daily_loss_left",
+          "trades_today",
+          "max_trades_per_day",
+          "open_positions",
+          "open_risk",
+          "consecutive_losses",
+          "profile_is_default",
+          "excluded_other_currency"
+        ],
+        "title": "RiskStatusOut",
+        "type": "object"
+      },
+      "RiskWarningOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "RiskWarningOut",
+        "type": "object"
+      },
+      "ScenarioDirectionOut": {
+        "properties": {
+          "backtest_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backtest Accuracy"
+          },
+          "has_demonstrated_edge": {
+            "title": "Has Demonstrated Edge",
+            "type": "boolean"
+          },
+          "horizon": {
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "live_track_record": {
+            "additionalProperties": true,
+            "title": "Live Track Record",
+            "type": "object"
+          },
+          "model_key": {
+            "title": "Model Key",
+            "type": "string"
+          },
+          "p_up": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Calibrated P(up) of the latest signal on the latest candle",
+            "title": "P Up"
+          },
+          "reliable": {
+            "description": "False: no demonstrated edge; treat the direction as 50/50",
+            "title": "Reliable",
+            "type": "boolean"
+          },
+          "signal_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signal Id"
+          },
+          "strength": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strength"
+          }
+        },
+        "required": [
+          "horizon",
+          "model_key",
+          "has_demonstrated_edge",
+          "reliable",
+          "p_up",
+          "strength",
+          "signal_id",
+          "live_track_record",
+          "backtest_accuracy"
+        ],
+        "title": "ScenarioDirectionOut",
+        "type": "object"
+      },
+      "ScenarioOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "direction": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioDirectionOut"
+            },
+            "title": "Direction",
+            "type": "array"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "last_close": {
+            "title": "Last Close",
+            "type": "number"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "premium": {
+            "default": true,
+            "description": "Premium feature (unlocked for everyone while PREMIUM_ENFORCED=false)",
+            "title": "Premium",
+            "type": "boolean"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "venue",
+          "timeframe",
+          "last_close",
+          "as_of",
+          "steps",
+          "direction",
+          "method"
+        ],
+        "title": "ScenarioOut",
+        "type": "object"
+      },
+      "ScenarioStepOut": {
+        "properties": {
+          "at": {
+            "description": "Approximate close time of that candle (market closures not skipped)",
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Measured out-of-sample share of cases inside the band",
+            "title": "Coverage"
+          },
+          "coverage_ci95": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Ci95"
+          },
+          "coverage_tested": {
+            "title": "Coverage Tested",
+            "type": "integer"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "history": {
+            "title": "History",
+            "type": "integer"
+          },
+          "k": {
+            "description": "Candles ahead",
+            "title": "K",
+            "type": "integer"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          },
+          "nominal_coverage": {
+            "title": "Nominal Coverage",
+            "type": "number"
+          }
+        },
+        "required": [
+          "k",
+          "at",
+          "low",
+          "median",
+          "high",
+          "nominal_coverage",
+          "coverage",
+          "coverage_ci95",
+          "coverage_tested",
+          "history"
+        ],
+        "title": "ScenarioStepOut",
         "type": "object"
       },
       "SignalModelOut": {
@@ -893,6 +4185,35 @@
         "title": "StrengthCountsOut",
         "type": "object"
       },
+      "TargetOut": {
+        "properties": {
+          "base_rate": {
+            "$ref": "#/components/schemas/BaseRateOut"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "r": {
+            "title": "R",
+            "type": "number"
+          }
+        },
+        "required": [
+          "r",
+          "price",
+          "base_rate"
+        ],
+        "title": "TargetOut",
+        "type": "object"
+      },
       "TimeframeOut": {
         "properties": {
           "code": {
@@ -1205,6 +4526,163 @@
         ],
         "title": "VenueOut",
         "type": "object"
+      },
+      "WatchlistIn": {
+        "properties": {
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "symbols": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 3,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Symbols",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "WatchlistIn",
+        "type": "object"
+      },
+      "WatchlistItemIn": {
+        "properties": {
+          "symbol": {
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol"
+        ],
+        "title": "WatchlistItemIn",
+        "type": "object"
+      },
+      "WatchlistItemOut": {
+        "properties": {
+          "asset_class": {
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "display_name",
+          "asset_class",
+          "sort_order"
+        ],
+        "title": "WatchlistItemOut",
+        "type": "object"
+      },
+      "WatchlistItemsIn": {
+        "properties": {
+          "symbols": {
+            "description": "Full ordered list (replaces the items)",
+            "items": {
+              "maxLength": 40,
+              "minLength": 3,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Symbols",
+            "type": "array"
+          }
+        },
+        "required": [
+          "symbols"
+        ],
+        "title": "WatchlistItemsIn",
+        "type": "object"
+      },
+      "WatchlistOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WatchlistItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sort_order",
+          "created_at",
+          "items"
+        ],
+        "title": "WatchlistOut",
+        "type": "object"
+      },
+      "WatchlistUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order"
+          }
+        },
+        "title": "WatchlistUpdate",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -1218,7 +4696,7 @@
   "info": {
     "description": "Zentrix: trading analysis and risk tools for FX, metals, commodities and crypto.\n\n**Not financial advice.** Signals are probabilities based on past data, not guarantees. Accuracy figures come\nonly from the out-of-sample track record.",
     "title": "Zentrix API",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1266,6 +4744,378 @@
         "summary": "Readiness: database and Redis reachable",
         "tags": [
           "ops"
+        ]
+      }
+    },
+    "/v1/alerts": {
+      "get": {
+        "operationId": "list_alerts_v1_alerts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AlertOut"
+                  },
+                  "title": "Response List Alerts V1 Alerts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Your alerts",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "post": {
+        "operationId": "create_alert_v1_alerts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create an alert",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/v1/alerts/events": {
+      "get": {
+        "operationId": "list_events_v1_alerts_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "unread_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Unread Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertEventPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Alert inbox (newest first)",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/v1/alerts/events/read": {
+      "post": {
+        "operationId": "mark_read_v1_alerts_events_read_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Mark Read V1 Alerts Events Read Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark inbox events as read",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/v1/alerts/{alert_id}": {
+      "delete": {
+        "operationId": "delete_alert_v1_alerts__alert_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Alert Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete an alert",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "get": {
+        "operationId": "get_alert_v1_alerts__alert_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Alert Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "One alert",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "patch": {
+        "operationId": "update_alert_v1_alerts__alert_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Alert Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change, pause or resume an alert",
+        "tags": [
+          "alerts"
         ]
       }
     },
@@ -1528,6 +5378,236 @@
         ]
       }
     },
+    "/v1/conditions": {
+      "get": {
+        "operationId": "get_conditions_v1_conditions_get",
+        "parameters": [
+          {
+            "description": "Canonical symbol, e.g. EUR/USD",
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "description": "Canonical symbol, e.g. EUR/USD",
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConditionsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Market-condition light: trend/range, volatility, session, news, data freshness",
+        "tags": [
+          "tools"
+        ]
+      }
+    },
+    "/v1/devices": {
+      "get": {
+        "operationId": "list_devices_v1_devices_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceOut"
+                  },
+                  "title": "Response List Devices V1 Devices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Your registered devices",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "post": {
+        "operationId": "register_device_v1_devices_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Register or refresh this device's FCM token",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/v1/devices/{device_id}": {
+      "delete": {
+        "operationId": "delete_device_v1_devices__device_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Device Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unregister a device (e.g. on sign-out)",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/v1/exit-advice": {
+      "post": {
+        "operationId": "post_exit_advice_v1_exit_advice_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExitAdviceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExitAdviceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Exit advisor for an open position (hold / tighten stop / take partial / consider exit)",
+        "tags": [
+          "tools"
+        ]
+      }
+    },
     "/v1/instruments": {
       "get": {
         "operationId": "list_instruments_v1_instruments_get",
@@ -1680,6 +5760,635 @@
         ]
       }
     },
+    "/v1/journal": {
+      "get": {
+        "operationId": "list_entries_v1_journal_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "open",
+                "closed"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List trades (newest first)",
+        "tags": [
+          "journal"
+        ]
+      },
+      "post": {
+        "operationId": "create_entry_v1_journal_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JournalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add a trade",
+        "tags": [
+          "journal"
+        ]
+      }
+    },
+    "/v1/journal/review": {
+      "get": {
+        "operationId": "journal_review_v1_journal_review_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Rule-based review of your trading habits",
+        "tags": [
+          "journal"
+        ]
+      }
+    },
+    "/v1/journal/stats": {
+      "get": {
+        "operationId": "journal_stats_v1_journal_stats_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 8,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Currency"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalStatsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Statistics of closed trades",
+        "tags": [
+          "journal"
+        ]
+      }
+    },
+    "/v1/journal/{entry_id}": {
+      "delete": {
+        "operationId": "delete_entry_v1_journal__entry_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete a trade",
+        "tags": [
+          "journal"
+        ]
+      },
+      "get": {
+        "operationId": "get_entry_v1_journal__entry_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "One trade",
+        "tags": [
+          "journal"
+        ]
+      },
+      "patch": {
+        "operationId": "update_entry_v1_journal__entry_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JournalUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Edit or close a trade",
+        "tags": [
+          "journal"
+        ]
+      }
+    },
+    "/v1/levels": {
+      "get": {
+        "operationId": "get_levels_v1_levels_get",
+        "parameters": [
+          {
+            "description": "Canonical symbol, e.g. EUR/USD",
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "description": "Canonical symbol, e.g. EUR/USD",
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "side",
+            "required": true,
+            "schema": {
+              "pattern": "^(long|short)$",
+              "title": "Side",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          },
+          {
+            "description": "Default: latest close",
+            "in": "query",
+            "name": "entry",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Default: latest close",
+              "title": "Entry"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sl_atr",
+            "required": false,
+            "schema": {
+              "default": 1.5,
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "title": "Sl Atr",
+              "type": "number"
+            }
+          },
+          {
+            "description": "Target R multiples (default 1 and 2)",
+            "in": "query",
+            "name": "rr",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Target R multiples (default 1 and 2)",
+              "title": "Rr"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bars",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 5,
+              "title": "Max Bars",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LevelsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "ATR stop-loss / take-profit levels with their historical base rate",
+        "tags": [
+          "tools"
+        ]
+      }
+    },
     "/v1/me": {
       "delete": {
         "operationId": "delete_me_v1_me_delete",
@@ -1767,6 +6476,102 @@
         ]
       }
     },
+    "/v1/me/risk-profile": {
+      "get": {
+        "operationId": "get_risk_profile_v1_me_risk_profile_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Risk rules (defaults until saved)",
+        "tags": [
+          "risk"
+        ]
+      },
+      "put": {
+        "operationId": "put_risk_profile_v1_me_risk_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskProfileIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save risk rules",
+        "tags": [
+          "risk"
+        ]
+      }
+    },
+    "/v1/me/risk-status": {
+      "get": {
+        "operationId": "get_risk_status_v1_me_risk_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskStatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Today's risk: loss limit, overtrading, loss streak, quick re-entry after a loss",
+        "tags": [
+          "risk"
+        ]
+      }
+    },
     "/v1/models": {
       "get": {
         "operationId": "list_models_v1_models_get",
@@ -1828,6 +6633,301 @@
         "summary": "Models behind the signals, with their out-of-sample backtest and edge assessment",
         "tags": [
           "signals"
+        ]
+      }
+    },
+    "/v1/news/events": {
+      "get": {
+        "operationId": "news_events_v1_news_events_get",
+        "parameters": [
+          {
+            "description": "Comma-separated, e.g. USD,EUR",
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated, e.g. USD,EUR",
+              "title": "Currency"
+            }
+          },
+          {
+            "description": "Minimum impact",
+            "in": "query",
+            "name": "impact",
+            "required": false,
+            "schema": {
+              "default": "medium",
+              "description": "Minimum impact",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ],
+              "title": "Impact",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Default: 1 hour ago",
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Default: 1 hour ago",
+              "title": "Start"
+            }
+          },
+          {
+            "description": "Default: 7 days ahead",
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Default: 7 days ahead",
+              "title": "End"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsEventsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Economic calendar events",
+        "tags": [
+          "news"
+        ]
+      }
+    },
+    "/v1/news/guard": {
+      "get": {
+        "operationId": "news_guard_v1_news_guard_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "News guard for an instrument: blackout / caution / clear",
+        "tags": [
+          "news"
+        ]
+      }
+    },
+    "/v1/risk/position-size": {
+      "post": {
+        "operationId": "post_position_size_v1_risk_position_size_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositionSizeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionSizeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Position size, money at risk, pip value, R:R and margin, with warnings",
+        "tags": [
+          "risk"
+        ]
+      }
+    },
+    "/v1/scenario": {
+      "get": {
+        "operationId": "get_scenario_v1_scenario_get",
+        "parameters": [
+          {
+            "description": "Canonical symbol, e.g. EUR/USD",
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "description": "Canonical symbol, e.g. EUR/USD",
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          },
+          {
+            "in": "query",
+            "name": "steps",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 5,
+              "minimum": 1,
+              "title": "Steps",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scenario path for the next 1-5 candles with measured band coverage (Premium)",
+        "tags": [
+          "tools"
         ]
       }
     },
@@ -2069,6 +7169,73 @@
         ]
       }
     },
+    "/v1/signals/{signal_id}/levels": {
+      "get": {
+        "operationId": "signal_levels_v1_signals__signal_id__levels_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "signal_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Signal Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sl_atr",
+            "required": false,
+            "schema": {
+              "default": 1.5,
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "title": "Sl Atr",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "max_bars",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 5,
+              "title": "Max Bars",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LevelsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "ATR levels for a signal, computed from the candles known when it was made",
+        "tags": [
+          "signals"
+        ]
+      }
+    },
     "/v1/timeframes": {
       "get": {
         "operationId": "list_timeframes_v1_timeframes_get",
@@ -2220,6 +7387,396 @@
           "market"
         ]
       }
+    },
+    "/v1/watchlists": {
+      "get": {
+        "operationId": "list_watchlists_v1_watchlists_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WatchlistOut"
+                  },
+                  "title": "Response List Watchlists V1 Watchlists Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Your watchlists",
+        "tags": [
+          "watchlists"
+        ]
+      },
+      "post": {
+        "operationId": "create_watchlist_v1_watchlists_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create a watchlist",
+        "tags": [
+          "watchlists"
+        ]
+      }
+    },
+    "/v1/watchlists/{list_id}": {
+      "delete": {
+        "operationId": "delete_watchlist_v1_watchlists__list_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "list_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "List Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete a watchlist",
+        "tags": [
+          "watchlists"
+        ]
+      },
+      "patch": {
+        "operationId": "update_watchlist_v1_watchlists__list_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "list_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "List Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Rename or reorder a watchlist",
+        "tags": [
+          "watchlists"
+        ]
+      }
+    },
+    "/v1/watchlists/{list_id}/items": {
+      "delete": {
+        "operationId": "remove_item_v1_watchlists__list_id__items_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "list_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "List Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove an instrument",
+        "tags": [
+          "watchlists"
+        ]
+      },
+      "post": {
+        "operationId": "add_item_v1_watchlists__list_id__items_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "list_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "List Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistItemIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add an instrument at the end",
+        "tags": [
+          "watchlists"
+        ]
+      },
+      "put": {
+        "operationId": "replace_items_v1_watchlists__list_id__items_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "list_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "List Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchlistItemsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Replace the items (in this order)",
+        "tags": [
+          "watchlists"
+        ]
+      }
+    },
+    "/v1/watchlists/{list_id}/quotes": {
+      "get": {
+        "operationId": "quotes_v1_watchlists__list_id__quotes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "list_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "List Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Last closed price, 24h change, latest signal and news state per item",
+        "tags": [
+          "watchlists"
+        ]
+      }
     }
   },
   "tags": [
@@ -2238,6 +7795,30 @@
     {
       "description": "Live signals, outcomes, track record, models",
       "name": "signals"
+    },
+    {
+      "description": "Economic calendar and news guard",
+      "name": "news"
+    },
+    {
+      "description": "Conditions, ATR levels, exit advice, scenario",
+      "name": "tools"
+    },
+    {
+      "description": "Position size, risk profile, daily risk status",
+      "name": "risk"
+    },
+    {
+      "description": "Trade journal, statistics, review",
+      "name": "journal"
+    },
+    {
+      "description": "Watchlists and quotes",
+      "name": "watchlists"
+    },
+    {
+      "description": "Devices (FCM), alerts, alert inbox",
+      "name": "alerts"
     },
     {
       "description": "Health checks",
