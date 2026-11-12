@@ -6,8 +6,10 @@ Chroma vector database. Uses a free, local embedding model
 Run once (or whenever trading_knowledge.json is updated):
     python -m knowledge.ingest   (from backend/)
 """
-import os
+import contextlib
 import json
+import os
+
 import chromadb
 from chromadb.utils import embedding_functions
 
@@ -20,7 +22,7 @@ EMBED_MODEL = "all-MiniLM-L6-v2"  # free, local, ~80MB, good quality for short t
 
 
 def load_knowledge(path: str = SOURCE_FILE) -> list:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -34,13 +36,11 @@ def ingest():
 
     # Reset collection each ingest run so updates to trading_knowledge.json
     # are reflected cleanly (no stale/duplicate entries)
-    try:
+    with contextlib.suppress(Exception):  # collection may not exist yet
         client.delete_collection(COLLECTION_NAME)
-    except Exception:
-        pass
 
     collection = client.create_collection(
-        name=COLLECTION_NAME, embedding_function=embed_fn
+        name=COLLECTION_NAME, embedding_function=embed_fn,  # type: ignore[arg-type]
     )
 
     entries = load_knowledge()
@@ -48,7 +48,7 @@ def ingest():
     documents = [f"{e['title']}: {e['content']}" for e in entries]
     metadatas = [{"category": e["category"], "title": e["title"]} for e in entries]
 
-    collection.add(ids=ids, documents=documents, metadatas=metadatas)
+    collection.add(ids=ids, documents=documents, metadatas=metadatas)  # type: ignore[arg-type]
     print(f"Ingested {len(entries)} knowledge entries into '{COLLECTION_NAME}' "
           f"at {VECTOR_STORE_DIR}")
 

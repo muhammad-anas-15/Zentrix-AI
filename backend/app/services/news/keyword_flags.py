@@ -3,10 +3,9 @@ Rule-based flagging of risk-relevant news/events — no ML/LLM needed here,
 just keyword matching. This adds honest "be careful today" context
 without pretending to predict direction from news.
 """
-import sys, os
 
-from app.services.news.rss_fetcher import fetch_headlines
 from app.services.news.economic_calendar import fetch_economic_events
+from app.services.news.rss_fetcher import fetch_headlines
 
 RISK_KEYWORDS = [
     "war", "conflict", "invasion", "sanctions", "attack",

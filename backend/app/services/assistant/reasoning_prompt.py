@@ -15,6 +15,8 @@ follow these rules strictly:
 3. Keep the explanation short (3-5 sentences), simple, non-technical.
 4. Always end by reminding the user this is not a guarantee and they
    should make their own final decision.
+5. Do not state or imply any accuracy, win rate or profit figure other than
+   the measured track record given below, and never promise profit.
 
 === LIVE MARKET DATA ===
 Symbol: {symbol}
@@ -24,7 +26,8 @@ RSI: {rsi}
 MACD momentum: {macd_direction}
 Price vs Support: {price_vs_support_pct}%
 Price vs Resistance: {price_vs_resistance_pct}%
-ML Model Signal: {ml_signal} (confidence: {ml_confidence}%)
+ML Model Signal: {ml_signal} (calibrated probability: {ml_confidence}%, strength: {strength})
+Measured out-of-sample track record of this strength level: {track_record}
 
 === RELEVANT BOOK/STRATEGY KNOWLEDGE ===
 {knowledge_context}
@@ -55,7 +58,14 @@ def build_prompt(market_data: dict, knowledge: list, news: dict) -> str:
         price_vs_resistance_pct=market_data.get("price_vs_resistance_pct", "N/A"),
         ml_signal=market_data.get("ml_signal", "N/A"),
         ml_confidence=market_data.get("ml_confidence", "N/A"),
+        strength=market_data.get("signal_strength", "N/A"),
+        track_record=_track_record_text(market_data.get("strength_track_record")),
         knowledge_context=knowledge_text,
         news_risk_level=news.get("risk_level", "unknown"),
         news_flags=news_flags_text,
     )
+
+def _track_record_text(stats: dict | None) -> str:
+    if not stats or not stats.get("n"):
+        return "not enough out-of-sample signals to measure"
+    return f"{stats['rate'] * 100:.1f}% correct over {stats['n']} past out-of-sample signals"

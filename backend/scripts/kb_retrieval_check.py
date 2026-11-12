@@ -1,11 +1,13 @@
+"""Manual check: run a handful of realistic queries against the knowledge base and eyeball the results.
+
+Run (from backend/):  python -m knowledge.ingest && python -m scripts.kb_retrieval_check
 """
-Manual test — run a handful of realistic queries and eyeball the results.
-Run (from backend/): python -m scripts.kb_retrieval_check
-"""
-import sys, os
+
+from __future__ import annotations
+
 from knowledge.retriever import retrieve_knowledge
 
-test_queries = [
+QUERIES = [
     "Doji candlestick indecision pattern",
     "Bullish Engulfing near support, RSI oversold",
     "Shooting Star after uptrend near resistance",
@@ -14,7 +16,8 @@ test_queries = [
     "high volatility news event risk",
 ]
 
-for q in test_queries:
-    print(f"\nQuery: {q}")
-    for r in retrieve_knowledge(q, top_k=2):
-        print(f"  [{r['relevance_score']}] {r['title']}")
+if __name__ == "__main__":
+    for q in QUERIES:
+        print(f"\nQuery: {q}")
+        for r in retrieve_knowledge(q, top_k=2):
+            print(f"  [{r['relevance_score']}] {r['title']}")

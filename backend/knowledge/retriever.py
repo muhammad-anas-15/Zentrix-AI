@@ -5,6 +5,7 @@ This is what the orchestrator (Phase 4) will call to ground its
 reasoning in real trading knowledge instead of guessing.
 """
 import os
+
 import chromadb
 from chromadb.utils import embedding_functions
 
@@ -25,12 +26,12 @@ def _get_collection():
         embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name=EMBED_MODEL
         )
-        _collection = _client.get_collection(COLLECTION_NAME, embedding_function=embed_fn)
+        _collection = _client.get_collection(COLLECTION_NAME, embedding_function=embed_fn)  # type: ignore[arg-type]
     return _collection
 
 
-def retrieve_knowledge(query: str, top_k: int = 4, pattern_name: str = None,
-                        rsi: float = None) -> list:
+def retrieve_knowledge(query: str, top_k: int = 4, pattern_name: str | None = None,
+                        rsi: float | None = None) -> list:
     """
     query: free-text description of current market situation
     pattern_name: exact pattern title for guaranteed top match
@@ -71,7 +72,7 @@ def retrieve_knowledge(query: str, top_k: int = 4, pattern_name: str = None,
         "Shooting Star": ["Hammer", "Inverted Hammer"],
         "Doji": ["Bullish Harami", "Bearish Harami", "Bullish Engulfing", "Bearish Engulfing"],
     }
-    skip_titles = set(NOISE_PAIRS.get(pattern_name, []))
+    skip_titles = set(NOISE_PAIRS.get(pattern_name or "", []))
 
     results = collection.query(query_texts=[query], n_results=top_k + 2)
     for i in range(len(results["ids"][0])):

@@ -77,12 +77,14 @@ def fetch_recent(symbol: str, interval: str, limit: int) -> pd.DataFrame:
     return source.fetch_latest(symbol, interval, limit)
 
 
-def latest_signal(symbol: str, interval: str, horizon: int = 1, now: float | None = None,
-                  predictor: Predictor | None = None) -> Signal:
-    """Signal for the last closed candle. Fetches enough history for warm-up (+2 for the forming candle)."""
+def live_feature_row(symbol: str, interval: str, now: float | None = None) -> pd.DataFrame:
+    """Feature row for the last closed candle. Fetches enough history for warm-up (+2: forming candle)."""
     now = _time.time() if now is None else now
-    predictor = predictor or Predictor.load(symbol, interval, horizon)
     htf_interval = HIGHER_TF.get(interval)
     candles = fetch_recent(symbol, interval, INFERENCE_LOOKBACK + 2)
     htf = fetch_recent(symbol, htf_interval, INFERENCE_HTF_LOOKBACK + 2) if htf_interval else None
-    return predictor.predict_row(latest_feature_row(candles, interval, htf, htf_interval, now=now))
+    return latest_feature_row(candles, interval, htf, htf_interval, now=now)
+
+
+def latest_signal(symbol: str, interval: str, horizon: int = 1, now: float | None = None) -> Signal:
+    return Predictor.load(symbol, interval, horizon).predict_row(live_feature_row(symbol, interval, now))

@@ -24,16 +24,16 @@ def fetch_economic_events(min_impact: str = "High") -> list:
         return []
 
     filtered = []
-    for e in events:
-        impact = e.get("impact", "Low")
+    for ev in events:
+        impact = ev.get("impact", "Low")
         if impact_rank.get(impact, 0) >= min_rank:
             filtered.append({
-                "title": e.get("title", ""),
-                "country": e.get("country", ""),
-                "date": e.get("date", ""),
+                "title": ev.get("title", ""),
+                "country": ev.get("country", ""),
+                "date": ev.get("date", ""),
                 "impact": impact,
-                "forecast": e.get("forecast", ""),
-                "previous": e.get("previous", ""),
+                "forecast": ev.get("forecast", ""),
+                "previous": ev.get("previous", ""),
             })
     return filtered
 
