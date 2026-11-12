@@ -47,3 +47,18 @@ def volume_change_pct(volume: pd.Series, period: int = 5) -> pd.Series:
 def rolling_support_resistance(high: pd.Series, low: pd.Series, lookback: int = 20) -> tuple[pd.Series, pd.Series]:
     """(resistance, support) = highest high / lowest low of the last ``lookback`` candles incl. this one."""
     return high.rolling(lookback, min_periods=1).max(), low.rolling(lookback, min_periods=1).min()
+
+
+def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """Wilder's ADX with +DI/-DI: (adx, plus_di, minus_di). Used for trend vs range (not a model feature)."""
+    up, down = high.diff(), -low.diff()
+    plus_dm = up.where((up > down) & (up > 0), 0.0)
+    minus_dm = down.where((down > up) & (down > 0), 0.0)
+    prev_close = close.shift(1)
+    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    alpha = 1 / period
+    atr_w = tr.ewm(alpha=alpha, adjust=False, min_periods=period).mean()
+    plus_di = 100 * plus_dm.ewm(alpha=alpha, adjust=False, min_periods=period).mean() / atr_w
+    minus_di = 100 * minus_dm.ewm(alpha=alpha, adjust=False, min_periods=period).mean() / atr_w
+    dx = (100 * (plus_di - minus_di).abs() / (plus_di + minus_di)).replace([np.inf, -np.inf], np.nan)
+    return dx.ewm(alpha=alpha, adjust=False, min_periods=period).mean(), plus_di, minus_di

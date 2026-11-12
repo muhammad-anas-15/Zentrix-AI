@@ -19,7 +19,7 @@ WORKDIR /app
 COPY . .
 # Editable install so path-based settings resolve to /app. The heavy [knowledge] extra (torch) is
 # deliberately left out of the API image for now.
-RUN pip install -e ".[news,llm]" \
+RUN pip install -e ".[llm]" \
  && useradd --create-home --uid 10001 zentrix \
  && mkdir -p /data && chown -R zentrix /data
 USER zentrix

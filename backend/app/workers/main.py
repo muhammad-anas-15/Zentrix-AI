@@ -1,4 +1,5 @@
-"""Worker process: ingest candles, generate signals at each candle close, resolve outcomes.
+"""Worker process: ingest candles, generate signals at each candle close, resolve outcomes, refresh the
+economic calendar, evaluate alerts and send push notifications.
 
 Run (from backend/):  python -m app.workers.main
 Register trained models first: python -m app.workers.register_models
@@ -19,6 +20,7 @@ from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.session import make_engine, make_sessionmaker
 from app.services.marketdata.providers import default_providers
+from app.services.news.calendar import HttpCalendarSource
 from app.services.signals.registry import PredictorCache
 from app.workers.ingest import Worker
 
@@ -30,7 +32,7 @@ async def run(settings: Settings, stop: asyncio.Event) -> None:
     engine = make_engine(settings.database_url)
     redis = Redis.from_url(settings.redis_url, socket_connect_timeout=0.25, socket_timeout=2)
     worker = Worker(make_sessionmaker(engine), redis, default_providers(), PredictorCache(settings.artifacts_dir),
-                    settings)
+                    settings, calendar=HttpCalendarSource(settings.news_calendar_urls))
     me = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
     log.info("worker_started", id=me)
     try:

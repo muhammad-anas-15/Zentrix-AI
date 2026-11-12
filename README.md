@@ -17,7 +17,7 @@ mobile/    Flutter app (Phase 5)
 ```bash
 cd backend
 python -m venv .venv && .venv/Scripts/activate      # or source .venv/bin/activate
-pip install -e ".[dev,news,llm]"                    # add ,knowledge for the RAG retriever (pulls torch)
+pip install -e ".[dev,llm]"                         # add ,knowledge for the RAG retriever (pulls torch)
 cp .env.example .env                                # fill in keys; never commit .env
 python -m pytest                                    # all tests; API tests start their own PostgreSQL
 ```

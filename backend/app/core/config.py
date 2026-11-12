@@ -57,7 +57,25 @@ class Settings(BaseSettings):
     signal_max_lag_s: int | None = None  # default: min(20% of the timeframe, 180 s) after the close
     outcome_void_after_s: int = 6 * 3600  # missing candles this long after the expected exit -> void
 
-    @field_validator("cors_origins", "google_client_ids", mode="before")
+    # News guard (economic calendar)
+    news_calendar_urls: CsvList = Field(default_factory=lambda: [
+        "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "https://nfs.faireconomy.media/ff_calendar_nextweek.json"])
+    news_refresh_s: int = 3600  # the publisher blocks much faster polling
+    news_stale_after_s: int = 6 * 3600  # older calendar -> guard state "unknown", never "clear"
+    news_blackout_before_s: int = 30 * 60  # high impact
+    news_blackout_after_s: int = 30 * 60
+    news_medium_window_s: int = 15 * 60  # medium impact: caution +/- this
+    news_high_lead_s: int = 2 * 3600  # high impact within this -> caution
+
+    # Alerts and push (FCM HTTP v1). Without a service-account file, pushes are logged, not sent.
+    fcm_credentials_file: Path | None = None
+    max_alerts_per_user: int = 50
+    max_watchlists_per_user: int = 20
+    max_watchlist_items: int = 100
+    push_max_attempts: int = 3
+
+    @field_validator("cors_origins", "google_client_ids", "news_calendar_urls", mode="before")
     @classmethod
     def _split_csv(cls, v: object) -> object:
         if isinstance(v, str):

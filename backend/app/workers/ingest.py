@@ -26,6 +26,7 @@ from app.models.market import Instrument, InstrumentListing, Venue
 from app.models.signals import IngestionTarget
 from app.services.marketdata.candles import last_candle_times, upsert_candles
 from app.services.marketdata.providers import Provider
+from app.services.news.calendar import CalendarSource, refresh_calendar
 from app.services.signals.cache import bump_track_record_version, cache_latest_signals
 from app.services.signals.engine import generate_signals
 from app.services.signals.outcomes import resolve_series
@@ -69,15 +70,17 @@ class TickReport:
 class Worker:
     def __init__(self, sessionmaker: async_sessionmaker[AsyncSession], redis: Redis,
                  providers: dict[str, Provider], predictors: PredictorCache, settings: Settings,
-                 clock: Callable[[], float] = time.time) -> None:
+                 clock: Callable[[], float] = time.time, calendar: CalendarSource | None = None) -> None:
         self.sessionmaker = sessionmaker
         self.redis = redis
         self.providers = providers
         self.predictors = predictors
         self.settings = settings
         self.clock = clock  # wall clock; signals are stamped and lag-checked with it at the moment they are made
+        self.calendar = calendar
         self._last_ts: dict[Series, int] | None = None
         self._last_attempt: dict[Series, float] = {}
+        self._calendar_next = 0.0
 
     async def load_targets(self, db: AsyncSession) -> list[Target]:
         rows = (await db.execute(
@@ -119,6 +122,7 @@ class Worker:
                 by_venue[t.venue].append(t)
         # Venues run concurrently, so a slow, throttled venue never delays another venue's signals.
         await asyncio.gather(*(self._run_venue(venue, ts, now, report) for venue, ts in by_venue.items()))
+        await self._refresh_calendar(now, report)
         if report.signals or report.outcomes:
             await bump_track_record_version(self.redis)
         if report.ingested or report.signals or report.outcomes or report.errors:
@@ -185,6 +189,19 @@ class Worker:
             await db.commit()
             if result.created:
                 await cache_latest_signals(db, self.redis, result.created)
+
+    async def _refresh_calendar(self, now: float, report: TickReport) -> None:
+        """Economic calendar every ``news_refresh_s``; after a failure retry in 5 minutes."""
+        if self.calendar is None or now < self._calendar_next:
+            return
+        try:
+            async with self.sessionmaker() as db:
+                await refresh_calendar(db, self.calendar)
+            self._calendar_next = now + self.settings.news_refresh_s
+        except Exception as exc:
+            self._calendar_next = now + 300
+            report.errors.append(f"calendar: {type(exc).__name__}")
+            log.warning("calendar_refresh_failed", error=type(exc).__name__)
 
     async def _budget_ok(self, venue: str, now: float) -> bool:
         if venue != "twelvedata":

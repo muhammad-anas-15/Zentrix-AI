@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, Request
@@ -32,8 +33,14 @@ def get_google_verifier(request: Request) -> GoogleTokenVerifier:
     return request.app.state.google_verifier
 
 
+def get_now(request: Request) -> datetime:
+    """Current time from the app clock (injectable in tests)."""
+    return datetime.fromtimestamp(request.app.state.clock(), tz=UTC)
+
+
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 DbDep = Annotated[AsyncSession, Depends(get_db)]
+NowDep = Annotated[datetime, Depends(get_now)]
 
 
 async def get_current_user(request: Request, db: DbDep, settings: SettingsDep,
@@ -51,3 +58,15 @@ async def get_current_user(request: Request, db: DbDep, settings: SettingsDep,
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_optional_user(request: Request, db: DbDep, settings: SettingsDep,
+                            creds: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> User | None:
+    """The signed-in user if a valid token is sent, else None (public endpoints that personalise when possible).
+    An invalid or revoked token is still an error, so a client never silently loses its session."""
+    if creds is None:
+        return None
+    return await get_current_user(request, db, settings, creds)
+
+
+OptionalUser = Annotated[User | None, Depends(get_optional_user)]

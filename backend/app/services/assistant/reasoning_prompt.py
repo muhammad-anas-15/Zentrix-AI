@@ -33,7 +33,7 @@ Measured out-of-sample track record of this strength level: {track_record}
 {knowledge_context}
 
 === NEWS/RISK CONTEXT ===
-Risk level today: {news_risk_level}
+News guard (economic calendar): {news_risk_level}
 {news_flags}
 
 Now write the plain-language explanation following the rules above."""

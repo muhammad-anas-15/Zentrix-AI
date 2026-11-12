@@ -32,7 +32,6 @@ dependencies = [
 [project.optional-dependencies]
 # Heavy (pulls torch). Only needed for the knowledge retriever.
 knowledge = ["chromadb>=0.5", "sentence-transformers>=3.0"]
-news = ["feedparser>=6.0"]
 llm = ["google-genai>=1.0"]
 dev = [
     "pytest>=8",

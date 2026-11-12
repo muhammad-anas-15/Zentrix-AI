@@ -109,13 +109,29 @@ def fake_redis() -> fakeredis.FakeAsyncRedis:
     return fakeredis.FakeAsyncRedis()
 
 
+class Clock:
+    """The app's clock: real time unless a test pins it (``clock.t = epoch seconds``)."""
+
+    def __init__(self) -> None:
+        self.t: float | None = None
+
+    def __call__(self) -> float:
+        return time.time() if self.t is None else self.t
+
+
 @pytest.fixture(scope="session")
-async def app(settings: Settings, fake_redis: fakeredis.FakeAsyncRedis, google: FakeGoogle) -> AsyncIterator[FastAPI]:
+def clock() -> Clock:
+    return Clock()
+
+
+@pytest.fixture(scope="session")
+async def app(settings: Settings, fake_redis: fakeredis.FakeAsyncRedis, google: FakeGoogle,
+              clock: Clock) -> AsyncIterator[FastAPI]:
     async def fetch_jwks() -> dict[str, Any]:
         return google.jwks()
 
     application = create_app(settings, redis=fake_redis,
-                             google_verifier=GoogleTokenVerifier([CLIENT_ID], fetch_jwks))
+                             google_verifier=GoogleTokenVerifier([CLIENT_ID], fetch_jwks), clock=clock)
     async with application.router.lifespan_context(application):
         yield application
 
@@ -127,10 +143,11 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
 
 
 @pytest.fixture(autouse=True)
-async def _clean(app: FastAPI, fake_redis: fakeredis.FakeAsyncRedis) -> AsyncIterator[None]:
+async def _clean(app: FastAPI, fake_redis: fakeredis.FakeAsyncRedis, clock: Clock) -> AsyncIterator[None]:
     yield
+    clock.t = None
     async with app.state.engine.begin() as conn:
-        await conn.execute(text("TRUNCATE users, audit_log RESTART IDENTITY CASCADE"))
+        await conn.execute(text("TRUNCATE users, audit_log, news_events RESTART IDENTITY CASCADE"))
         await conn.execute(text("TRUNCATE signal_outcomes, signals, model_versions, candles RESTART IDENTITY CASCADE"))
         await conn.execute(text("DELETE FROM ingestion_targets WHERE reason <> 'chart'"))
         await conn.execute(text("UPDATE ingestion_targets SET enabled = true"))

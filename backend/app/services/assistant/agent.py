@@ -37,14 +37,28 @@ def _knowledge(features: dict[str, Any]) -> list[dict[str, Any]]:
         return []
 
 
-def _news() -> dict[str, Any]:
-    try:
-        from app.services.news.keyword_flags import check_news_risk
+def _news(symbol: str) -> dict[str, Any]:
+    """News guard from the live economic calendar (no database needed for this CLI path)."""
+    from datetime import UTC, datetime
 
-        return check_news_risk()
+    from app.services.news.calendar import fetch_calendar_sync
+    from app.services.news.guard import GuardConfig, evaluate_guard, instrument_currencies
+    from ml.data.candles import is_forex
+
+    try:
+        if is_forex(symbol):
+            base, quote = symbol.split("/")
+            asset_class = "metal" if base in ("XAU", "XAG", "XPT", "XPD") else "fx"
+        else:
+            asset_class, base, quote = "crypto", symbol.removesuffix("USDT"), "USDT"
+        now = datetime.now(UTC)
+        events = fetch_calendar_sync()
+        currencies, high_only = instrument_currencies(asset_class, base, quote)
+        g = evaluate_guard(events, currencies, high_only, now, GuardConfig(), now if events else None)
     except Exception:
         log.exception("news check failed")
         return {"risk_level": "unknown", "flagged_items": []}
+    return {"risk_level": g.state, "flagged_items": [{"title": r} for r in g.reasons]}
 
 
 def run_assistant(symbol: str = "EUR/USD", interval: str = "15m", use_llm: bool = False,
@@ -55,7 +69,7 @@ def run_assistant(symbol: str = "EUR/USD", interval: str = "15m", use_llm: bool 
     f = signal.features
 
     knowledge = _knowledge(f) if use_knowledge else []
-    news = _news() if use_news else {"risk_level": "unknown", "flagged_items": []}
+    news = _news(symbol) if use_news else {"risk_level": "unknown", "flagged_items": []}
 
     result: dict[str, Any] = {
         "symbol": symbol,

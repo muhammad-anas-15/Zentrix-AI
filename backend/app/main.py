@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
 from app.api import health
-from app.api.v1 import auth, market, me, signals
+from app.api.v1 import auth, market, me, news, signals
 from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
@@ -31,7 +31,8 @@ log = get_logger("app")
 
 
 def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
-               google_verifier: GoogleTokenVerifier | None = None) -> FastAPI:
+               google_verifier: GoogleTokenVerifier | None = None,
+               clock: Callable[[], float] = time.time) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(json=settings.log_json)
 
@@ -39,6 +40,7 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine = make_engine(settings.database_url)
         app.state.settings = settings
+        app.state.clock = clock
         app.state.engine = engine
         app.state.sessionmaker = make_sessionmaker(engine)
         # Short timeouts: if Redis is down, rate limiting fails open fast instead of stalling every request.
@@ -58,6 +60,7 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
                                 {"name": "account", "description": "Profile, preferences, account deletion"},
                                 {"name": "market", "description": "Instruments, venues, timeframes, candles"},
                                 {"name": "signals", "description": "Live signals, outcomes, track record, models"},
+                                {"name": "news", "description": "Economic calendar and news guard"},
                                 {"name": "ops", "description": "Health checks"}])
     install_error_handlers(app)
     if settings.cors_origins:
@@ -80,7 +83,7 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
         return response
 
     app.include_router(health.router)
-    for router in (auth.router, me.router, market.router, signals.router):
+    for router in (auth.router, me.router, market.router, signals.router, news.router):
         app.include_router(router, prefix="/v1")
     return app
 
