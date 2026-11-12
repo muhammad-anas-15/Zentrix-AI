@@ -24,7 +24,7 @@ from ml.demo_trading_logger import store
 from ml.demo_trading_logger.accuracy_report import generate_report
 from ml.evaluation.metrics import summarize
 from ml.features.builder import INFERENCE_HTF_LOOKBACK, INFERENCE_LOOKBACK, WARMUP, feature_columns
-from ml.training.dataset import LabelEntry, load_dataset
+from ml.training.dataset import LabelMode, load_dataset
 from ml.training.model import MODEL_PARAMS, git_commit, model_key, save_artifact
 from ml.training.walk_forward import WalkForwardConfig, fit_final_model, run_walk_forward
 
@@ -38,10 +38,10 @@ def load_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
 
 def run_model(spec: dict[str, Any], months: float, cfg: WalkForwardConfig, offline: bool,
               conn: Any, artifacts_root: Path | None = None, now: float | None = None,
-              label_entry: LabelEntry = "next_open") -> dict[str, Any]:
+              label_mode: LabelMode = "open_to_open") -> dict[str, Any]:
     symbol, interval, horizon = spec["symbol"], spec["interval"], int(spec["horizon"])
     key = model_key(symbol, interval, horizon)
-    ds, info = load_dataset(symbol, interval, horizon, months, offline=offline, now=now, entry=label_entry)
+    ds, info = load_dataset(symbol, interval, horizon, months, offline=offline, now=now, mode=label_mode)
     log.info("%s: %d rows, walk-forward...", key, len(ds))
     result = run_walk_forward(ds, cfg)
     metrics = summarize(result.predictions)
@@ -56,8 +56,10 @@ def run_model(spec: dict[str, Any], months: float, cfg: WalkForwardConfig, offli
     metadata = {
         "key": key, "symbol": symbol, "interval": interval, "horizon": horizon,
         "htf_interval": HIGHER_TF.get(interval),
-        "label": {"entry": label_entry, "exit": f"close of candle t+{horizon}",
-                  "up": "exit > entry", "flat": "excluded"},
+        "label": {"mode": label_mode, "horizon": horizon, "up": "exit > entry", "flat": "excluded",
+                  "entry": "open of candle t+1" if label_mode == "open_to_open" else "close of candle t",
+                  "exit": f"open of candle t+{horizon + 1}" if label_mode == "open_to_open"
+                  else f"close of candle t+{horizon}"},
         "trained_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "git_commit": commit, "walk_forward_run_id": run_id,
         "feature_cols": feature_columns(), "model_params": MODEL_PARAMS,
@@ -100,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
             start = time.monotonic()
             try:
                 run_model(spec, config["history_months"][spec["interval"]], cfg, args.offline, conn,
-                          label_entry=config.get("label_entry", "next_open"))
+                          label_mode=config.get("label_mode", "open_to_open"))
             except Exception as exc:  # keep going; report what failed
                 log.exception("%s failed: %s", key, exc)
                 failures.append(f"{key}: {exc}")

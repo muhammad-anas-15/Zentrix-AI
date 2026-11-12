@@ -139,10 +139,7 @@ def test_summary_metrics(dataset: pd.DataFrame) -> None:
 def test_naive_baseline_is_better_of_repeat_and_reverse(dataset: pd.DataFrame) -> None:
     p = run_walk_forward(dataset, WalkForwardConfig(n_blocks=4)).predictions
     cal = p[p["block"] >= 2]
-    repeat = float((cal["last_move_up"] == cal["label"]).mean())
+    repeat = float((cal["last_body_up"] == cal["label"]).mean())
     naive = summarize(p)["naive_baseline"]
     assert naive["rate"] == pytest.approx(max(repeat, 1 - repeat))
     assert naive["rule"] in {"repeat last candle", "reverse last candle"}
-    # last_move_up only uses closes up to t
-    ds = dataset
-    assert ((ds["current_price"].diff() > 0).astype(int).iloc[1:] == ds["last_move_up"].iloc[1:]).mean() > 0.95

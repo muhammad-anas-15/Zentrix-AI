@@ -40,13 +40,13 @@ CREATE TABLE IF NOT EXISTS oos_predictions (
     p_cal REAL,
     strength TEXT,
     majority_pred INTEGER NOT NULL,
-    last_move_up INTEGER NOT NULL,
+    last_body_up INTEGER NOT NULL,
     PRIMARY KEY (run_id, time)
 );
 CREATE INDEX IF NOT EXISTS ix_runs_model ON runs(model_key, created_at);
 """
 
-PRED_COLUMNS = ["time", "block", "label", "p_raw", "p_cal", "strength", "majority_pred", "last_move_up"]
+PRED_COLUMNS = ["time", "block", "label", "p_raw", "p_cal", "strength", "majority_pred", "last_body_up"]
 
 
 def connect(db_path: Path | None = None) -> sqlite3.Connection:

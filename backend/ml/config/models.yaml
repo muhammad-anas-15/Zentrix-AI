@@ -7,9 +7,10 @@ history_months:   # months of closed candles used per base interval
   15m: 12
   1h: 24
 
-# Label entry price: next_open = open of the candle after the signal (what a trader can act on);
-# close = signal candle's close (original definition; inflated by a close->next-open feed artifact).
-label_entry: next_open
+# Label: open_to_open = entry at the open after the signal candle, exit at the open after candle t+h
+# (same price field at both ends; see ml/training/dataset.py). close_to_close = original definition,
+# inflated in the Twelve Data feed by bid/ask-like noise between open and close.
+label_mode: open_to_open
 
 walk_forward:
   n_blocks: 6
