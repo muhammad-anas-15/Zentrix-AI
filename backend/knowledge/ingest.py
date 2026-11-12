@@ -1,10 +1,10 @@
 """
-Ingests knowledge_base/source_docs/trading_knowledge.json into a local
+Ingests knowledge/source_docs/trading_knowledge.json into a local
 Chroma vector database. Uses a free, local embedding model
 (sentence-transformers) — no API cost, runs offline.
 
 Run once (or whenever trading_knowledge.json is updated):
-    python knowledge_base/ingest.py
+    python -m knowledge.ingest   (from backend/)
 """
 import os
 import json

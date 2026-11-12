@@ -1,10 +1,9 @@
 """
 Manual test — run a handful of realistic queries and eyeball the results.
-python knowledge_base/test_retrieval.py
+Run (from backend/): python -m scripts.kb_retrieval_check
 """
 import sys, os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from retriever import retrieve_knowledge
+from knowledge.retriever import retrieve_knowledge
 
 test_queries = [
     "Doji candlestick indecision pattern",

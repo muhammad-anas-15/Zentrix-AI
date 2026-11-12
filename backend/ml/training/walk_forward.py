@@ -5,21 +5,20 @@ Also simulates simple trading (with fees) to report Sharpe/drawdown.
 """
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 import pandas as pd
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score
 
-from ml_model.dataset_builder import build_dataset
+from ml.training.dataset import build_dataset
 
 FEE_PCT = 0.0004  # 0.04% per trade (typical spot fee)
 
 
 def walk_forward_backtest(symbol: str = "BTCUSDT", interval: str = "15m",
                            n_folds: int = 5, months: int = None):
-    from ml_model.dataset_builder import HISTORY_MONTHS
+    from ml.training.dataset import HISTORY_MONTHS
     months = months or HISTORY_MONTHS
     df = build_dataset(symbol, interval, months=months).sort_values("time").reset_index(drop=True)
     EXCLUDE = ("label", "time", "current_price", "resistance", "support")

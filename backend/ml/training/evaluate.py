@@ -4,13 +4,12 @@ importance — helps identify noisy/low-value features to prune.
 """
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pickle
 import pandas as pd
 from sklearn.metrics import classification_report, confusion_matrix
 
-from ml_model.dataset_builder import build_dataset
+from ml.training.dataset import build_dataset
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "model_registry")
 

@@ -11,19 +11,18 @@ Flow:
              -> final combined result
 """
 import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pickle
 import pandas as pd
 
-from data_pipeline.fetch_binance import fetch_binance_ohlcv
-from data_pipeline.fetch_forex import fetch_forex_ohlcv
-from features.feature_builder import build_features
-from knowledge_base.retriever import retrieve_knowledge, build_query_from_features
-from features.multi_timeframe import get_current_higher_tf_trend
-from news_layer.keyword_flags import check_news_risk
-from orchestrator.reasoning_prompt import build_prompt
-from orchestrator.llm_client import generate_explanation
+from ml.data.sources.binance import fetch_binance_ohlcv
+from ml.data.sources.twelvedata import fetch_forex_ohlcv
+from ml.features.builder import build_features
+from knowledge.retriever import retrieve_knowledge, build_query_from_features
+from ml.features.multi_timeframe import get_current_higher_tf_trend
+from app.services.news.keyword_flags import check_news_risk
+from app.services.assistant.reasoning_prompt import build_prompt
+from app.services.assistant.llm_client import generate_explanation
 
 MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                           "ml_model", "model_registry")

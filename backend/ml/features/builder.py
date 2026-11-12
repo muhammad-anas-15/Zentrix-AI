@@ -5,11 +5,10 @@ both the ML model (Phase 2) and the reasoning/orchestrator layer.
 """
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from features.indicators import rsi, ema, macd, atr, bollinger_bands, volume_change
-from features.patterns import detect_patterns_series
-from features.support_resistance import calc_support_resistance
+from ml.features.indicators import rsi, ema, macd, atr, bollinger_bands, volume_change
+from ml.features.patterns import detect_patterns_series
+from ml.features.support_resistance import calc_support_resistance
 
 
 def build_features(candles: list) -> dict:

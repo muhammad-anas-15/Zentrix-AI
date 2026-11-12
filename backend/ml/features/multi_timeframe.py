@@ -4,10 +4,9 @@ agrees with the current signal. Added as a feature so the ML model can
 learn "higher-timeframe-confirmed setups tend to be more reliable."
 """
 import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
-from data_pipeline.fetch_binance import fetch_binance_ohlcv, fetch_binance_history
+from ml.data.sources.binance import fetch_binance_ohlcv, fetch_binance_history
 
 HIGHER_TF_MAP = {"1m": "15m", "5m": "1h", "15m": "1h", "1h": "4h"}
 
@@ -24,7 +23,7 @@ def get_current_higher_tf_trend(symbol: str, base_interval: str) -> int:
     if not higher_tf:
         return 0
     if "/" in symbol:
-        from data_pipeline.fetch_forex import fetch_forex_ohlcv
+        from ml.data.sources.twelvedata import fetch_forex_ohlcv
         forex_map = {"15m": "15min", "1h": "1h", "5m": "5min", "1m": "1min", "4h": "4h"}
         candles = fetch_forex_ohlcv(symbol, forex_map.get(higher_tf, higher_tf), outputsize=30)
     else:
@@ -45,7 +44,7 @@ def build_higher_tf_series(symbol: str, base_interval: str, months: int) -> pd.D
         return pd.DataFrame(columns=["time", "higher_tf_bullish"])
 
     if "/" in symbol:  # forex
-        from data_pipeline.fetch_forex import fetch_forex_ohlcv
+        from ml.data.sources.twelvedata import fetch_forex_ohlcv
         forex_map = {"15m": "15min", "1h": "1h", "5m": "5min", "1m": "1min", "4h": "4h"}
         candles = fetch_forex_ohlcv(symbol, forex_map.get(higher_tf, higher_tf), outputsize=5000)
     else:

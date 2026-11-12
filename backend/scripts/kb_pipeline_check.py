@@ -1,14 +1,13 @@
 """
 Full pipeline test: live candles -> Phase 1 features -> Phase 3 RAG retrieval.
 No GUI needed — console output shows exactly what a real signal would produce.
-Run: python knowledge_base/test_pipeline_integration.py
+Run (from backend/): python -m scripts.kb_pipeline_check
 """
 import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from data_pipeline.fetch_binance import fetch_binance_ohlcv
-from features.feature_builder import build_features
-from knowledge_base.retriever import retrieve_knowledge, build_query_from_features
+from ml.data.sources.binance import fetch_binance_ohlcv
+from ml.features.builder import build_features
+from knowledge.retriever import retrieve_knowledge, build_query_from_features
 
 candles = fetch_binance_ohlcv("BTCUSDT", "15m", limit=100)
 features = build_features(candles)

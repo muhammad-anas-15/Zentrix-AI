@@ -1,7 +1,6 @@
 import sys, os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from orchestrator.agent import run_assistant
+from app.services.assistant.agent import run_assistant
 
 def get_trading_signal(symbol: str, timeframe: str) -> dict:
     result = run_assistant(symbol, timeframe)

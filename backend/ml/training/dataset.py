@@ -8,13 +8,12 @@ NEXT candle close higher than the current one (1 = up/green, 0 = down/red).
 """
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
-from data_pipeline.fetch_binance import fetch_binance_history
-from data_pipeline.fetch_forex import fetch_forex_ohlcv
-from features.feature_builder import build_features
-from features.multi_timeframe import build_higher_tf_series
+from ml.data.sources.binance import fetch_binance_history
+from ml.data.sources.twelvedata import fetch_forex_ohlcv
+from ml.features.builder import build_features
+from ml.features.multi_timeframe import build_higher_tf_series
 
 WINDOW = 60
 HISTORY_MONTHS = 12

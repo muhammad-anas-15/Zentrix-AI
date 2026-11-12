@@ -7,13 +7,12 @@ waiting weeks for live signals.
 Run: python demo_trading_logger/historical_simulator.py
 """
 import sys, os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import sqlite3
 import pickle
 import pandas as pd
 
-from ml_model.dataset_builder import build_dataset
+from ml.training.dataset import build_dataset
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "signal_log.db")
 MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

@@ -4,21 +4,20 @@ Uses CHRONOLOGICAL split (never random shuffle) to avoid lookahead bias.
 """
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 import pickle
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-from ml_model.dataset_builder import build_dataset
+from ml.training.dataset import build_dataset
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "model_registry")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 
 def train_model(symbol: str = "BTCUSDT", interval: str = "15m", months: int = None, horizon: int = 1):
-    from ml_model.dataset_builder import HISTORY_MONTHS
+    from ml.training.dataset import HISTORY_MONTHS
     months = months or HISTORY_MONTHS
     df = build_dataset(symbol, interval, months=months, horizon=horizon)
     df = df.sort_values("time").reset_index(drop=True)
