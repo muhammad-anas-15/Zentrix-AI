@@ -25,7 +25,7 @@ from app.services.entitlements import FEATURES, Access, is_free_market, resolve_
 
 def premium_required(feature: str) -> AppError:
     f = FEATURES[feature]
-    return AppError(403, "premium_required", f"{f.title} is a Premium feature",
+    return AppError(403, "premium_required", f"Premium feature: {f.title}",
                     details={"feature": feature, "title": f.title})
 
 
@@ -48,7 +48,7 @@ class Gate:
         if self.allows(feature):
             return
         if self.user is None:
-            raise unauthorized(f"Sign in: {FEATURES[feature].title} is a Premium feature")
+            raise unauthorized(f"Sign in to use this Premium feature: {FEATURES[feature].title}")
         raise premium_required(feature)
 
     def market_open(self, symbol: str, timeframe: str) -> bool:
