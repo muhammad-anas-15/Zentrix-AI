@@ -8,6 +8,7 @@ from typing import Any
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -40,7 +41,12 @@ class User(TimestampMixin, Base):
     email: Mapped[str | None] = mapped_column(String(320))
     display_name: Mapped[str | None] = mapped_column(String(120))
     avatar_url: Mapped[str | None] = mapped_column(Text)
+    # Assigned plan (admin now, billing later). Effective access also counts subscriptions and grants and
+    # ignores an expired plan: see app/services/entitlements.py.
     plan: Mapped[str] = mapped_column(String(16), default="free", server_default="free")
+    plan_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set only from the server CLI (python -m scripts.admin); no API can grant it.
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     locale: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", server_default="UTC")
     # Embedded in access tokens; incremented by logout-all so outstanding access tokens stop working.
@@ -109,17 +115,24 @@ class Subscription(TimestampMixin, Base):
 
 
 class Entitlement(Base):
-    """Feature access, e.g. key='premium'. Derived from plan/subscription/admin grant."""
+    """A time-boxed grant: key 'premium' (everything) or one premium feature key (e.g. 'scenario').
+    Ending a grant sets ``ends_at``; rows are kept as history."""
 
     __tablename__ = "entitlements"
-    __table_args__ = (CheckConstraint("source IN ('plan', 'subscription', 'admin', 'promo')", name="source"),)
+    __table_args__ = (
+        CheckConstraint("source IN ('plan', 'subscription', 'admin', 'promo')", name="source"),
+        Index("ix_entitlements_user_id_key", "user_id", "key"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     key: Mapped[str] = mapped_column(String(64))
     source: Mapped[str] = mapped_column(String(16))
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    note: Mapped[str | None] = mapped_column(String(300))
+    granted_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class AuditLog(Base):
