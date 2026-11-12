@@ -45,7 +45,8 @@ def save_artifact(model: XGBClassifier, metadata: dict[str, Any], root: Path | N
     path.mkdir(parents=True, exist_ok=True)
     model.save_model(path / "model.json")
     metadata = {**metadata, "artifact_path": str(path / "model.json")}
-    (path / "metadata.json").write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8")
+    text = json.dumps(metadata, indent=2, sort_keys=True)
+    (path / "metadata.json").write_text(text, encoding="utf-8", newline="\n")
     return path
 
 

@@ -149,7 +149,7 @@ def generate_report(db_path: Path | None = None, out_path: Path | None = None) -
     finally:
         conn.close()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(text, encoding="utf-8")
+    out_path.write_text(text, encoding="utf-8", newline="\n")
     return out_path
 
 
