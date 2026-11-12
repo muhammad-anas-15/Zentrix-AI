@@ -2,24 +2,35 @@
 # The worker (candle ingestion + per-candle-close signal jobs) is added in Phase 2.
 name: zentrix
 
+x-backend: &backend
+  build:
+    context: ../backend
+    dockerfile: ../infra/Dockerfile
+  image: zentrix-backend:dev
+  env_file:
+    - path: ../backend/.env
+      required: false
+  environment:
+    DATABASE_URL: postgresql+asyncpg://zentrix:${POSTGRES_PASSWORD:-zentrix}@postgres:5432/zentrix
+    REDIS_URL: redis://redis:6379/0
+
 services:
+  migrate:   # one-off: apply Alembic migrations, then exit
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
-    build:
-      context: ../backend
-      dockerfile: ../infra/Dockerfile
-    env_file:
-      - path: ../backend/.env
-        required: false
-    environment:
-      DATABASE_URL: postgresql+asyncpg://zentrix:${POSTGRES_PASSWORD:-zentrix}@postgres:5432/zentrix
-      REDIS_URL: redis://redis:6379/0
+    <<: *backend
     volumes:
       - ml_data:/data   # model artifacts + candle cache (never baked into the image)
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 
