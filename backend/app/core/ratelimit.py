@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
+from starlette.requests import HTTPConnection
 
 from app.core.config import Settings
 from app.core.errors import AppError
@@ -38,7 +39,7 @@ class RateLimiter:
         return True, 0
 
 
-def client_ip(request: Request, settings: Settings) -> str:
+def client_ip(request: HTTPConnection, settings: Settings) -> str:
     if settings.trust_proxy_headers:
         forwarded = request.headers.get("x-forwarded-for")
         if forwarded:
@@ -46,7 +47,7 @@ def client_ip(request: Request, settings: Settings) -> str:
     return request.client.host if request.client else "unknown"
 
 
-async def enforce(request: Request, scope: str, identity: str, spec: str) -> None:
+async def enforce(request: HTTPConnection, scope: str, identity: str, spec: str) -> None:
     settings: Settings = request.app.state.settings
     if not settings.rate_limit_enabled:
         return

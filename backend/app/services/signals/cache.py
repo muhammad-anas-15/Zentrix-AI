@@ -22,14 +22,17 @@ def latest_key(listing_id: int, timeframe: str, horizon: int) -> str:
     return f"signal:latest:{listing_id}:{timeframe}:{horizon}"
 
 
-async def cache_latest_signals(db: AsyncSession, redis: Redis, signal_ids: list[int]) -> None:
+async def cache_latest_signals(db: AsyncSession, redis: Redis, signal_ids: list[int]) -> list[dict[str, Any]]:
+    """Cache the new signals as the latest per series; returns their API dicts."""
     rows = (await db.scalars(select(Signal).where(Signal.id.in_(signal_ids)))).unique().all()
+    out = [signal_to_dict(sig) for sig in rows]
     try:
-        for s in rows:
-            await redis.set(latest_key(s.listing_id, s.timeframe, s.horizon), json.dumps(signal_to_dict(s)),
-                            ex=2 * interval_seconds(s.timeframe))
+        for sig, d in zip(rows, out, strict=True):
+            await redis.set(latest_key(sig.listing_id, sig.timeframe, sig.horizon), json.dumps(d),
+                            ex=2 * interval_seconds(sig.timeframe))
     except Exception:
         log.debug("cache_write_failed")
+    return out
 
 
 async def get_cached(redis: Redis, key: str) -> Any | None:

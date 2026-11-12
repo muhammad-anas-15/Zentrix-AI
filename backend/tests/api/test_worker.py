@@ -263,7 +263,7 @@ async def test_registration_rules(app: FastAPI, settings: Settings, artifacts: P
 
 def test_due_logic_respects_market_hours_and_grace(settings: Settings) -> None:
     w = Worker(None, None, {}, PredictorCache(Path(".")), settings)  # type: ignore[arg-type]
-    fx = Target(1, 1, "15m", "twelvedata", "EUR/USD", "fx_24x5", 10, 700)
+    fx = Target(1, 1, "EUR/USD", "15m", "twelvedata", "EUR/USD", "fx_24x5", 10, 700)
     def utc(*args: int) -> int:
         return int(datetime(*args, tzinfo=UTC).timestamp())
 
