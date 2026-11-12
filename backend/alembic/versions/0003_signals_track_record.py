@@ -11,8 +11,9 @@ Create Date: 2026-11-12 20:10:24.611909
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision: str = "0003"
 down_revision: str | None = "0002"
