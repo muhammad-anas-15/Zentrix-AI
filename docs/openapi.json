@@ -1,6 +1,237 @@
 {
   "components": {
     "schemas": {
+      "BacktestOut": {
+        "properties": {
+          "accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy"
+          },
+          "ci95": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci95"
+          },
+          "majority_baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Majority Baseline"
+          },
+          "oos_signals": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oos Signals"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          }
+        },
+        "required": [
+          "oos_signals",
+          "accuracy",
+          "ci95",
+          "majority_baseline",
+          "period"
+        ],
+        "title": "BacktestOut",
+        "type": "object"
+      },
+      "CandleOut": {
+        "properties": {
+          "c": {
+            "title": "C",
+            "type": "number"
+          },
+          "h": {
+            "title": "H",
+            "type": "number"
+          },
+          "l": {
+            "title": "L",
+            "type": "number"
+          },
+          "o": {
+            "title": "O",
+            "type": "number"
+          },
+          "t": {
+            "description": "Candle open time (UTC)",
+            "format": "date-time",
+            "title": "T",
+            "type": "string"
+          },
+          "v": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "V"
+          }
+        },
+        "required": [
+          "t",
+          "o",
+          "h",
+          "l",
+          "c",
+          "v"
+        ],
+        "title": "CandleOut",
+        "type": "object"
+      },
+      "CandlesOut": {
+        "properties": {
+          "candles": {
+            "description": "Closed, market-hours candles, oldest first",
+            "items": {
+              "$ref": "#/components/schemas/CandleOut"
+            },
+            "title": "Candles",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "venue",
+          "timeframe",
+          "candles"
+        ],
+        "title": "CandlesOut",
+        "type": "object"
+      },
+      "CountsOut": {
+        "properties": {
+          "ci95": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "95% Wilson interval of the hit rate",
+            "title": "Ci95"
+          },
+          "decided": {
+            "description": "wins + losses",
+            "title": "Decided",
+            "type": "integer"
+          },
+          "flats": {
+            "title": "Flats",
+            "type": "integer"
+          },
+          "hit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "wins / (wins + losses); null until any signal is decided",
+            "title": "Hit Rate"
+          },
+          "losses": {
+            "title": "Losses",
+            "type": "integer"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "signals": {
+            "title": "Signals",
+            "type": "integer"
+          },
+          "voids": {
+            "title": "Voids",
+            "type": "integer"
+          },
+          "wins": {
+            "title": "Wins",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "signals",
+          "pending",
+          "wins",
+          "losses",
+          "flats",
+          "voids",
+          "decided",
+          "hit_rate",
+          "ci95"
+        ],
+        "title": "CountsOut",
+        "type": "object"
+      },
       "GoogleSignIn": {
         "properties": {
           "device_name": {
@@ -220,6 +451,84 @@
         "title": "ListingOut",
         "type": "object"
       },
+      "ModelOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "backtest": {
+            "$ref": "#/components/schemas/BacktestOut"
+          },
+          "has_demonstrated_edge": {
+            "title": "Has Demonstrated Edge",
+            "type": "boolean"
+          },
+          "horizon": {
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label_mode": {
+            "title": "Label Mode",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "trained_at": {
+            "format": "date-time",
+            "title": "Trained At",
+            "type": "string"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "symbol",
+          "venue",
+          "timeframe",
+          "horizon",
+          "active",
+          "has_demonstrated_edge",
+          "reasons",
+          "label_mode",
+          "trained_at",
+          "backtest",
+          "note"
+        ],
+        "title": "ModelOut",
+        "type": "object"
+      },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
@@ -233,6 +542,355 @@
           "refresh_token"
         ],
         "title": "RefreshRequest",
+        "type": "object"
+      },
+      "SignalModelOut": {
+        "properties": {
+          "has_demonstrated_edge": {
+            "description": "False: the model showed no out-of-sample edge; every signal is 'Very Weak - Wait'",
+            "title": "Has Demonstrated Edge",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "trained_at": {
+            "format": "date-time",
+            "title": "Trained At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "trained_at",
+          "has_demonstrated_edge"
+        ],
+        "title": "SignalModelOut",
+        "type": "object"
+      },
+      "SignalOut": {
+        "properties": {
+          "backtest_tier": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Out-of-sample BACKTEST stats of this strength tier for this model (not live results)",
+            "title": "Backtest Tier"
+          },
+          "candle_time": {
+            "description": "Open time of the closed candle the signal was computed on",
+            "format": "date-time",
+            "title": "Candle Time",
+            "type": "string"
+          },
+          "confidence": {
+            "description": "Calibrated probability of the stated direction",
+            "title": "Confidence",
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_at": {
+            "format": "date-time",
+            "title": "Decision At",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "horizon": {
+            "description": "Candles ahead the signal refers to",
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "model": {
+            "$ref": "#/components/schemas/SignalModelOut"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignalOutcomeOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "p_up": {
+            "title": "P Up",
+            "type": "number"
+          },
+          "strength": {
+            "title": "Strength",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "symbol",
+          "venue",
+          "timeframe",
+          "horizon",
+          "candle_time",
+          "decision_at",
+          "created_at",
+          "direction",
+          "confidence",
+          "p_up",
+          "strength",
+          "model",
+          "backtest_tier",
+          "outcome"
+        ],
+        "title": "SignalOut",
+        "type": "object"
+      },
+      "SignalOutcomeOut": {
+        "properties": {
+          "entry_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Price"
+          },
+          "entry_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Time"
+          },
+          "exit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Price"
+          },
+          "exit_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Time"
+          },
+          "move_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Move Pct"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "outcome": {
+            "enum": [
+              "win",
+              "loss",
+              "flat",
+              "void"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "resolved_at": {
+            "format": "date-time",
+            "title": "Resolved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome",
+          "entry_time",
+          "entry_price",
+          "exit_time",
+          "exit_price",
+          "move_pct",
+          "resolved_at",
+          "note"
+        ],
+        "title": "SignalOutcomeOut",
+        "type": "object"
+      },
+      "SignalPage": {
+        "properties": {
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SignalOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_before_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before Id"
+          }
+        },
+        "required": [
+          "items",
+          "next_before_id"
+        ],
+        "title": "SignalPage",
+        "type": "object"
+      },
+      "StrengthCountsOut": {
+        "properties": {
+          "ci95": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "95% Wilson interval of the hit rate",
+            "title": "Ci95"
+          },
+          "decided": {
+            "description": "wins + losses",
+            "title": "Decided",
+            "type": "integer"
+          },
+          "flats": {
+            "title": "Flats",
+            "type": "integer"
+          },
+          "hit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "wins / (wins + losses); null until any signal is decided",
+            "title": "Hit Rate"
+          },
+          "losses": {
+            "title": "Losses",
+            "type": "integer"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "signals": {
+            "title": "Signals",
+            "type": "integer"
+          },
+          "strength": {
+            "title": "Strength",
+            "type": "string"
+          },
+          "voids": {
+            "title": "Voids",
+            "type": "integer"
+          },
+          "wins": {
+            "title": "Wins",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "signals",
+          "pending",
+          "wins",
+          "losses",
+          "flats",
+          "voids",
+          "decided",
+          "hit_rate",
+          "ci95",
+          "strength"
+        ],
+        "title": "StrengthCountsOut",
         "type": "object"
       },
       "TimeframeOut": {
@@ -285,6 +943,68 @@
           "user"
         ],
         "title": "TokenResponse",
+        "type": "object"
+      },
+      "TrackRecordOut": {
+        "properties": {
+          "by_strength": {
+            "items": {
+              "$ref": "#/components/schemas/StrengthCountsOut"
+            },
+            "title": "By Strength",
+            "type": "array"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": true,
+            "title": "Filters",
+            "type": "object"
+          },
+          "first_signal_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Signal At"
+          },
+          "last_signal_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Signal At"
+          },
+          "method": {
+            "default": "Live signals only (created within one timeframe of the candle close). Outcome: entry at the next candle's open, exit at the open after the horizon. Flat and void outcomes are excluded from the hit rate and listed separately.",
+            "title": "Method",
+            "type": "string"
+          },
+          "overall": {
+            "$ref": "#/components/schemas/CountsOut"
+          }
+        },
+        "required": [
+          "overall",
+          "by_strength",
+          "first_signal_at",
+          "last_signal_at",
+          "filters"
+        ],
+        "title": "TrackRecordOut",
         "type": "object"
       },
       "UserOut": {
@@ -498,7 +1218,7 @@
   "info": {
     "description": "Zentrix: trading analysis and risk tools for FX, metals, commodities and crypto.\n\n**Not financial advice.** Signals are probabilities based on past data, not guarantees. Accuracy figures come\nonly from the out-of-sample track record.",
     "title": "Zentrix API",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -699,6 +1419,112 @@
         "summary": "Exchange a refresh token for a new pair (the old refresh token becomes invalid)",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/v1/candles": {
+      "get": {
+        "operationId": "get_candles_v1_candles_get",
+        "parameters": [
+          {
+            "description": "Canonical symbol, e.g. EUR/USD, BTC/USDT:PERP",
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "description": "Canonical symbol, e.g. EUR/USD, BTC/USDT:PERP",
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "description": "e.g. 15m",
+            "in": "query",
+            "name": "timeframe",
+            "required": true,
+            "schema": {
+              "description": "e.g. 15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 300,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only candles opening at/before",
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only candles opening at/before",
+              "title": "End"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandlesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Closed candles for charts",
+        "tags": [
+          "market"
         ]
       }
     },
@@ -941,6 +1767,308 @@
         ]
       }
     },
+    "/v1/models": {
+      "get": {
+        "operationId": "list_models_v1_models_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "active_only",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelOut"
+                  },
+                  "title": "Response List Models V1 Models Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Models behind the signals, with their out-of-sample backtest and edge assessment",
+        "tags": [
+          "signals"
+        ]
+      }
+    },
+    "/v1/signals": {
+      "get": {
+        "operationId": "list_signals_v1_signals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 8,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Timeframe"
+            }
+          },
+          {
+            "in": "query",
+            "name": "horizon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Horizon"
+            }
+          },
+          {
+            "in": "query",
+            "name": "strength",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Strength"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "pending",
+                "resolved"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Cursor: next_before_id of the previous page",
+            "in": "query",
+            "name": "before_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cursor: next_before_id of the previous page",
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signal history with outcomes (the public track record, newest first)",
+        "tags": [
+          "signals"
+        ]
+      }
+    },
+    "/v1/signals/latest": {
+      "get": {
+        "operationId": "latest_signal_v1_signals_latest_get",
+        "parameters": [
+          {
+            "description": "Canonical symbol, e.g. EUR/USD, BTC/USDT:PERP",
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "description": "Canonical symbol, e.g. EUR/USD, BTC/USDT:PERP",
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "description": "e.g. 15m",
+            "in": "query",
+            "name": "timeframe",
+            "required": true,
+            "schema": {
+              "description": "e.g. 15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "horizon",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Horizon",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "None yet"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Latest signal for an instrument/timeframe (cached)",
+        "tags": [
+          "signals"
+        ]
+      }
+    },
     "/v1/timeframes": {
       "get": {
         "operationId": "list_timeframes_v1_timeframes_get",
@@ -963,6 +2091,108 @@
         "summary": "Supported candle timeframes",
         "tags": [
           "market"
+        ]
+      }
+    },
+    "/v1/track-record": {
+      "get": {
+        "operationId": "track_record_v1_track_record_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 8,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Timeframe"
+            }
+          },
+          {
+            "in": "query",
+            "name": "horizon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Horizon"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackRecordOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Live accuracy stats computed from stored signals and outcomes",
+        "tags": [
+          "signals"
         ]
       }
     },
@@ -1002,8 +2232,12 @@
       "name": "account"
     },
     {
-      "description": "Instruments, venues, timeframes",
+      "description": "Instruments, venues, timeframes, candles",
       "name": "market"
+    },
+    {
+      "description": "Live signals, outcomes, track record, models",
+      "name": "signals"
     },
     {
       "description": "Health checks",
