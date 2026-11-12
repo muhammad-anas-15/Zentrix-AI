@@ -19,7 +19,7 @@ from typing import Any
 import yaml
 
 from ml.calibration.strength import MIN_TIER_N, TIER_LEVELS
-from ml.data.candles import HIGHER_TF
+from ml.data.candles import HIGHER_TF, is_forex
 from ml.demo_trading_logger import store
 from ml.demo_trading_logger.accuracy_report import generate_report
 from ml.evaluation.metrics import served_cuts, summarize
@@ -57,6 +57,8 @@ def run_model(spec: dict[str, Any], months: float, cfg: WalkForwardConfig, offli
     model = fit_final_model(ds, cfg.seed)
     metadata = {
         "key": key, "symbol": symbol, "interval": interval, "horizon": horizon,
+        # feed the model was trained on (maps the artifact to a DB listing)
+        "venue": "twelvedata" if is_forex(symbol) else "binance_usdm",
         "htf_interval": HIGHER_TF.get(interval),
         "label": {"mode": label_mode, "horizon": horizon, "up": "exit > entry", "flat": "excluded",
                   "entry": "open of candle t+1" if label_mode == "open_to_open" else "close of candle t",

@@ -19,7 +19,7 @@ import pandas as pd
 from ml.calibration.calibrators import calibrator_from_dict
 from ml.calibration.strength import assign_strength, confidence
 from ml.data.candles import HIGHER_TF, interval_seconds, is_forex
-from ml.data.sessions import trading_hours_only
+from ml.data.sessions import session_for_symbol, trading_hours_only
 from ml.data.sources import binance, twelvedata
 from ml.features.builder import INFERENCE_HTF_LOOKBACK, INFERENCE_LOOKBACK, to_model_matrix
 from ml.inference.features import latest_feature_row
@@ -83,7 +83,7 @@ def fetch_recent(symbol: str, interval: str, limit: int) -> pd.DataFrame:
     (49 h of candles) so that on Monday morning ``limit`` market-hours candles still remain."""
     source = twelvedata if is_forex(symbol) else binance
     want = limit + (math.ceil(WEEKEND_SECONDS / interval_seconds(interval)) if is_forex(symbol) else 0)
-    candles = trading_hours_only(source.fetch_latest(symbol, interval, want), symbol)
+    candles = trading_hours_only(source.fetch_latest(symbol, interval, want), session_for_symbol(symbol))
     return candles.tail(limit).reset_index(drop=True)
 
 

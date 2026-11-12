@@ -29,9 +29,11 @@ class FakeSession:
     def __init__(self, payloads: list[Any]) -> None:
         self.payloads = payloads
         self.calls: list[dict] = []
+        self.urls: list[str] = []
 
     def get(self, url: str, params: dict, timeout: int) -> FakeResponse:
         self.calls.append(params)
+        self.urls.append(url)
         return FakeResponse(self.payloads.pop(0))
 
 
@@ -90,7 +92,7 @@ def test_binance_fetch_range_pages_forwards(monkeypatch: pytest.MonkeyPatch) -> 
     all_rows = make_candles(2_500, "15m").to_dict("records")
 
     def fake(symbol: str, interval: str, limit: int, start_ms: int | None = None, end_ms: int | None = None,
-             session: Any = None):
+             session: Any = None, market: str = "usdm"):
         sel = [r for r in all_rows if r["time"] * 1000 >= (start_ms or 0) and r["time"] * 1000 <= (end_ms or 1e20)]
         return sel[:limit]
 
@@ -122,3 +124,12 @@ def test_import_csv_round_trip(tmp_path: Any) -> None:
     candles.assign(time=pd.to_datetime(candles["time"], unit="s", utc=True).astype(str)).to_csv(csv, index=False)
     history.import_csv(csv, "EUR/USD", "1h", cache_dir=tmp_path)
     pd.testing.assert_frame_equal(history.read_cache("EUR/USD", "1h", cache_dir=tmp_path), candles)
+
+
+def test_binance_spot_and_futures_use_their_own_endpoints() -> None:
+    kline = [[1_700_000_000_000, "1", "2", "0.5", "1.5", "10"]]
+    for market, host in (("spot", "api.binance.com/api/v3"), ("usdm", "fapi.binance.com/fapi/v1")):
+        session = FakeSession([kline])
+        rows = binance.fetch_klines("BTCUSDT", "15m", limit=5000, session=session, market=market)  # type: ignore[arg-type]
+        assert host in session.urls[0] and rows[0]["close"] == 1.5
+        assert session.calls[0]["limit"] == binance.MAX_LIMIT[market]  # capped per market

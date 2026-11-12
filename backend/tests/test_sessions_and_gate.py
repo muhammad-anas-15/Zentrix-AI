@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ml.data.sessions import market_open_mask, trading_hours_only
+from ml.data.sessions import market_open_mask, session_for_symbol, trading_hours_only
 from ml.data.sources import twelvedata
 from ml.evaluation.metrics import MAX_NAIVE_RATE, assess_usability, summarize
 from ml.inference import predictor
@@ -31,16 +31,20 @@ def test_fx_week_boundaries_follow_new_york_time(month_day: tuple[int, int]) -> 
         _ts(2026, m, fri + 2, 17, 0),   # Sunday 17:00 NY: open
         _ts(2026, m, fri + 3, 3, 0),    # Monday: open
     ])
-    assert market_open_mask(times, "EUR/USD").tolist() == [True, False, False, False, True, True]
-    assert market_open_mask(times, "BTCUSDT").all()  # crypto trades 24/7
+    for session in ("fx_24x5", "metals_23x5", "commodities_23x5"):
+        assert market_open_mask(times, session).tolist() == [True, False, False, False, True, True]
+    assert market_open_mask(times, "crypto_24x7").all()  # crypto trades 24/7
+    assert session_for_symbol("EUR/USD") == "fx_24x5" and session_for_symbol("BTCUSDT") == "crypto_24x7"
+    with pytest.raises(ValueError, match="unknown session"):
+        market_open_mask(times, "BTC/USDT")  # canonical DB symbols are not sessions
 
 
 def test_live_fetch_applies_the_same_filter(monkeypatch: pytest.MonkeyPatch) -> None:
     week = make_candles(7 * 96, "15m", start=_ts(2026, 3, 2, 0, 0))  # Monday..Sunday
     monkeypatch.setattr(twelvedata, "fetch_latest", lambda s, i, n: week.tail(n).reset_index(drop=True))
     got = predictor.fetch_recent("EUR/USD", "15m", 100)
-    assert len(got) == 100 and market_open_mask(got["time"], "EUR/USD").all()
-    pd.testing.assert_frame_equal(got, trading_hours_only(week, "EUR/USD").tail(100).reset_index(drop=True))
+    assert len(got) == 100 and market_open_mask(got["time"], "fx_24x5").all()
+    pd.testing.assert_frame_equal(got, trading_hours_only(week, "fx_24x5").tail(100).reset_index(drop=True))
 
 
 def _preds(n: int, model_acc: float, naive_acc: float, seed: int = 0) -> pd.DataFrame:

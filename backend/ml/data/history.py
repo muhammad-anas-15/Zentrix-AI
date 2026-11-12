@@ -20,7 +20,7 @@ from ml.data.candles import (
     safe_symbol,
     to_frame,
 )
-from ml.data.sessions import trading_hours_only
+from ml.data.sessions import session_for_symbol, trading_hours_only
 from ml.data.sources import binance, twelvedata
 from ml.settings import get_settings
 
@@ -75,7 +75,7 @@ def load_history(symbol: str, interval: str, months: float, now: float | None = 
             write_cache(merged, symbol, interval, cache_dir)
         cached = merged
 
-    df = trading_hours_only(drop_unclosed(cached, interval, now), symbol)
+    df = trading_hours_only(drop_unclosed(cached, interval, now), session_for_symbol(symbol))
     df = df[df["time"] >= start_ts].reset_index(drop=True)
     log.info("%s %s: %d closed candles (%s -> %s)", symbol, interval, len(df),
              _fmt(df["time"].iloc[0]) if len(df) else "-", _fmt(df["time"].iloc[-1]) if len(df) else "-")
