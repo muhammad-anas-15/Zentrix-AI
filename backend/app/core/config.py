@@ -50,11 +50,11 @@ class Settings(BaseSettings):
     # Worker (candle ingestion, signals, outcomes)
     artifacts_dir: Path = BACKEND_DIR / "ml" / "artifacts"  # same env var as ml.settings (ARTIFACTS_DIR)
     worker_poll_s: float = 5.0
-    ingest_grace_s: float = 10.0  # wait this long after a candle closes before fetching it
+    ingest_grace_s: float = 3.0  # wait this long after a candle closes before fetching it
     ingest_retry_s: float = 30.0  # min seconds between attempts for the same series
     twelve_data_daily_budget: int = 780  # free plan: 800 requests/day
     twelve_data_min_live_tf_s: int = 900  # below 15m the free plan cannot keep up
-    signal_max_lag_s: int | None = None  # default: one timeframe after the candle closes
+    signal_max_lag_s: int | None = None  # default: min(20% of the timeframe, 180 s) after the close
     outcome_void_after_s: int = 6 * 3600  # missing candles this long after the expected exit -> void
 
     @field_validator("cors_origins", "google_client_ids", mode="before")

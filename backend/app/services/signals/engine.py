@@ -3,14 +3,17 @@
 For a series (listing, timeframe) whose newest closed candle just arrived, every active model on that series
 predicts from features built exactly as in training (stored market-hours candles + closed higher-timeframe
 candles). A signal is stored only if this happens within ``max_lag`` of the candle's close: backfilled or late
-candles never produce signals, so the track record contains no hindsight.
+candles never produce signals, so the track record contains no hindsight. The default lag limit is
+min(20% of the timeframe, 3 minutes): the label's entry is the next candle's open, so a signal published much
+later would be scored on a price the user could no longer get (for a 1m candle the whole outcome window would
+already be over).
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -56,7 +59,7 @@ async def generate_signals(db: AsyncSession, predictors: PredictorCache, listing
     lag = now - decision
     if lag < 0:
         return SignalResult([], ["candle not closed yet"])
-    if lag > (max_lag_s if max_lag_s is not None else tf_s):
+    if lag > (max_lag_s if max_lag_s is not None else default_max_lag_s(timeframe)):
         return SignalResult([], [f"stale candle ({lag:.0f}s after close): no retroactive signals"])
 
     versions = (await db.scalars(select(ModelVersion).where(
@@ -99,5 +102,5 @@ async def generate_signals(db: AsyncSession, predictors: PredictorCache, listing
     return SignalResult(created, skipped)
 
 
-def max_lag_default(timeframe: str) -> timedelta:
-    return timedelta(seconds=interval_seconds(timeframe))
+def default_max_lag_s(timeframe: str) -> float:
+    return min(0.2 * interval_seconds(timeframe), 180.0)

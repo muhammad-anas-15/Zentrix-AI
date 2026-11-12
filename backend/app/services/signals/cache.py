@@ -29,7 +29,7 @@ async def cache_latest_signals(db: AsyncSession, redis: Redis, signal_ids: list[
             await redis.set(latest_key(s.listing_id, s.timeframe, s.horizon), json.dumps(signal_to_dict(s)),
                             ex=2 * interval_seconds(s.timeframe))
     except Exception:
-        log.warning("cache_write_failed")
+        log.debug("cache_write_failed")
 
 
 async def get_cached(redis: Redis, key: str) -> Any | None:
@@ -44,7 +44,7 @@ async def set_cached(redis: Redis, key: str, value: Any, ttl_s: int) -> None:
     try:
         await redis.set(key, json.dumps(value, default=str), ex=ttl_s)
     except Exception:
-        log.warning("cache_write_failed")
+        log.debug("cache_write_failed")
 
 
 async def track_record_version(redis: Redis) -> int:
@@ -59,4 +59,4 @@ async def bump_track_record_version(redis: Redis) -> None:
     try:
         await redis.incr(TRACK_RECORD_VERSION)
     except Exception:
-        log.warning("cache_bump_failed")
+        log.debug("cache_bump_failed")

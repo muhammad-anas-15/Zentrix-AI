@@ -90,9 +90,11 @@ class FakeBinance:
         self.fail: set[str] = set()
         self.missing: set[int] = set()
         self.calls: list[tuple[str, str, int]] = []
+        self.slow_s = 0  # simulated seconds each request takes (advances the clock)
 
     async def fetch_latest(self, venue_symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
         self.calls.append((venue_symbol, timeframe, limit))
+        self.now += self.slow_s
         if timeframe in self.fail:
             raise ConnectionError("feed down")
         if venue_symbol != "BTCUSDT":
@@ -110,7 +112,9 @@ async def env(app: FastAPI, settings: Settings, fake_redis: Any, artifacts: Path
         results = await register_artifacts(db, s)
     assert [r.status for r in results] == ["registered_active"]
     feed = FakeBinance(market)
-    return Worker(app.state.sessionmaker, fake_redis, {"binance_usdm": feed}, PredictorCache(artifacts), s), feed, s
+    worker = Worker(app.state.sessionmaker, fake_redis, {"binance_usdm": feed}, PredictorCache(artifacts), s,
+                    clock=lambda: feed.now)
+    return worker, feed, s
 
 
 async def tick_at(worker: Worker, feed: FakeBinance, candle_index: int, delay_s: int = 15) -> Any:
@@ -151,9 +155,9 @@ async def test_signals_appear_and_outcomes_resolve_without_requests(
         assert entry == market["open"].iloc[i + 1] and exit_ == market["open"].iloc[i + 2]
         moved_up = exit_ > entry
         assert outcome == ("flat" if exit_ == entry else "win" if moved_up == (direction == "up") else "loss")
-    # Signals were created live: within one timeframe of the candle close.
+    # Signals were created live: within min(20% of the timeframe, 180 s) of the candle close.
     lag = await scalar(app, "SELECT max(extract(epoch FROM created_at - decision_at)) FROM signals")
-    assert 0 <= float(lag) <= M15
+    assert 0 <= float(lag) <= 180
 
     # API: history, latest (cached), track record == database.
     page = (await client.get("/v1/signals", params={"symbol": PERP})).json()
@@ -270,10 +274,11 @@ def test_due_logic_respects_market_hours_and_grace(settings: Settings) -> None:
     assert w.is_due(fx, utc(2026, 1, 4, 22, 15, 15))  # Sunday 17:15:15 NY: first candle of the week closed
     tuesday = utc(2026, 1, 6, 3)
     w._last_ts = {fx.series: tuesday - 1800}
-    assert not w.is_due(fx, tuesday + 5)  # inside the grace period
-    assert w.is_due(fx, tuesday + 15)
-    w._last_attempt[fx.series] = tuesday + 15
-    assert not w.is_due(fx, tuesday + 20)  # retry spacing
+    assert settings.ingest_grace_s == 3
+    assert not w.is_due(fx, tuesday + 2)  # inside the grace period
+    assert w.is_due(fx, tuesday + 4)
+    w._last_attempt[fx.series] = tuesday + 4
+    assert not w.is_due(fx, tuesday + 10)  # retry spacing
 
 
 async def test_twelve_data_daily_budget(settings: Settings, fake_redis: Any) -> None:
@@ -302,3 +307,12 @@ async def test_model_versions_have_one_active_per_series(app: FastAPI, settings:
         rows = (await db.execute(text("SELECT active FROM model_versions ORDER BY trained_at"))).all()
     assert [r[0] for r in rows] == [False, True]
     assert ModelVersion.__tablename__ == "model_versions"
+
+
+async def test_signal_not_published_when_processing_runs_late(env: Env) -> None:
+    """If fetching takes so long that the signal would be published > 180 s after the 15m close, the signal is
+    skipped: by then the entry price (the next candle's open) is no longer available to the user."""
+    worker, feed, _ = env
+    feed.slow_s = 100  # each request takes 100 s: 4h, 1h, then 15m -> 15m processed ~300 s after the close
+    r = await tick_at(worker, feed, N_TRAIN + 199)
+    assert r.signals == [] and any("no retroactive signals" in s for s in r.skipped)
