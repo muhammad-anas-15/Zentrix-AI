@@ -39,6 +39,10 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["app*", "ml*", "knowledge*"]
 
+[tool.setuptools.package-data]
+ml = ["config/*.yaml"]
+knowledge = ["source_docs/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
