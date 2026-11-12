@@ -8,8 +8,9 @@ Create Date: 2026-11-12 19:39:35.519903
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision: str = "0001"
 down_revision: str | None = None
@@ -53,7 +54,7 @@ def upgrade() -> None:
     sa.Column('plan', sa.String(length=16), server_default='free', nullable=False),
     sa.Column('locale', sa.String(length=8), server_default='en', nullable=False),
     sa.Column('timezone', sa.String(length=64), server_default='UTC', nullable=False),
-    sa.Column('tokens_valid_after', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('token_version', sa.Integer(), server_default='0', nullable=False),
     sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),

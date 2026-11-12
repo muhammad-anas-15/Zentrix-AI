@@ -12,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -42,8 +43,8 @@ class User(TimestampMixin, Base):
     plan: Mapped[str] = mapped_column(String(16), default="free", server_default="free")
     locale: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", server_default="UTC")
-    # Access tokens issued before this instant are rejected (logout-all, security events).
-    tokens_valid_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Embedded in access tokens; incremented by logout-all so outstanding access tokens stop working.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
