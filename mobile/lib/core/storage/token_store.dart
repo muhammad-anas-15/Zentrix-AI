@@ -1,0 +1,63 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+/// Access + refresh token pair from the backend.
+@immutable
+class Tokens {
+  const Tokens({required this.access, required this.refresh});
+
+  final String access;
+  final String refresh;
+}
+
+/// Where tokens live. Never logged.
+abstract interface class TokenStore {
+  Future<Tokens?> read();
+  Future<void> write(Tokens tokens);
+  Future<void> clear();
+}
+
+/// Android Keystore / iOS Keychain backed storage.
+class SecureTokenStore implements TokenStore {
+  SecureTokenStore([FlutterSecureStorage? storage]) : _storage = storage ?? const FlutterSecureStorage();
+
+  static const _accessKey = 'zx_access_token';
+  static const _refreshKey = 'zx_refresh_token';
+  final FlutterSecureStorage _storage;
+
+  @override
+  Future<Tokens?> read() async {
+    final access = await _storage.read(key: _accessKey);
+    final refresh = await _storage.read(key: _refreshKey);
+    if (access == null || refresh == null) return null;
+    return Tokens(access: access, refresh: refresh);
+  }
+
+  @override
+  Future<void> write(Tokens tokens) async {
+    await _storage.write(key: _accessKey, value: tokens.access);
+    await _storage.write(key: _refreshKey, value: tokens.refresh);
+  }
+
+  @override
+  Future<void> clear() async {
+    await _storage.delete(key: _accessKey);
+    await _storage.delete(key: _refreshKey);
+  }
+}
+
+/// In-memory store (tests).
+class MemoryTokenStore implements TokenStore {
+  MemoryTokenStore([this._tokens]);
+
+  Tokens? _tokens;
+
+  @override
+  Future<Tokens?> read() async => _tokens;
+
+  @override
+  Future<void> write(Tokens tokens) async => _tokens = tokens;
+
+  @override
+  Future<void> clear() async => _tokens = null;
+}
