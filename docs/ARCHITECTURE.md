@@ -120,3 +120,23 @@ alert evaluator -> Postgres (`alert_events` outbox) -> FCM; candle and signal ev
   - flip `PREMIUM_ENFORCED=true`.
 
   No endpoint changes.
+
+## 7. Mobile app (Phase 5)
+
+Flutter (`mobile/`, see `mobile/README.md`).
+
+- **Layers per feature:** `domain` (freezed models of the API payloads), `data` (repositories over one `ApiClient`),
+  `application` (Riverpod notifiers and providers), `presentation` (screens and widgets).
+- **Session:**
+  - Tokens live in secure storage; `/v1/me` restores the session.
+  - The dio interceptor refreshes once per burst of 401s and retries through an interceptor-free client.
+  - A rejected refresh signs the user out.
+- **Navigation:** go_router redirects by session state (restoring, signed out, guest, signed in). A deep link opened
+  at start-up is kept and opened afterwards.
+- **Design tokens:** `lib/core/theme/tokens.dart` is the only source of colours, spacing, radii and type, and a test
+  enforces it. Claude Design output plugs in there.
+- **Premium:** `premium` labels from the API are shown as badges. A `403 premium_required` becomes a "not on your
+  plan" card; there is no paywall.
+- **Developer sign-in** (`POST /v1/auth/dev`, dev/test only) lets the app run end to end before the Google OAuth
+  client IDs exist.
+

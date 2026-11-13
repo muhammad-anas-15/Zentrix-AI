@@ -51,6 +51,9 @@ python -m scripts.admin set-plan tester@example.com premium --until 2027-01-31 -
 
 With Docker: `docker compose -f infra/docker-compose.yml up --build` (migrations, API, worker, Postgres, Redis).
 
+Mobile app (Flutter): see `mobile/README.md`. For local use before the Google OAuth client IDs exist, run the API with
+`APP_ENV=dev DEV_LOGIN=true` and the app with `--dart-define=DEV_LOGIN=true`.
+
 ML: `python -m ml.training.pipeline` (walk-forward, train, write docs/ML_REPORT.md);
 `python -m scripts.check_signal EUR/USD 15m` (signal for the last closed candle).
 
