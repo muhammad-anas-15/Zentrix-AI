@@ -6,6 +6,10 @@ abstract final class Fmt {
   static const _numberLocale = 'en_US';
   static const dash = '—';
 
+  /// Keeps a signed number intact inside right-to-left (Urdu) text: "-0.28%", not "%0.28-".
+  /// The isolate characters (LRI ... PDI) are invisible.
+  static String ltr(String s) => '\u2066$s\u2069';
+
   /// Decimals for a price when the instrument's `price_decimals` is not at hand.
   static int guessDecimals(double price) {
     final a = price.abs();
@@ -36,14 +40,14 @@ abstract final class Fmt {
   static String signedPercent(double? pct, {int decimals = 2}) {
     if (pct == null || pct.isNaN) return dash;
     final s = pct.toStringAsFixed(decimals);
-    return pct > 0 ? '+$s%' : '$s%';
+    return ltr(pct > 0 ? '+$s%' : '$s%');
   }
 
   static String money(double? v, String currency, {int decimals = 2, bool signed = false}) {
     if (v == null || v.isNaN) return dash;
     final n = NumberFormat.decimalPatternDigits(locale: _numberLocale, decimalDigits: decimals).format(v.abs());
     final sign = v < 0 ? '-' : (signed && v > 0 ? '+' : '');
-    return '$sign$n $currency';
+    return ltr('$sign$n $currency');
   }
 
   /// Seconds as "2h 05m", "12m 30s" or "45s".

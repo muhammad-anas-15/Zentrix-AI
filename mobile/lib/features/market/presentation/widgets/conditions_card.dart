@@ -137,7 +137,10 @@ class NewsGuardCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: ZxSpace.md),
-              if (next == null)
+              if (g.state == 'unknown')
+                // a stale or missing calendar never reads as "nothing coming"
+                Text(l.newsUnknownBody, style: zx.text.secondary.copyWith(color: zx.palette.caution))
+              else if (next == null)
                 Text(l.newsNoUpcoming, style: zx.text.secondary)
               else ...[
                 Text(l.newsNextEvent('${next.currency} ${next.title}'), style: zx.text.bodyStrong),

@@ -273,9 +273,11 @@ class BreakdownBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(ZxRadius.pill),
       child: SizedBox(
         height: ZxSize.breakdownBarHeight,
+        width: double.infinity,
         child: total == 0
             ? ColoredBox(color: context.zx.palette.glassStrong)
             : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch, // segments fill the bar's height
                 children: [
                   if (left > 0)
                     Expanded(

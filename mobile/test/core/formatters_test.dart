@@ -14,13 +14,20 @@ void main() {
 
   test('percent, money and countdown', () {
     expect(Fmt.ratio(0.5432), '54.3%');
-    expect(Fmt.signedPercent(1.234), '+1.23%');
-    expect(Fmt.signedPercent(-0.5), '-0.50%');
-    expect(Fmt.money(-12.5, 'USD'), '-12.50 USD');
-    expect(Fmt.money(1200, 'EUR', signed: true), '+1,200.00 EUR');
+    expect(Fmt.signedPercent(1.234), Fmt.ltr('+1.23%'));
+    expect(Fmt.signedPercent(-0.5), Fmt.ltr('-0.50%'));
+    expect(Fmt.money(-12.5, 'USD'), Fmt.ltr('-12.50 USD'));
+    expect(Fmt.money(1200, 'EUR', signed: true), Fmt.ltr('+1,200.00 EUR'));
     expect(Fmt.countdown(3900), '1h 05m');
     expect(Fmt.countdown(754), '12m 34s');
     expect(Fmt.countdown(-3), '0s');
+  });
+
+  test('signed numbers stay left-to-right inside Urdu text', () {
+    final s = Fmt.signedPercent(-0.28);
+    expect(s.codeUnitAt(0), 0x2066); // LRI
+    expect(s.codeUnitAt(s.length - 1), 0x2069); // PDI
+    expect(s.substring(1, s.length - 1), '-0.28%');
   });
 
   test('dates format in Urdu too', () async {

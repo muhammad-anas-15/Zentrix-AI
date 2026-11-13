@@ -58,7 +58,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/journal',
-                builder: (_, _) => const JournalScreen(),
+                builder: (_, state) =>
+                    JournalScreen(initialTab: (int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0).clamp(0, 2)),
                 routes: [GoRoute(path: 'new', builder: (_, _) => const TradeFormScreen())],
               ),
             ],

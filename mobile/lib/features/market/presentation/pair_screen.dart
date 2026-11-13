@@ -102,8 +102,7 @@ class _PriceHeader extends StatelessWidget {
     final l = context.l10n;
     final candles = series?.candles ?? const <Candle>[];
     final last = candles.isEmpty ? null : candles.last;
-    final first = candles.isEmpty ? null : candles.first;
-    final change = last != null && first != null && first.c != 0 ? (last.c / first.c - 1) * 100 : null;
+    final change = last == null ? null : change24h(candles);
     final color = (change ?? 0) >= 0 ? zx.palette.bullish : zx.palette.bearish;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,7 +116,10 @@ class _PriceHeader extends StatelessWidget {
             if (change != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: ZxSpace.xs),
-                child: Text(Fmt.signedPercent(change), style: zx.text.bodyStrong.copyWith(color: color)),
+                child: Text(
+                  '${Fmt.signedPercent(change)} ${l.change24h}',
+                  style: zx.text.bodyStrong.copyWith(color: color),
+                ),
               ),
           ],
         ),
@@ -125,4 +127,19 @@ class _PriceHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Percent change of the last close against the close ~24h earlier, from the loaded candles
+/// (null when they do not reach back 24h).
+double? change24h(List<Candle> candles) {
+  if (candles.length < 2) return null;
+  final last = candles.last;
+  final cutoff = last.t.subtract(const Duration(hours: 24));
+  Candle? ref;
+  for (final c in candles) {
+    if (c.t.isAfter(cutoff)) break;
+    ref = c;
+  }
+  if (ref == null || ref.c == 0) return null;
+  return (last.c / ref.c - 1) * 100;
 }

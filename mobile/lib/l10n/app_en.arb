@@ -278,5 +278,6 @@
   "factorNews": "News",
   "createWatchlist": "Create a watchlist",
   "fromProfileShort": "From profile",
-  "statsNote": "Statistics of your own journal. Past results do not predict future results."
+  "statsNote": "Statistics of your own journal. Past results do not predict future results.",
+  "newsUnknownBody": "The economic calendar is out of date, so news risk is unknown. Check the calendar before trading."
 }
