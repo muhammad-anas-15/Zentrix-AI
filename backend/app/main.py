@@ -17,6 +17,7 @@ from app.api.v1 import (
     admin,
     alerts,
     auth,
+    dev_auth,
     journal,
     market,
     me,
@@ -111,6 +112,9 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
                    risk.router, journal.router, watchlists.router, alerts.router, stream.router, plans.router,
                    admin.router):
         app.include_router(router, prefix="/v1")
+    if settings.dev_login and settings.app_env in ("dev", "test"):
+        app.include_router(dev_auth.router, prefix="/v1")  # developer sign-in, never in staging/prod
+        log.warning("dev_login_enabled")
     return app
 
 

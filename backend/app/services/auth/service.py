@@ -39,14 +39,18 @@ class AuthService:
         self.settings = settings
 
     async def login_google(self, identity: GoogleIdentity, device_name: str | None) -> TokenPair:
+        return await self.login_identity("google", identity, device_name)
+
+    async def login_identity(self, provider: str, identity: GoogleIdentity, device_name: str | None) -> TokenPair:
+        """Sign in (first time: sign up) with a verified identity of ``provider`` ("google"; "dev" in dev/test)."""
         now = datetime.now(UTC)
         ident = await self.db.scalar(select(AuthIdentity).where(
-            AuthIdentity.provider == "google", AuthIdentity.subject == identity.subject))
+            AuthIdentity.provider == provider, AuthIdentity.subject == identity.subject))
         if ident is None:
             user = User(email=identity.email, display_name=identity.name, avatar_url=identity.picture)
             self.db.add(user)
             await self.db.flush()
-            ident = AuthIdentity(user_id=user.id, provider="google", subject=identity.subject, email=identity.email)
+            ident = AuthIdentity(user_id=user.id, provider=provider, subject=identity.subject, email=identity.email)
             self.db.add(ident)
             event = "user_created"
         else:
@@ -58,7 +62,7 @@ class AuthService:
         ident.last_login_at = now
         user.last_login_at = now
         pair, _ = await self._issue(user, uuid.uuid4(), device_name, now)
-        self._audit(event, user.id, {"provider": "google"})
+        self._audit(event, user.id, {"provider": provider})
         await self.db.commit()
         return pair
 

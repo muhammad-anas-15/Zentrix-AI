@@ -28,6 +28,11 @@ a test fails if it is stale). Interactive docs at `/docs` when the server runs. 
 
 `premium_access` is `true` for everyone while `PREMIUM_ENFORCED=false` (billing is not built).
 
+**Developer sign-in (local only):** `POST /v1/auth/dev {email, name?, device_name?}` returns the same token pair as
+Google sign-in, for a `dev` identity. It is mounted only when `APP_ENV=dev` and `DEV_LOGIN=true`; the settings refuse
+`DEV_LOGIN` in staging or prod. It is for exercising the app before the Google OAuth client IDs exist. Never enable
+it on a reachable server.
+
 ## Plans and Premium (no payments)
 
 Billing is not integrated. Features are **Free** or **Premium**, and the server can lock Premium features, but

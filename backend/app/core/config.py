@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     rate_limit_public: str = "120/60"  # per IP, unauthenticated reads
     rate_limit_user: str = "240/60"  # per user
 
+    # Developer sign-in (POST /v1/auth/dev, no Google) to exercise the app locally. dev/test only.
+    dev_login: bool = False
+
     gemini_api_key: SecretStr = SecretStr("")
     # Billing is out of scope: while False, premium features are unlocked for every user (anonymous too).
     # True locks them to users with premium access (plan, subscription or grant; app/services/entitlements.py).
@@ -89,6 +92,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _check_secrets(self) -> Settings:
+        if self.dev_login and self.app_env not in ("dev", "test"):
+            raise ValueError("DEV_LOGIN is only allowed with APP_ENV=dev or test")
         if self.app_env in ("staging", "prod"):
             if len(self.jwt_secret.get_secret_value()) < 32:
                 raise ValueError("JWT_SECRET must be set (>= 32 chars) outside dev/test")
