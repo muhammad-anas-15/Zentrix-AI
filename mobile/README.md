@@ -63,22 +63,54 @@ flutter test
 
 Generated code is not committed. `flutter gen-l10n` runs automatically on `pub get`, `run`, `test` and `build`.
 
-**Windows: paths with spaces.** If the Flutter SDK or your user folder has a space in its path (for example
-`C:\Users\First Last`), `flutter test` and `build` fail with `'C:\Users\First' is not recognized` while compiling a
-native-assets hook. Install Flutter in a folder without spaces, for example `C:\src\flutter`, and set `PUB_CACHE` to
-one too (for example `C:\pub-cache`). Alternatively, call Flutter through the 8.3 short path
-(`C:\Users\FIRST~1\...\flutter\bin\flutter`) and point `PUB_CACHE` at the short path of
-`%LOCALAPPDATA%\Pub\Cache`.
+**Windows: paths with spaces.** If the Flutter SDK or the pub cache lives under a folder with a space (for example
+`C:\Users\First Last\...`), plain `flutter run` / `test` / `build` fails while compiling a native-assets hook
+(`package:objective_c`, pulled in by `path_provider_foundation`):
+
+```
+'C:\Users\First' is not recognized as an internal or external command
+Building native assets for package:objective_c failed.
+```
+
+Use the wrappers in `tool\` instead of `flutter` / `dart`. They run the same SDK through its 8.3 short path (for
+example `C:\Users\FIRST~1\...`), which contains no spaces. Nothing is moved or installed, and the project stays where
+it is.
+
+```bat
+tool\flutter.cmd pub get
+tool\dart.cmd run build_runner build --delete-conflicting-outputs
+tool\flutter.cmd test
+tool\flutter.cmd run -d chrome --web-port 8090 --dart-define=DEV_LOGIN=true
+```
+
+They work from PowerShell (`.\tool\flutter.cmd ...`) and from cmd. If 8.3 names are disabled on the drive, the wrapper
+says so. The permanent alternative is a Flutter SDK in a folder without spaces (for example `C:\src\flutter`) and
+`PUB_CACHE` set to one (for example `C:\pub-cache`).
 
 ## Run against the local backend
 
-Start the backend (`../README.md`) with developer sign-in. The app can then be used before the Google OAuth client
-IDs exist:
+One command starts everything the app needs:
+- a local PostgreSQL (no Docker);
+- the migrations;
+- the API on `http://127.0.0.1:8000` with developer sign-in;
+- CORS for the web app on port 8090.
+
+You can then use the app before the Google OAuth client IDs exist.
 
 ```bash
 cd backend
-APP_ENV=dev DEV_LOGIN=true uvicorn app.main:app --host 0.0.0.0 --port 8000
+../.venv/Scripts/python.exe -m scripts.dev_api            # add --worker for fresh candles and signals
 ```
+
+**Chrome** (in a second terminal; use `tool\flutter.cmd` on Windows if your paths contain spaces):
+
+```bash
+cd mobile
+flutter run -d chrome --web-port 8090 --dart-define=DEV_LOGIN=true
+```
+
+On the sign-in screen, use **Developer sign-in**, or **Explore without an account**. `--web-port 8090` matters: the
+API allows the browser origin `http://localhost:8090` only.
 
 **Android emulator.** The default API URL is `http://10.0.2.2:8000`, the host machine as seen from the emulator.
 
@@ -86,7 +118,8 @@ APP_ENV=dev DEV_LOGIN=true uvicorn app.main:app --host 0.0.0.0 --port 8000
 flutter run --dart-define=DEV_LOGIN=true
 ```
 
-**Real Android device** (USB debugging on). There are two ways:
+**Real Android device** (USB debugging on). There are two ways. For Wi-Fi, start the API with
+`python -m scripts.dev_api --host 0.0.0.0`.
 
 ```bash
 # simplest: forward the phone's port 8000 to the PC
@@ -99,11 +132,11 @@ flutter run --dart-define=API_BASE_URL=http://192.168.x.y:8000 --dart-define=DEV
 
 Debug builds allow plain HTTP (`android/app/src/debug/AndroidManifest.xml`). Release builds are HTTPS only.
 
-**Web (development checks only).** Start the backend with `CORS_ORIGINS=http://127.0.0.1:8090` as well, then:
+**Web, release build** (closer to production performance). With `scripts.dev_api` running:
 
 ```bash
-flutter build web --no-web-resources-cdn --dart-define=API_BASE_URL=http://127.0.0.1:8000 --dart-define=DEV_LOGIN=true
-python -m http.server 8090 --directory build/web
+flutter build web --no-web-resources-cdn --dart-define=DEV_LOGIN=true
+python -m http.server 8090 --directory build/web     # then open http://localhost:8090
 ```
 
 ## Build-time settings (`--dart-define`)
