@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zentrix/core/format/formatters.dart';
 import 'package:zentrix/core/widgets/controls.dart';
 import 'package:zentrix/core/widgets/motion.dart';
 import 'package:zentrix/features/dashboard/presentation/dashboard_screen.dart';
@@ -122,6 +123,8 @@ void main() {
     expect(find.textContaining('80% band · held 70% of the time in 250 past tests'), findsOneWidget);
     expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
     expect(find.textContaining('Range, not direction'), findsOneWidget);
+    // the range reads low to high even inside right-to-left text
+    expect(find.text(Fmt.ltr('1.09800 – 1.10200')), findsOneWidget);
     // ranked rows in server order
     final gbp = tester.getTopLeft(find.text('GBP/USD').last).dy;
     final xau = tester.getTopLeft(find.text('XAU/USD').last).dy;

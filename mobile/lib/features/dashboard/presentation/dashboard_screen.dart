@@ -293,8 +293,11 @@ class _ExpectedRangeCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${Fmt.price(last.low, decimals: item.priceDecimals)} – '
-                    '${Fmt.price(last.high, decimals: item.priceDecimals)}',
+                    // low to high, left to right in every language
+                    Fmt.ltr(
+                      '${Fmt.price(last.low, decimals: item.priceDecimals)} – '
+                      '${Fmt.price(last.high, decimals: item.priceDecimals)}',
+                    ),
                     style: zx.text.price,
                   ),
                   Text(l.expectedRangeNext(steps.length, minutes), style: zx.text.caption),
