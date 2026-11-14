@@ -12,6 +12,7 @@ import '../../features/journal/presentation/trade_form_screen.dart';
 import '../../features/market/application/market_providers.dart';
 import '../../features/market/presentation/markets_screen.dart';
 import '../../features/market/presentation/pair_screen.dart';
+import '../../features/pulse/presentation/pulse_screen.dart';
 import '../../features/risk/presentation/calculator_screen.dart';
 import '../../features/settings/presentation/delete_account_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
@@ -53,6 +54,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [GoRoute(path: '/markets', builder: (_, _) => const MarketsScreen())],
           ),
           StatefulShellBranch(
+            routes: [GoRoute(path: '/pulse', builder: (_, _) => const PulseScreen())],
+          ),
+          StatefulShellBranch(
             routes: [GoRoute(path: '/risk', builder: (_, _) => const CalculatorScreen())],
           ),
           StatefulShellBranch(
@@ -65,16 +69,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/settings',
-                builder: (_, _) => const SettingsScreen(),
-                routes: [GoRoute(path: 'delete-account', builder: (_, _) => const DeleteAccountScreen())],
-              ),
-            ],
-          ),
         ],
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (_, _) => const SettingsScreen(),
+        routes: [GoRoute(path: 'delete-account', builder: (_, _) => const DeleteAccountScreen())],
       ),
       GoRoute(
         path: '/pair',
@@ -93,7 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-/// Bottom navigation: Home, Markets, Risk, Journal, Settings.
+/// Bottom navigation: Home, Markets, Pulse, Risk, Journal. Settings opens from the profile button.
 class HomeShell extends StatelessWidget {
   const HomeShell({super.key, required this.shell});
 
@@ -111,11 +111,31 @@ class HomeShell extends StatelessWidget {
           selectedIndex: shell.currentIndex,
           onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
           destinations: [
-            NavigationDestination(icon: const Icon(Icons.space_dashboard_outlined), label: l.navHome),
-            NavigationDestination(icon: const Icon(Icons.candlestick_chart_outlined), label: l.navMarkets),
-            NavigationDestination(icon: const Icon(Icons.calculate_outlined), label: l.navRisk),
-            NavigationDestination(icon: const Icon(Icons.menu_book_outlined), label: l.navJournal),
-            NavigationDestination(icon: const Icon(Icons.tune), label: l.navSettings),
+            NavigationDestination(
+              icon: const Icon(Icons.radar_outlined),
+              selectedIcon: const Icon(Icons.radar_rounded),
+              label: l.navHome,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.candlestick_chart_outlined),
+              selectedIcon: const Icon(Icons.candlestick_chart_rounded),
+              label: l.navMarkets,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.bolt_outlined),
+              selectedIcon: const Icon(Icons.bolt_rounded),
+              label: l.navPulse,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.calculate_outlined),
+              selectedIcon: const Icon(Icons.calculate_rounded),
+              label: l.navRisk,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.menu_book_outlined),
+              selectedIcon: const Icon(Icons.menu_book_rounded),
+              label: l.navJournal,
+            ),
           ],
         ),
       ),

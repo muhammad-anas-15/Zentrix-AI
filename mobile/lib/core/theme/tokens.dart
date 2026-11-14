@@ -51,8 +51,16 @@ abstract final class ZxSize {
   static const double lightDot = 12;
   static const double orb = 14;
   static const double orbLarge = 18;
-  static const double chartHeight = 300;
-  static const double chartAxisWidth = 64;
+  static const double chartHeight = 340;
+  static const double chartAxisWidth = 68;
+  static const double chartTimeAxisHeight = 20;
+  static const double chartLiveDot = 3;
+  static const double chartButton = 32;
+  static const double equityChartHeight = 150;
+  static const double ladderHeight = 220;
+  static const double ciBarHeight = 28;
+  static const double brandMark = 30;
+  static const double brandHero = 64;
   static const double heroChartHeight = 96;
   static const double fanChartHeight = 132;
   static const double sparkHeight = 36;
@@ -79,6 +87,9 @@ abstract final class ZxMotion {
   static const Duration flash = Duration(milliseconds: 900);
   static const Duration pulse = Duration(milliseconds: 1800);
   static const Duration shimmer = Duration(milliseconds: 1400);
+
+  /// A live candle eases to each new tick over this long (shorter than the 2 s poll, so it never lags).
+  static const Duration tick = Duration(milliseconds: 600);
 
   static const Curve emphasized = Curves.easeOutCubic;
   static const Curve standard = Curves.easeInOut;
@@ -114,6 +125,12 @@ abstract final class ZxEffects {
 
   /// Alpha of an accent border on a highlighted card (0-1).
   static const double accentBorder = 0.55;
+
+  /// Charts: share of the plot height used by the volume histogram, and alphas of overlays.
+  static const double volumeFraction = 0.18;
+  static const double volumeAlpha = 0.28;
+  static const double zoneAlpha = 0.10;
+  static const double candleWickAlpha = 0.9;
 }
 
 /// Colour palette. One instance per brightness; widgets never pick a raw colour.

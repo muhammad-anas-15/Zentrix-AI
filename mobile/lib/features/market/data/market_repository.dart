@@ -22,6 +22,13 @@ class MarketRepository {
     query: {'symbol': symbol, 'timeframe': timeframe, 'limit': limit},
   );
 
+  /// The forming candle for a live chart (or the latest closed one where the feed has no ticks).
+  Future<LiveCandle> liveCandle(String symbol, String timeframe) => _api.get(
+    '/v1/candles/live',
+    (j) => LiveCandle.fromJson(_map(j)),
+    query: {'symbol': symbol, 'timeframe': timeframe},
+  );
+
   /// Latest signal, or null when there is none yet (404 no_signal).
   Future<Signal?> latestSignal(String symbol, String timeframe, {int horizon = 1}) async {
     try {

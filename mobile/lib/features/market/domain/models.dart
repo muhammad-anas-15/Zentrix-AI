@@ -76,6 +76,28 @@ abstract class CandleSeries with _$CandleSeries {
   factory CandleSeries.fromJson(Map<String, dynamic> json) => _$CandleSeriesFromJson(json);
 }
 
+/// `GET /v1/candles/live`: the forming candle (exchange feeds) or the latest closed one (closed-candle feeds).
+@freezed
+abstract class LiveCandle with _$LiveCandle {
+  const factory LiveCandle({
+    required String symbol,
+    required String venue,
+    required String timeframe,
+    required bool live,
+    Candle? candle,
+    required bool forming,
+    Candle? closed,
+    DateTime? closesAt,
+    required bool marketOpen,
+    required DateTime serverTime,
+    required int pollS,
+    required String source,
+    String? note,
+  }) = _LiveCandle;
+
+  factory LiveCandle.fromJson(Map<String, dynamic> json) => _$LiveCandleFromJson(json);
+}
+
 @freezed
 abstract class SignalModel with _$SignalModel {
   const factory SignalModel({required String key, required DateTime trainedAt, required bool hasDemonstratedEdge}) =

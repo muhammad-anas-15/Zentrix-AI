@@ -61,6 +61,23 @@ abstract final class Fmt {
     return '${sec}s';
   }
 
+  /// Seconds as a clock, like a candle-close countdown: "04:07", "1:02:30".
+  static String clock(int seconds) {
+    final s = seconds < 0 ? 0 : seconds;
+    final h = s ~/ 3600;
+    final m = (s % 3600) ~/ 60;
+    final sec = (s % 60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:${m.toString().padLeft(2, '0')}:$sec' : '${m.toString().padLeft(2, '0')}:$sec';
+  }
+
+  /// How long ago, compact: "45s", "12m", "3h", "2d" (callers show "just now" for very fresh items).
+  static String ago(int seconds) {
+    if (seconds < 60) return '${seconds < 0 ? 0 : seconds}s';
+    if (seconds < 3600) return '${seconds ~/ 60}m';
+    if (seconds < 86400) return '${seconds ~/ 3600}h';
+    return '${seconds ~/ 86400}d';
+  }
+
   /// Local date and time, e.g. "14 Nov, 13:05".
   static String dateTime(DateTime t, String locale) => DateFormat('d MMM, HH:mm', locale).format(t.toLocal());
 

@@ -76,6 +76,70 @@ class ZxSegmented<T> extends StatelessWidget {
   }
 }
 
+/// A horizontally scrolling row of filter chips; the selected one carries the accent gradient.
+class ZxChipBar<T> extends StatelessWidget {
+  const ZxChipBar({super.key, required this.chips, required this.selected, required this.onChanged});
+
+  /// (value, label, optional icon), in display order.
+  final List<(T, String, IconData?)> chips;
+  final T selected;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final zx = context.zx;
+    final p = zx.palette;
+    return SizedBox(
+      height: ZxSize.segmentHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: chips.length,
+        separatorBuilder: (_, _) => const SizedBox(width: ZxSpace.sm),
+        itemBuilder: (context, i) {
+          final (value, label, icon) = chips[i];
+          final on = value == selected;
+          final fg = on ? p.textOnAccent : p.textSecondary;
+          return Semantics(
+            button: true,
+            selected: on,
+            child: AnimatedContainer(
+              duration: ZxMotion.normal,
+              curve: ZxMotion.emphasized,
+              decoration: BoxDecoration(
+                gradient: on ? p.accentGradient : null,
+                color: on ? null : p.glass,
+                borderRadius: BorderRadius.circular(ZxRadius.pill),
+                border: Border.all(color: on ? p.accent : p.glassBorder, width: ZxSize.hairline),
+                boxShadow: on ? [BoxShadow(color: p.accent.withValues(alpha: 0.3), blurRadius: ZxEffects.glowBlur)] : null,
+              ),
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(ZxRadius.pill),
+                  onTap: () => onChanged(value),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: ZxSpace.lg),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (icon != null) ...[
+                          Icon(icon, size: ZxSize.iconSm, color: fg),
+                          const SizedBox(width: ZxSpace.xs),
+                        ],
+                        Text(label, style: zx.text.label.copyWith(color: fg)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// Percent change in a soft pill with an arrow: green up, red down, grey when unknown.
 class ChangePill extends StatelessWidget {
   const ChangePill({super.key, required this.pct, this.suffix});
