@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.news import NewsEventOut
 from app.schemas.plans import PremiumBadge, locked_field, premium_field
 from app.schemas.signals import DISCLAIMER
 
@@ -196,5 +197,40 @@ class ScenarioOut(BaseModel):
     direction: list[ScenarioDirectionOut]
     premium: PremiumBadge = premium_field("scenario")
     premium_locked: list[str] = locked_field()
+    method: str
+    disclaimer: str = DISCLAIMER
+
+
+class RadarItemOut(BaseModel):
+    rank: int = 0
+    symbol: str
+    display_name: str
+    asset_class: str
+    venue: str | None
+    price_decimals: int
+    light: Literal["green", "amber", "red", "unknown"]
+    reasons: list[str] = Field(default_factory=list, description="Why the light is not green (caution/danger inputs)")
+    trend_regime: str | None = Field(default=None, description="trending / weak trend / ranging / unknown (ADX 14)")
+    trend_direction: str | None = Field(default=None, description="up / down while trending (+DI vs -DI); null "
+                                                                  "when ranging. Describes the past, not a forecast")
+    adx: float | None = None
+    volatility_regime: str | None = Field(default=None, description="low / normal / high / extreme")
+    volatility_percentile: float | None = Field(default=None, description="ATR% vs the last 500 candles (0-100)")
+    news_state: str
+    next_event: NewsEventOut | None = None
+    next_event_in_s: int | None = None
+    sessions: list[str] = Field(default_factory=list)
+    last_price: float | None = None
+    last_candle_close: datetime | None = None
+    change_24h_pct: float | None = None
+    spark: list[float] = Field(default_factory=list, description="Closes over the last 24h (up to 96 points)")
+    spark_from: datetime | None = None
+
+
+class RadarOut(BaseModel):
+    timeframe: str
+    as_of: datetime
+    items: list[RadarItemOut]
+    ranking: str
     method: str
     disclaimer: str = DISCLAIMER

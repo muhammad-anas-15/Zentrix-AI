@@ -23,6 +23,7 @@ from app.api.v1 import (
     me,
     news,
     plans,
+    radar,
     risk,
     signals,
     stream,
@@ -108,7 +109,7 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
         return response
 
     app.include_router(health.router)
-    for router in (auth.router, me.router, market.router, signals.router, news.router, tools.router,
+    for router in (auth.router, me.router, market.router, signals.router, news.router, tools.router, radar.router,
                    risk.router, journal.router, watchlists.router, alerts.router, stream.router, plans.router,
                    admin.router):
         app.include_router(router, prefix="/v1")
