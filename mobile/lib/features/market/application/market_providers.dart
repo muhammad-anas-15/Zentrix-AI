@@ -45,6 +45,20 @@ final levelsProvider = FutureProvider.autoDispose.family<Levels, LevelsKey>(
   (ref, k) => ref.watch(marketRepositoryProvider).levels(k.symbol, k.timeframe, k.side),
 );
 
+/// Refetch the Radar every minute while it is on screen (the last data stays visible meanwhile).
+final radarClockProvider = StreamProvider.autoDispose<int>(
+  (ref) => Stream<int>.periodic(const Duration(minutes: 1), (i) => i + 1),
+);
+
+final radarProvider = FutureProvider.autoDispose<Radar>((ref) {
+  ref.watch(radarClockProvider);
+  return ref.watch(marketRepositoryProvider).radar(timeframe: defaultTimeframe);
+});
+
+final scenarioProvider = FutureProvider.autoDispose.family<Scenario?, SeriesKey>(
+  (ref, k) => ref.watch(marketRepositoryProvider).scenario(k.symbol, k.timeframe),
+);
+
 /// The market the dashboard focuses on.
 class FocusSymbol extends Notifier<String> {
   @override
@@ -54,19 +68,3 @@ class FocusSymbol extends Notifier<String> {
 }
 
 final focusSymbolProvider = NotifierProvider<FocusSymbol, String>(FocusSymbol.new);
-
-/// Last close and change over ~24h from stored 15m candles (guests have no watchlist quotes).
-typedef MiniQuote = ({String symbol, double? price, double? change24hPct, List<double> spark});
-
-final miniQuoteProvider = FutureProvider.autoDispose.family<MiniQuote, String>((ref, symbol) async {
-  final series = await ref.watch(marketRepositoryProvider).candles(symbol, '15m', limit: 97);
-  final closes = [for (final c in series.candles) c.c];
-  if (closes.isEmpty) return (symbol: symbol, price: null, change24hPct: null, spark: const <double>[]);
-  final first = closes.first;
-  return (
-    symbol: symbol,
-    price: closes.last,
-    change24hPct: closes.length > 1 && first != 0 ? (closes.last / first - 1) * 100 : null,
-    spark: closes,
-  );
-});

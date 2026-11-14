@@ -15,6 +15,7 @@ Future<ProviderContainer> pumpScreen(
   List<Override> overrides = const [],
   Locale locale = const Locale('en'),
   TokenStore? tokens,
+  bool reduceMotion = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -31,6 +32,10 @@ Future<ProviderContainer> pumpScreen(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: child,
+      builder: (context, page) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
+        child: page!,
+      ),
     ),
   );
   await tester.pumpWidget(scope);

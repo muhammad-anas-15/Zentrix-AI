@@ -51,6 +51,25 @@ class MarketRepository {
   Future<NewsGuard> newsGuard(String symbol) =>
       _api.get('/v1/news/guard', (j) => NewsGuard.fromJson(_map(j)), query: {'symbol': symbol});
 
+  /// Every ingested market ranked by conditions, then activity.
+  Future<Radar> radar({String timeframe = '15m'}) =>
+      _api.get('/v1/radar', (j) => Radar.fromJson(_map(j)), query: {'timeframe': timeframe});
+
+  /// Expected range for the next [steps] candles, with the measured coverage of such bands; null without enough
+  /// stored history (404 no_data).
+  Future<Scenario?> scenario(String symbol, String timeframe, {int steps = 5}) async {
+    try {
+      return await _api.get(
+        '/v1/scenario',
+        (j) => Scenario.fromJson(_map(j)),
+        query: {'symbol': symbol, 'timeframe': timeframe, 'steps': steps},
+      );
+    } on ApiException catch (e) {
+      if (e.code == 'no_data') return null;
+      rethrow;
+    }
+  }
+
   Future<Levels> levels(String symbol, String timeframe, String side) => _api.get(
     '/v1/levels',
     (j) => Levels.fromJson(_map(j)),

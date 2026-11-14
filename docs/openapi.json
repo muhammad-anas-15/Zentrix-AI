@@ -4101,6 +4101,258 @@
         "title": "QuotesOut",
         "type": "object"
       },
+      "RadarItemOut": {
+        "properties": {
+          "adx": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adx"
+          },
+          "asset_class": {
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "change_24h_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change 24H Pct"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "last_candle_close": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Candle Close"
+          },
+          "last_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Price"
+          },
+          "light": {
+            "enum": [
+              "green",
+              "amber",
+              "red",
+              "unknown"
+            ],
+            "title": "Light",
+            "type": "string"
+          },
+          "news_state": {
+            "title": "News State",
+            "type": "string"
+          },
+          "next_event": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NewsEventOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_event_in_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Event In S"
+          },
+          "price_decimals": {
+            "title": "Price Decimals",
+            "type": "integer"
+          },
+          "rank": {
+            "default": 0,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reasons": {
+            "description": "Why the light is not green (caution/danger inputs)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "sessions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "spark": {
+            "description": "Closes over the last 24h (up to 96 points)",
+            "items": {
+              "type": "number"
+            },
+            "title": "Spark",
+            "type": "array"
+          },
+          "spark_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spark From"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "trend_direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "up / down while trending (+DI vs -DI); null when ranging. Describes the past, not a forecast",
+            "title": "Trend Direction"
+          },
+          "trend_regime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "trending / weak trend / ranging / unknown (ADX 14)",
+            "title": "Trend Regime"
+          },
+          "venue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue"
+          },
+          "volatility_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ATR% vs the last 500 candles (0-100)",
+            "title": "Volatility Percentile"
+          },
+          "volatility_regime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "low / normal / high / extreme",
+            "title": "Volatility Regime"
+          }
+        },
+        "required": [
+          "symbol",
+          "display_name",
+          "asset_class",
+          "venue",
+          "price_decimals",
+          "light",
+          "news_state"
+        ],
+        "title": "RadarItemOut",
+        "type": "object"
+      },
+      "RadarOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RadarItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "ranking": {
+            "title": "Ranking",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timeframe",
+          "as_of",
+          "items",
+          "ranking",
+          "method"
+        ],
+        "title": "RadarOut",
+        "type": "object"
+      },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
@@ -8139,6 +8391,69 @@
         "summary": "Plans and their features (billing is not available yet)",
         "tags": [
           "plans"
+        ]
+      }
+    },
+    "/v1/radar": {
+      "get": {
+        "operationId": "get_radar_v1_radar_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated canonical symbols. Default: every market ingested at this timeframe",
+            "in": "query",
+            "name": "symbols",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 600,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated canonical symbols. Default: every market ingested at this timeframe",
+              "title": "Symbols"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Market Radar: every ingested market ranked by conditions, then activity (no direction calls)",
+        "tags": [
+          "tools"
         ]
       }
     },

@@ -279,5 +279,49 @@
   "createWatchlist": "Create a watchlist",
   "fromProfileShort": "From profile",
   "statsNote": "Statistics of your own journal. Past results do not predict future results.",
-  "newsUnknownBody": "The economic calendar is out of date, so news risk is unknown. Check the calendar before trading."
+  "newsUnknownBody": "The economic calendar is out of date, so news risk is unknown. Check the calendar before trading.",
+  "marketRadar": "Market Radar",
+  "marketsNow": "Markets now",
+  "radarRanking": "Ranked by conditions, then activity. Not by a predicted direction.",
+  "expectedRange": "Expected range",
+  "expectedRangeNext": "{count} candles ahead · about {minutes} min",
+  "@expectedRangeNext": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "rangeCoverage": "{nominal} band · held {measured} of the time in {tested} past tests",
+  "@rangeCoverage": {
+    "placeholders": {
+      "nominal": {
+        "type": "String"
+      },
+      "measured": {
+        "type": "String"
+      },
+      "tested": {
+        "type": "int"
+      }
+    }
+  },
+  "rangeNotDirection": "Range, not direction: how far price may move, not which way.",
+  "noScenario": "Not enough history for an expected range yet.",
+  "nextEvent": "Next event",
+  "impactHigh": "High impact",
+  "impactMedium": "Medium impact",
+  "trendTrending": "Trending",
+  "trendWeak": "Weak trend",
+  "trendRanging": "Ranging",
+  "volLow": "Quiet",
+  "volNormal": "Normal vol",
+  "volHigh": "High vol",
+  "volExtreme": "Extreme vol",
+  "signalsLabTitle": "Signals Lab",
+  "signalsLabBody": "Direction models are in testing. None has proven an edge on unseen data yet, so they stay out of your way. Every result is in the live track record.",
+  "noRadarData": "No markets with stored data yet."
 }

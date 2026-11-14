@@ -253,3 +253,82 @@ abstract class Levels with _$Levels {
 
   factory Levels.fromJson(Map<String, dynamic> json) => _$LevelsFromJson(json);
 }
+
+/// One market on the Radar (`GET /v1/radar`): conditions now, recent movement. No direction call.
+@freezed
+abstract class RadarItem with _$RadarItem {
+  const RadarItem._();
+
+  const factory RadarItem({
+    required int rank,
+    required String symbol,
+    required String displayName,
+    required String assetClass,
+    String? venue,
+    required int priceDecimals,
+    required String light,
+    @Default(<String>[]) List<String> reasons,
+    String? trendRegime,
+    String? trendDirection,
+    double? adx,
+    String? volatilityRegime,
+    double? volatilityPercentile,
+    required String newsState,
+    NewsEvent? nextEvent,
+    int? nextEventInS,
+    @Default(<String>[]) List<String> sessions,
+    double? lastPrice,
+    DateTime? lastCandleClose,
+    @JsonKey(name: 'change_24h_pct') double? change24hPct,
+    @Default(<double>[]) List<double> spark,
+  }) = _RadarItem;
+
+  factory RadarItem.fromJson(Map<String, dynamic> json) => _$RadarItemFromJson(json);
+
+  bool get hasData => lastPrice != null;
+}
+
+@freezed
+abstract class Radar with _$Radar {
+  const factory Radar({
+    required String timeframe,
+    required DateTime asOf,
+    required List<RadarItem> items,
+    required String ranking,
+  }) = _Radar;
+
+  factory Radar.fromJson(Map<String, dynamic> json) => _$RadarFromJson(json);
+}
+
+/// One step of the expected range (`GET /v1/scenario`): an 80% price band and how often such bands held.
+@freezed
+abstract class ScenarioStep with _$ScenarioStep {
+  const factory ScenarioStep({
+    required int k,
+    required DateTime at,
+    double? low,
+    double? median,
+    double? high,
+    required double nominalCoverage,
+    double? coverage,
+    List<double?>? coverageCi95,
+    required int coverageTested,
+  }) = _ScenarioStep;
+
+  factory ScenarioStep.fromJson(Map<String, dynamic> json) => _$ScenarioStepFromJson(json);
+}
+
+@freezed
+abstract class Scenario with _$Scenario {
+  const factory Scenario({
+    required String symbol,
+    required String timeframe,
+    required double lastClose,
+    required DateTime asOf,
+    required List<ScenarioStep> steps,
+    required String method,
+    PremiumBadge? premium,
+  }) = _Scenario;
+
+  factory Scenario.fromJson(Map<String, dynamic> json) => _$ScenarioFromJson(json);
+}
