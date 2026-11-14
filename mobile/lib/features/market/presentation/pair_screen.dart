@@ -5,6 +5,7 @@ import '../../../core/format/formatters.dart';
 import '../../../core/l10n.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../application/market_providers.dart';
@@ -55,14 +56,10 @@ class _PairScreenState extends ConsumerState<PairScreen> {
       onRefresh: _refresh,
       children: [
         _PriceHeader(series: candles.value, decimals: decimals, name: instrument?.displayName),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SegmentedButton<String>(
-            segments: [for (final tf in chartTimeframes) ButtonSegment(value: tf, label: Text(tf))],
-            selected: {_tf},
-            showSelectedIcon: false,
-            onSelectionChanged: (s) => setState(() => _tf = s.first),
-          ),
+        ZxSegmented<String>(
+          segments: [for (final tf in chartTimeframes) (tf, tf)],
+          selected: _tf,
+          onChanged: (v) => setState(() => _tf = v),
         ),
         GlassCard(
           padding: const EdgeInsets.all(ZxSpace.sm),

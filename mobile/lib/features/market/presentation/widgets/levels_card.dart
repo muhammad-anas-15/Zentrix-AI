@@ -6,6 +6,7 @@ import '../../../../core/l10n.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/badges.dart';
+import '../../../../core/widgets/controls.dart';
 import '../../../../core/widgets/states.dart';
 import '../../../../core/widgets/surfaces.dart';
 import '../../application/market_providers.dart';
@@ -37,14 +38,10 @@ class LevelsCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: ZxSpace.md),
-          SegmentedButton<String>(
-            segments: [
-              ButtonSegment(value: 'long', label: Text(l.sideLong)),
-              ButtonSegment(value: 'short', label: Text(l.sideShort)),
-            ],
-            selected: {side},
-            showSelectedIcon: false,
-            onSelectionChanged: onSide == null ? null : (s) => onSide!(s.first),
+          ZxSegmented<String>(
+            segments: [('long', l.sideLong), ('short', l.sideShort)],
+            selected: side,
+            onChanged: onSide == null ? null : (v) => onSide!(v),
           ),
           const SizedBox(height: ZxSpace.md),
           AsyncValueView<Levels>(

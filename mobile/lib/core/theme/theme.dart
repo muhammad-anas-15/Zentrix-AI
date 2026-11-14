@@ -33,7 +33,9 @@ class ZxTextStyles {
     required this.label,
     required this.caption,
     required this.overline,
+    required this.heroPrice,
     required this.price,
+    required this.priceSmall,
     required this.metric,
     required this.metricSmall,
     required this.chartLabel,
@@ -50,6 +52,16 @@ class ZxTextStyles {
       height: ZxType.bodyHeight,
       fontFeatures: tabular ? ZxType.tabular : null,
     );
+    // Prices and live figures: monospaced, tight, so digits never jump as they change.
+    TextStyle mono(double size, FontWeight weight, Color color, {double? spacing}) => TextStyle(
+      fontFamily: ZxType.monoFamily,
+      fontFamilyFallback: ZxType.fontFallback,
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      letterSpacing: spacing,
+      height: ZxType.numberHeight,
+    );
     return ZxTextStyles(
       display: base(ZxType.displaySize, ZxType.bold, p.textPrimary, spacing: ZxType.tightLetterSpacing),
       headline: base(ZxType.headlineSize, ZxType.bold, p.textPrimary, spacing: ZxType.tightLetterSpacing),
@@ -60,10 +72,12 @@ class ZxTextStyles {
       label: base(ZxType.labelSize, ZxType.semibold, p.textSecondary),
       caption: base(ZxType.captionSize, ZxType.regular, p.textMuted),
       overline: base(ZxType.overlineSize, ZxType.bold, p.textMuted, spacing: ZxType.wideLetterSpacing),
-      price: base(ZxType.priceSize, ZxType.bold, p.textPrimary, spacing: ZxType.tightLetterSpacing, tabular: true),
+      heroPrice: mono(ZxType.heroPriceSize, ZxType.bold, p.textPrimary, spacing: ZxType.priceLetterSpacing),
+      price: mono(ZxType.priceSize, ZxType.bold, p.textPrimary, spacing: ZxType.priceLetterSpacing),
+      priceSmall: mono(ZxType.priceSmallSize, ZxType.medium, p.textPrimary),
       metric: base(ZxType.metricSize, ZxType.semibold, p.textPrimary, tabular: true),
       metricSmall: base(ZxType.metricSmallSize, ZxType.semibold, p.textPrimary, tabular: true),
-      chartLabel: base(ZxType.chartLabelSize, ZxType.medium, p.textMuted, tabular: true),
+      chartLabel: mono(ZxType.chartLabelSize, ZxType.medium, p.textMuted),
     );
   }
 
@@ -76,7 +90,9 @@ class ZxTextStyles {
   final TextStyle label;
   final TextStyle caption;
   final TextStyle overline;
+  final TextStyle heroPrice;
   final TextStyle price;
+  final TextStyle priceSmall;
   final TextStyle metric;
   final TextStyle metricSmall;
   final TextStyle chartLabel;
@@ -145,8 +161,8 @@ ThemeData buildTheme(ZxPalette p) {
       labelSmall: text.overline,
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: p.background,
-      surfaceTintColor: p.background,
+      backgroundColor: p.background.withValues(alpha: 0),
+      surfaceTintColor: p.background.withValues(alpha: 0),
       foregroundColor: p.textPrimary,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -222,8 +238,9 @@ ThemeData buildTheme(ZxPalette p) {
       padding: const EdgeInsets.symmetric(horizontal: ZxSpace.sm),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: p.backgroundAlt,
-      surfaceTintColor: p.backgroundAlt,
+      backgroundColor: p.backgroundAlt.withValues(alpha: 0), // painted by the glass bar
+      surfaceTintColor: p.backgroundAlt.withValues(alpha: 0),
+      height: ZxSize.navHeight,
       indicatorColor: p.accentSoft,
       elevation: 0,
       labelTextStyle: WidgetStateProperty.resolveWith(

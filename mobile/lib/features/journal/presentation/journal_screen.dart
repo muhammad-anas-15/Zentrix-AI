@@ -32,6 +32,7 @@ class JournalScreen extends ConsumerWidget {
       initialIndex: initialTab,
       child: Scaffold(
         appBar: AppBar(
+          flexibleSpace: const FrostedBar(child: SizedBox.expand()),
           title: Text(l.journalTitle),
           bottom: TabBar(
             tabs: [
@@ -81,7 +82,7 @@ class _TradesTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () => ref.refresh(journalProvider.future),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.huge * 2),
+        padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.navClearance),
         children: [
           AsyncValueView<JournalPage>(
             value: ref.watch(journalProvider),

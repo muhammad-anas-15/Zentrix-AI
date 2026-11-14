@@ -7,6 +7,7 @@ import '../../../core/format/formatters.dart';
 import '../../../core/l10n.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../../market/application/market_providers.dart';
 import '../data/journal_repository.dart';
@@ -112,14 +113,10 @@ class _TradeFormScreenState extends ConsumerState<TradeFormScreen> {
                   onChanged: (v) => setState(() => _symbol = v ?? _symbol),
                 ),
                 const SizedBox(height: ZxSpace.md),
-                SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment(value: 'long', label: Text(l.sideLong)),
-                    ButtonSegment(value: 'short', label: Text(l.sideShort)),
-                  ],
-                  selected: {_side},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (s) => setState(() => _side = s.first),
+                ZxSegmented<String>(
+                  segments: [('long', l.sideLong), ('short', l.sideShort)],
+                  selected: _side,
+                  onChanged: (v) => setState(() => _side = v),
                 ),
                 const SizedBox(height: ZxSpace.md),
                 TextFormField(

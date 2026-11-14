@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n.dart';
 import '../theme/theme.dart';
 import '../theme/tokens.dart';
+import 'motion.dart';
 import 'surfaces.dart';
 
 /// Gold "Premium" label. A label only: premium features are not locked in the app.
@@ -14,11 +15,23 @@ class PremiumBadge extends StatelessWidget {
     final p = context.zx.palette;
     return Semantics(
       label: context.l10n.premium,
-      child: Pill(
-        label: context.l10n.premium,
-        color: p.gold,
-        background: p.goldSoft,
-        icon: Icons.workspace_premium_outlined,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [p.goldSoft, p.goldSoft.withValues(alpha: 0.05)]),
+          borderRadius: BorderRadius.circular(ZxRadius.pill),
+          border: Border.all(color: p.gold.withValues(alpha: 0.55), width: ZxSize.hairline),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: ZxSpace.sm, vertical: ZxSpace.xxs),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.workspace_premium_rounded, size: ZxSize.iconXs, color: p.gold),
+              const SizedBox(width: ZxSpace.xs),
+              Text(context.l10n.premium, style: context.zx.text.label.copyWith(color: p.gold)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -98,15 +111,7 @@ class ConditionLight extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: ZxSize.lightDot,
-          height: ZxSize.lightDot,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: ZxSpace.md)],
-          ),
-        ),
+        StatusOrb(color: color, pulse: light != 'unknown'),
         if (showLabel) ...[
           const SizedBox(width: ZxSpace.sm),
           Text(label, style: context.zx.text.bodyStrong.copyWith(color: color)),

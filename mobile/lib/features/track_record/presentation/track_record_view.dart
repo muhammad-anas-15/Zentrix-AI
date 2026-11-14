@@ -21,7 +21,7 @@ class TrackRecordView extends ConsumerWidget {
     final l = context.l10n;
     final zx = context.zx;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.huge * 2),
+      padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.navClearance),
       children: [
         Text(l.trackRecordTitle, style: zx.text.headline),
         const SizedBox(height: ZxSpace.xs),

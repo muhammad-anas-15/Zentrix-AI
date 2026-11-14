@@ -8,6 +8,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/badges.dart';
+import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../../auth/application/session.dart';
@@ -31,6 +32,7 @@ class AlertsScreen extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          flexibleSpace: const FrostedBar(child: SizedBox.expand()),
           title: Text(l.alertsTitle),
           bottom: TabBar(
             tabs: [
@@ -73,7 +75,7 @@ class _InboxTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () => ref.refresh(inboxProvider.future),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.huge * 2),
+        padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.navClearance),
         children: [
           Disclaimer(text: l.pushNotConfigured),
           const SizedBox(height: ZxSpace.md),
@@ -132,7 +134,7 @@ class _AlertsTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () => ref.refresh(alertsProvider.future),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.huge * 2),
+        padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.lg, ZxSpace.gutter, ZxSpace.navClearance),
         children: [
           AsyncValueView<List<Alert>>(
             value: ref.watch(alertsProvider),
@@ -245,15 +247,10 @@ class _NewAlertSheetState extends ConsumerState<_NewAlertSheet> {
         children: [
           Text(l.newAlert, style: context.zx.text.title),
           const SizedBox(height: ZxSpace.lg),
-          SegmentedButton<String>(
-            segments: [
-              ButtonSegment(value: 'price_cross', label: Text(l.alertKindPrice)),
-              ButtonSegment(value: 'news', label: Text(l.alertKindNews)),
-              ButtonSegment(value: 'signal', label: Text(l.alertKindSignal)),
-            ],
-            selected: {_kind},
-            showSelectedIcon: false,
-            onSelectionChanged: (s) => setState(() => _kind = s.first),
+          ZxSegmented<String>(
+            segments: [('price_cross', l.alertKindPrice), ('news', l.alertKindNews), ('signal', l.alertKindSignal)],
+            selected: _kind,
+            onChanged: (v) => setState(() => _kind = v),
           ),
           if (_kind == 'signal') ...[
             const SizedBox(height: ZxSpace.sm),
@@ -268,14 +265,10 @@ class _NewAlertSheetState extends ConsumerState<_NewAlertSheet> {
           ),
           const SizedBox(height: ZxSpace.md),
           if (_kind == 'price_cross') ...[
-            SegmentedButton<String>(
-              segments: [
-                ButtonSegment(value: 'above', label: Text(l.alertAbove)),
-                ButtonSegment(value: 'below', label: Text(l.alertBelow)),
-              ],
-              selected: {_direction},
-              showSelectedIcon: false,
-              onSelectionChanged: (s) => setState(() => _direction = s.first),
+            ZxSegmented<String>(
+              segments: [('above', l.alertAbove), ('below', l.alertBelow)],
+              selected: _direction,
+              onChanged: (v) => setState(() => _direction = v),
             ),
             const SizedBox(height: ZxSpace.md),
             TextField(

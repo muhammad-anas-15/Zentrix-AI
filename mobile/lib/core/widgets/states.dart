@@ -6,6 +6,7 @@ import '../network/api_exception.dart';
 import '../theme/theme.dart';
 import '../theme/tokens.dart';
 import 'badges.dart';
+import 'motion.dart';
 import 'surfaces.dart';
 
 /// Loading / error / data for an AsyncValue. A `premium_required` error (server enforcing premium) becomes a
@@ -20,8 +21,11 @@ class AsyncValueView<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => value.when(
+    // keep showing the last data while a refresh runs (pull-to-refresh, periodic updates)
+    skipLoadingOnReload: true,
+    skipLoadingOnRefresh: true,
     data: data,
-    loading: () => LoadingView(compact: compact),
+    loading: () => SkeletonCard(lines: compact ? 2 : 3),
     error: (e, _) {
       if (e is ApiException && e.isPremiumRequired) return PremiumLockedCard(feature: e.premiumFeature);
       return ErrorView(error: e, onRetry: onRetry);

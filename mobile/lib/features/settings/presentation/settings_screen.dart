@@ -7,6 +7,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/badges.dart';
+import '../../../core/widgets/controls.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../../auth/application/session.dart';
@@ -42,25 +43,16 @@ class SettingsScreen extends ConsumerWidget {
       children: [
         if (user == null) const SignInPrompt() else _ProfileCard(user: user),
         SectionHeader(l.language),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
-            ButtonSegment(value: 'ur', label: Text(l.languageUrdu)),
-          ],
-          selected: {lang},
-          showSelectedIcon: false,
-          onSelectionChanged: (s) => _setLanguage(ref, s.first),
+        ZxSegmented<String>(
+          segments: [('en', l.languageEnglish), ('ur', l.languageUrdu)],
+          selected: lang,
+          onChanged: (v) => _setLanguage(ref, v),
         ),
         SectionHeader(l.theme),
-        SegmentedButton<ThemeMode>(
-          segments: [
-            ButtonSegment(value: ThemeMode.system, label: Text(l.themeSystem)),
-            ButtonSegment(value: ThemeMode.dark, label: Text(l.themeDark)),
-            ButtonSegment(value: ThemeMode.light, label: Text(l.themeLight)),
-          ],
-          selected: {prefs.themeMode},
-          showSelectedIcon: false,
-          onSelectionChanged: (s) => ref.read(preferencesProvider.notifier).setThemeMode(s.first),
+        ZxSegmented<ThemeMode>(
+          segments: [(ThemeMode.system, l.themeSystem), (ThemeMode.dark, l.themeDark), (ThemeMode.light, l.themeLight)],
+          selected: prefs.themeMode,
+          onChanged: (v) => ref.read(preferencesProvider.notifier).setThemeMode(v),
         ),
         if (user != null) ...[
           SectionHeader(l.planTitle),

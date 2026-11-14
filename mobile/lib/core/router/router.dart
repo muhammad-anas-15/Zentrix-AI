@@ -16,6 +16,7 @@ import '../../features/risk/presentation/calculator_screen.dart';
 import '../../features/settings/presentation/delete_account_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../l10n.dart';
+import '../widgets/surfaces.dart';
 
 /// Where each session state may be: restoring -> splash, signed out -> sign-in, guest/signed in -> the app.
 /// A deep link opened during start-up (e.g. /pair?symbol=EUR%2FUSD) is kept in `from` and opened afterwards.
@@ -102,17 +103,21 @@ class HomeShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     return Scaffold(
+      extendBody: true, // pages scroll under the frosted navigation bar
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.space_dashboard_outlined), label: l.navHome),
-          NavigationDestination(icon: const Icon(Icons.candlestick_chart_outlined), label: l.navMarkets),
-          NavigationDestination(icon: const Icon(Icons.calculate_outlined), label: l.navRisk),
-          NavigationDestination(icon: const Icon(Icons.menu_book_outlined), label: l.navJournal),
-          NavigationDestination(icon: const Icon(Icons.tune), label: l.navSettings),
-        ],
+      bottomNavigationBar: FrostedBar(
+        edge: AxisDirection.up,
+        child: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+          destinations: [
+            NavigationDestination(icon: const Icon(Icons.space_dashboard_outlined), label: l.navHome),
+            NavigationDestination(icon: const Icon(Icons.candlestick_chart_outlined), label: l.navMarkets),
+            NavigationDestination(icon: const Icon(Icons.calculate_outlined), label: l.navRisk),
+            NavigationDestination(icon: const Icon(Icons.menu_book_outlined), label: l.navJournal),
+            NavigationDestination(icon: const Icon(Icons.tune), label: l.navSettings),
+          ],
+        ),
       ),
     );
   }

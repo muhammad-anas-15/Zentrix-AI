@@ -15,11 +15,12 @@ class ZxBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.zx.palette;
+    final dir = Directionality.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: p.background,
         gradient: RadialGradient(
-          center: AlignmentDirectional.topStart.resolve(Directionality.of(context)),
+          center: AlignmentDirectional.topStart.resolve(dir),
           radius: ZxEffects.glowRadius,
           colors: [p.glowPrimary, p.glowPrimary.withValues(alpha: 0)],
         ),
@@ -27,7 +28,7 @@ class ZxBackground extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: RadialGradient(
-            center: AlignmentDirectional.bottomEnd.resolve(Directionality.of(context)),
+            center: AlignmentDirectional.bottomEnd.resolve(dir),
             radius: ZxEffects.glowRadius,
             colors: [p.glowSecondary, p.glowSecondary.withValues(alpha: 0)],
           ),
@@ -38,7 +39,57 @@ class ZxBackground extends StatelessWidget {
   }
 }
 
-/// Standard scrolling page: app bar, glow background, centred content column with token spacing.
+/// Frosted surface (backdrop blur) for floating bars. Only floating surfaces blur, to keep scrolling smooth.
+class FrostedBar extends StatelessWidget {
+  const FrostedBar({super.key, required this.child, this.edge = AxisDirection.down});
+
+  final Widget child;
+
+  /// Which edge carries the hairline (down = app bar, up = bottom navigation).
+  final AxisDirection edge;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.zx.palette;
+    final line = BorderSide(color: p.glassBorder, width: ZxSize.hairline);
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: ZxEffects.glassBlur, sigmaY: ZxEffects.glassBlur),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: p.glassFloating,
+            border: edge == AxisDirection.down ? Border(bottom: line) : Border(top: line),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// App bar that floats over the content with a frosted background.
+class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const GlassAppBar({super.key, required this.title, this.actions, this.bottom, this.leading});
+
+  final String title;
+  final List<Widget>? actions;
+  final PreferredSizeWidget? bottom;
+  final Widget? leading;
+
+  @override
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
+
+  @override
+  Widget build(BuildContext context) => AppBar(
+    title: Text(title),
+    actions: actions,
+    bottom: bottom,
+    leading: leading,
+    flexibleSpace: const FrostedBar(child: SizedBox.expand()),
+  );
+}
+
+/// Standard scrolling page: frosted app bar, glow background, centred content column with token spacing.
 class ZxPage extends StatelessWidget {
   const ZxPage({
     super.key,
@@ -61,20 +112,26 @@ class ZxPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bar = title == null ? null : GlassAppBar(title: title!, actions: actions, bottom: bottom, leading: leading);
+    final top = bar == null ? ZxSpace.sm : MediaQuery.paddingOf(context).top + bar.preferredSize.height + ZxSpace.sm;
     Widget list = ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(ZxSpace.gutter, ZxSpace.sm, ZxSpace.gutter, ZxSpace.huge * 2),
+      padding: EdgeInsets.fromLTRB(ZxSpace.gutter, top, ZxSpace.gutter, ZxSpace.navClearance),
       itemCount: children.length,
       separatorBuilder: (_, _) => const SizedBox(height: ZxSpace.md),
       itemBuilder: (_, i) => children[i],
     );
-    if (onRefresh != null) list = RefreshIndicator(onRefresh: onRefresh!, child: list);
+    if (onRefresh != null) {
+      list = RefreshIndicator(edgeOffset: top - ZxSpace.sm, onRefresh: onRefresh!, child: list);
+    }
     return Scaffold(
-      appBar: title == null ? null : AppBar(title: Text(title!), actions: actions, bottom: bottom, leading: leading),
+      extendBodyBehindAppBar: bar != null,
+      appBar: bar,
       floatingActionButton: floatingActionButton,
       body: ZxBackground(
         child: SafeArea(
-          top: title == null,
+          top: bar == null,
+          bottom: false,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: ZxSize.maxContentWidth),
@@ -87,7 +144,11 @@ class ZxPage extends StatelessWidget {
   }
 }
 
-/// Translucent "glass" card with a subtle border. `accent` tints the border for emphasis.
+/// Translucent "glass" card with depth.
+///
+/// * [level]: base (flat), raised (default: gradient fill, light edge, soft shadow), floating.
+/// * [accent]: emphasised border and a soft glow in that colour (selection, important state).
+/// * [tint]: a faint wash of a semantic colour (e.g. the condition of the market shown inside).
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -95,32 +156,56 @@ class GlassCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(ZxSpace.lg),
     this.onTap,
     this.accent,
-    this.blur = false,
+    this.tint,
+    this.level = ZxLevel.raised,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
   final Color? accent;
-
-  /// Backdrop blur, for cards floating over content (costly; off by default).
-  final bool blur;
+  final Color? tint;
+  final ZxLevel level;
 
   @override
   Widget build(BuildContext context) {
     final p = context.zx.palette;
+    final dir = Directionality.of(context);
     final radius = BorderRadius.circular(ZxRadius.lg);
+    final top = switch (level) {
+      ZxLevel.base => p.glass,
+      ZxLevel.raised => p.glassStrong,
+      ZxLevel.floating => p.glassFloating,
+    };
+    final washed = tint == null ? top : Color.alphaBlend(tint!.withValues(alpha: ZxEffects.stateTint), top);
+    final shadows = <BoxShadow>[
+      if (level != ZxLevel.base)
+        BoxShadow(
+          color: p.shadow,
+          blurRadius: level == ZxLevel.floating ? ZxEffects.floatingShadowBlur : ZxEffects.raisedShadowBlur,
+          offset: Offset(0, level == ZxLevel.floating ? ZxEffects.floatingShadowOffset : ZxEffects.raisedShadowOffset),
+          spreadRadius: -ZxSpace.md,
+        ),
+      if (accent != null) BoxShadow(color: accent!.withValues(alpha: 0.16), blurRadius: ZxEffects.glowBlur),
+    ];
     Widget body = DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: radius,
+        boxShadow: shadows,
         gradient: LinearGradient(
-          begin: AlignmentDirectional.topStart.resolve(Directionality.of(context)),
-          end: AlignmentDirectional.bottomEnd.resolve(Directionality.of(context)),
-          colors: [p.glassStrong, p.glass],
+          begin: AlignmentDirectional.topStart.resolve(dir),
+          end: AlignmentDirectional.bottomEnd.resolve(dir),
+          colors: [washed, p.glass],
         ),
-        border: Border.all(color: accent?.withValues(alpha: 0.55) ?? p.glassBorder, width: ZxSize.hairline),
       ),
-      child: Padding(padding: padding, child: child),
+      child: CustomPaint(
+        foregroundPainter: _EdgePainter(
+          radius: ZxRadius.lg,
+          top: accent?.withValues(alpha: ZxEffects.accentBorder) ?? p.highlight,
+          bottom: accent?.withValues(alpha: ZxEffects.accentBorder * 0.4) ?? p.glassBorder,
+        ),
+        child: Padding(padding: padding, child: child),
+      ),
     );
     if (onTap != null) {
       body = Material(
@@ -128,31 +213,59 @@ class GlassCard extends StatelessWidget {
         child: InkWell(borderRadius: radius, onTap: onTap, child: body),
       );
     }
-    if (blur) {
-      body = ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: ZxEffects.glassBlur, sigmaY: ZxEffects.glassBlur),
-          child: body,
-        ),
-      );
-    }
     return body;
   }
 }
 
+/// A 1px border that catches the light at the top and fades towards the bottom.
+class _EdgePainter extends CustomPainter {
+  _EdgePainter({required this.radius, required this.top, required this.bottom});
+
+  final double radius;
+  final Color top;
+  final Color bottom;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ZxSize.hairline
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [top, bottom, bottom],
+        stops: const [0, 0.45, 1],
+      ).createShader(rect);
+    canvas.drawRRect(RRect.fromRectAndRadius(rect.deflate(ZxSize.hairline / 2), Radius.circular(radius)), paint);
+  }
+
+  @override
+  bool shouldRepaint(_EdgePainter old) => old.top != top || old.bottom != bottom || old.radius != radius;
+}
+
 class SectionHeader extends StatelessWidget {
-  const SectionHeader(this.title, {super.key, this.trailing});
+  const SectionHeader(this.title, {super.key, this.trailing, this.caption});
 
   final String title;
   final Widget? trailing;
+  final String? caption;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: ZxSpace.sm),
+    padding: const EdgeInsets.only(top: ZxSpace.md),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Expanded(child: Text(title, style: context.zx.text.title)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: context.zx.text.title),
+              if (caption != null) Text(caption!, style: context.zx.text.caption),
+            ],
+          ),
+        ),
         ?trailing,
       ],
     ),
@@ -227,7 +340,13 @@ class Pill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[Icon(icon, size: ZxSize.iconXs, color: color), const SizedBox(width: ZxSpace.xs)],
-          Text(label, style: context.zx.text.label.copyWith(color: color)),
+          Flexible(
+            child: Text(
+              label,
+              style: context.zx.text.label.copyWith(color: color),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     ),
