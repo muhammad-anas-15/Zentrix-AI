@@ -49,3 +49,16 @@ async def test_radar_default_lists_ingested_markets_and_validates(app: FastAPI, 
     assert r.status_code == 422 and r.json()["error"]["code"] == "unknown_timeframe"
     r = await client.get("/v1/radar", params={"symbols": "EUR/USD,NOPE/XYZ"})
     assert r.status_code == 422 and r.json()["error"]["details"] == ["NOPE/XYZ"]
+
+
+async def test_radar_is_cached_briefly(app: FastAPI, client: httpx.AsyncClient, clock: Clock) -> None:
+    """The radar is CPU-heavy and polled every minute: one computation serves everyone for radar_cache_s."""
+    clock.t = NOW.timestamp()
+    await seed_candles(app, "EUR/USD", "15m", series(600))
+    first = (await client.get("/v1/radar", params={"symbols": "EUR/USD"})).json()["items"][0]["last_price"]
+    await seed_candles(app, "EUR/USD", "15m", series(600, start=1.2))  # new prices arrive
+    assert (await client.get("/v1/radar", params={"symbols": "EUR/USD"})).json()["items"][0]["last_price"] == first
+    clock.t = NOW.timestamp() + app.state.settings.radar_cache_s + 1  # the cached result expired
+    fresh = (await client.get("/v1/radar", params={"symbols": "EUR/USD"})).json()["items"][0]["last_price"]
+    assert fresh != first
+

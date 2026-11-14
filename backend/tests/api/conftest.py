@@ -146,6 +146,7 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
 async def _clean(app: FastAPI, fake_redis: fakeredis.FakeAsyncRedis, clock: Clock) -> AsyncIterator[None]:
     yield
     clock.t = None
+    app.state.radar_cache = None  # cached radar results must not leak between tests
     async with app.state.engine.begin() as conn:
         await conn.execute(text("TRUNCATE users, audit_log, news_events RESTART IDENTITY CASCADE"))
         await conn.execute(text("TRUNCATE signal_outcomes, signals, model_versions, candles RESTART IDENTITY CASCADE"))

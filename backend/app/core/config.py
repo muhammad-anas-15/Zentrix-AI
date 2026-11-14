@@ -80,6 +80,8 @@ class Settings(BaseSettings):
     max_alerts_per_user: int = 50
     max_watchlists_per_user: int = 20
     max_watchlist_items: int = 100
+    # Market Radar: computed at most once per this many seconds per (timeframe, symbols); 0 = no cache
+    radar_cache_s: int = 30
     push_max_attempts: int = 3
 
     @field_validator("cors_origins", "google_client_ids", "news_calendar_urls", "free_signal_symbols",

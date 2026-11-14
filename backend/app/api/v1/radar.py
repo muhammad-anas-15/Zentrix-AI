@@ -6,10 +6,12 @@ direction call: the ranking puts tradeable conditions first, not a predicted win
 
 from __future__ import annotations
 
+import asyncio
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 
 from app.api.deps import DbDep, NowDep, SettingsDep
@@ -32,6 +34,23 @@ RANKING = ("Condition light first (green, amber, red, unknown), then activity: t
            "active first. Ranking describes conditions now, not a predicted direction.")
 
 
+@dataclass
+class _RadarCache:
+    """Per-app cache: the radar is CPU-heavy (every market's indicators), clients poll it every minute, and the
+    data only changes when candles close. One computation per key at a time (single flight); others wait for it."""
+
+    entries: dict[tuple[str, str], tuple[float, RadarOut]] = field(default_factory=dict)
+    locks: dict[tuple[str, str], asyncio.Lock] = field(default_factory=dict)
+
+
+def _cache(request: Request) -> _RadarCache:
+    cache: _RadarCache | None = getattr(request.app.state, "radar_cache", None)
+    if cache is None:
+        cache = _RadarCache()
+        request.app.state.radar_cache = cache
+    return cache
+
+
 async def _default_symbols(db: DbDep, timeframe: str) -> list[str]:
     """Instruments whose primary listing is ingested at this timeframe."""
     rows = await db.scalars(
@@ -52,11 +71,26 @@ def _spark(closes: list[float]) -> list[float]:
 @router.get("/radar", response_model=RadarOut,
             summary="Market Radar: every ingested market ranked by conditions, then activity (no direction calls)")
 async def get_radar(
-    db: DbDep, now: NowDep, settings: SettingsDep,
+    request: Request, db: DbDep, now: NowDep, settings: SettingsDep,
     timeframe: Annotated[str, Query(max_length=8)] = "15m",
     symbols: Annotated[str | None, Query(max_length=600, description="Comma-separated canonical symbols. "
                                          "Default: every market ingested at this timeframe")] = None,
 ) -> RadarOut:
+    if settings.radar_cache_s <= 0:
+        return await _compute(db, now, settings, timeframe, symbols)
+    cache = _cache(request)
+    key = (timeframe, symbols or "")
+    async with cache.locks.setdefault(key, asyncio.Lock()):
+        hit = cache.entries.get(key)
+        clock = request.app.state.clock()
+        if hit is not None and hit[0] > clock:
+            return hit[1]
+        out = await _compute(db, now, settings, timeframe, symbols)
+        cache.entries[key] = (clock + settings.radar_cache_s, out)
+        return out
+
+
+async def _compute(db: DbDep, now: datetime, settings: SettingsDep, timeframe: str, symbols: str | None) -> RadarOut:
     if await db.scalar(select(Timeframe.code).where(Timeframe.code == timeframe)) is None:
         raise AppError(422, "unknown_timeframe", f"Unknown timeframe {timeframe}")
     wanted = [s.strip() for s in symbols.split(",") if s.strip()][:MAX_MARKETS] if symbols \
