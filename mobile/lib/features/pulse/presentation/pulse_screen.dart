@@ -186,7 +186,8 @@ class _UpNextCard extends ConsumerWidget {
                   Icon(Icons.event_note_rounded, size: ZxSize.icon, color: p.accent),
                   const SizedBox(width: ZxSpace.sm),
                   Expanded(child: Text(l.calendarTitle, style: zx.text.bodyStrong)),
-                  if (cal.calendarUpdatedAt == null) Pill(label: l.newsStateUnknown, color: p.caution, background: p.cautionSoft),
+                  if (cal.calendarUpdatedAt == null)
+                    Pill(label: l.newsStateUnknown, color: p.caution, background: p.cautionSoft),
                 ],
               ),
               const SizedBox(height: ZxSpace.md),

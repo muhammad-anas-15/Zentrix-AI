@@ -127,9 +127,8 @@ class _PairScreenState extends ConsumerState<PairScreen> {
                 value: signal,
                 compact: true,
                 onRetry: () => ref.invalidate(latestSignalProvider(key)),
-                data: (s) => s == null
-                    ? GlassCard(child: Text(l.noSignalYet, style: zx.text.secondary))
-                    : SignalCard(signal: s),
+                data: (s) =>
+                    s == null ? GlassCard(child: Text(l.noSignalYet, style: zx.text.secondary)) : SignalCard(signal: s),
               ),
               PairTab.levels => LevelsCard(
                 symbol: widget.symbol,
@@ -173,7 +172,9 @@ class _LiveHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text(name ?? '', style: zx.text.caption, overflow: TextOverflow.ellipsis)),
+            Expanded(
+              child: Text(name ?? '', style: zx.text.caption, overflow: TextOverflow.ellipsis),
+            ),
             if (feed != null)
               Tooltip(
                 message: feed.note ?? '',

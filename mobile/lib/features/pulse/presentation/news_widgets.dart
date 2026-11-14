@@ -11,7 +11,9 @@ import '../domain/models.dart';
 /// Opens a headline at its publisher (outside the app).
 Future<void> openNews(BuildContext context, String url) async {
   final uri = Uri.tryParse(url);
-  final ok = uri != null && (uri.scheme == 'https' || uri.scheme == 'http') &&
+  final ok =
+      uri != null &&
+      (uri.scheme == 'https' || uri.scheme == 'http') &&
       await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!ok && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric)));
@@ -72,9 +74,15 @@ class AssetBadge extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected ? color.withValues(alpha: 0.22) : p.glass,
             borderRadius: BorderRadius.circular(ZxRadius.sm),
-            border: Border.all(color: color.withValues(alpha: selected ? 0.8 : 0.35), width: ZxSize.hairline),
+            border: Border.all(
+              color: color.withValues(alpha: selected ? 0.8 : 0.35),
+              width: ZxSize.hairline,
+            ),
           ),
-          child: Text(label, style: zx.text.chartLabel.copyWith(color: color, fontWeight: ZxType.bold)),
+          child: Text(
+            label,
+            style: zx.text.chartLabel.copyWith(color: color, fontWeight: ZxType.bold),
+          ),
         ),
       ),
     );
@@ -137,11 +145,7 @@ class NewsCard extends StatelessWidget {
               runSpacing: ZxSpace.xs,
               children: [
                 for (final a in item.assets.take(6))
-                  AssetBadge(
-                    a,
-                    selected: a == selectedAsset,
-                    onTap: onAsset == null ? null : () => onAsset!(a),
-                  ),
+                  AssetBadge(a, selected: a == selectedAsset, onTap: onAsset == null ? null : () => onAsset!(a)),
               ],
             ),
           ],

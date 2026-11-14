@@ -6,6 +6,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/widgets/motion.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../application/session.dart';
 import '../data/auth_repository.dart';
@@ -65,12 +66,22 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(ZxSpace.xxl),
                 children: [
-                  const SizedBox(height: ZxSpace.xxxl),
-                  Text(l.appName.toUpperCase(), style: t.overline.copyWith(color: p.accent)),
+                  const SizedBox(height: ZxSpace.xxl),
+                  const FadeSlideIn(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: BrandMark(size: ZxSize.brandHero),
+                    ),
+                  ),
+                  const SizedBox(height: ZxSpace.xl),
+                  FadeSlideIn(
+                    index: 1,
+                    child: Text(l.appName.toUpperCase(), style: t.overline.copyWith(color: p.accent)),
+                  ),
                   const SizedBox(height: ZxSpace.sm),
-                  Text(l.signInTitle, style: t.display),
+                  FadeSlideIn(index: 2, child: Text(l.signInTitle, style: t.display)),
                   const SizedBox(height: ZxSpace.md),
-                  Text(l.signInSubtitle, style: t.secondary),
+                  FadeSlideIn(index: 3, child: Text(l.signInSubtitle, style: t.secondary)),
                   const SizedBox(height: ZxSpace.xxl),
                   if (reason != SignedOutReason.none) ...[
                     GlassCard(
@@ -82,9 +93,19 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     ),
                     const SizedBox(height: ZxSpace.lg),
                   ],
-                  _Highlight(icon: Icons.traffic_outlined, text: l.highlightConditions),
-                  _Highlight(icon: Icons.verified_outlined, text: l.highlightSignals),
-                  _Highlight(icon: Icons.shield_outlined, text: l.highlightRisk),
+                  FadeSlideIn(
+                    index: 4,
+                    child: GlassCard(
+                      level: ZxLevel.base,
+                      child: Column(
+                        children: [
+                          _Highlight(icon: Icons.radar_rounded, text: l.highlightConditions),
+                          _Highlight(icon: Icons.verified_outlined, text: l.highlightSignals),
+                          _Highlight(icon: Icons.shield_outlined, text: l.highlightRisk, last: true),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: ZxSpace.xxl),
                   FilledButton.icon(
                     onPressed: _busy || !google.available ? null : () => _run(notifier.signInWithGoogle),
@@ -140,21 +161,30 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 }
 
 class _Highlight extends StatelessWidget {
-  const _Highlight({required this.icon, required this.text});
+  const _Highlight({required this.icon, required this.text, this.last = false});
 
   final IconData icon;
   final String text;
+  final bool last;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: ZxSpace.md),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: context.zx.palette.accent, size: ZxSize.iconLg),
-        const SizedBox(width: ZxSpace.md),
-        Expanded(child: Text(text, style: context.zx.text.secondary)),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final p = context.zx.palette;
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 0 : ZxSpace.lg),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: ZxSize.tapTarget * 0.8,
+            height: ZxSize.tapTarget * 0.8,
+            decoration: BoxDecoration(color: p.accentSoft, borderRadius: BorderRadius.circular(ZxRadius.md)),
+            child: Icon(icon, color: p.accent, size: ZxSize.iconLg),
+          ),
+          const SizedBox(width: ZxSpace.md),
+          Expanded(child: Text(text, style: context.zx.text.secondary)),
+        ],
+      ),
+    );
+  }
 }

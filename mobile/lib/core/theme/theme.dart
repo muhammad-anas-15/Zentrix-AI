@@ -1,5 +1,6 @@
 // Builds ThemeData and the ZxTheme extension from the design tokens.
 
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
@@ -253,13 +254,26 @@ ThemeData buildTheme(ZxPalette p) {
         (s) => IconThemeData(color: s.contains(WidgetState.selected) ? p.textPrimary : p.textMuted),
       ),
     ),
+    // Tabs: a sliding gradient pill, like the segmented controls.
     tabBarTheme: TabBarThemeData(
       labelStyle: text.label,
       unselectedLabelStyle: text.label,
-      labelColor: p.textPrimary,
-      unselectedLabelColor: p.textMuted,
-      indicatorColor: p.accent,
-      dividerColor: p.divider,
+      labelColor: p.textOnAccent,
+      unselectedLabelColor: p.textSecondary,
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicator: BoxDecoration(gradient: p.accentGradient, borderRadius: BorderRadius.circular(ZxRadius.pill)),
+      dividerColor: p.divider.withValues(alpha: 0),
+      splashBorderRadius: BorderRadius.circular(ZxRadius.pill),
+      labelPadding: const EdgeInsets.symmetric(horizontal: ZxSpace.md),
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+      },
     ),
     listTileTheme: ListTileThemeData(
       iconColor: p.textSecondary,

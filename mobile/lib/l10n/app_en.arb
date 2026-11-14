@@ -391,5 +391,7 @@
   "equityEmpty": "Close at least two trades to draw your equity curve.",
   "ciBandTitle": "Hit rate and its 95% range",
   "ciBandCaption": "The bar shows where the true hit rate likely lies. While it reaches below the 50% line, there is no proven edge.",
-  "coinFlip": "50% (coin flip)"
+  "coinFlip": "50% (coin flip)",
+  "takeProfit": "Take-profit",
+  "noMarketsMatch": "No markets match your search."
 }

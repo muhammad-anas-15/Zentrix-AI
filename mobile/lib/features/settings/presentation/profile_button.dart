@@ -34,10 +34,7 @@ class ProfileButton extends ConsumerWidget {
           ),
           child: user == null || name.isEmpty
               ? Icon(Icons.person_outline_rounded, size: ZxSize.iconSm, color: p.textSecondary)
-              : Text(
-                  name.characters.first.toUpperCase(),
-                  style: context.zx.text.label.copyWith(color: p.textOnAccent),
-                ),
+              : Text(name.characters.first.toUpperCase(), style: context.zx.text.label.copyWith(color: p.textOnAccent)),
         ),
       ),
     );

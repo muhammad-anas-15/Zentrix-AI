@@ -18,12 +18,11 @@ class PulseRepository {
     query: {'asset': asset, 'impact': impact, 'kind': kind, 'limit': limit},
   );
 
-  Future<CalendarPage> calendar({String impact = 'medium', required DateTime start, required DateTime end}) =>
-      _api.get(
-        '/v1/news/events',
-        (j) => CalendarPage.fromJson(_map(j)),
-        query: {'impact': impact, 'start': start.toUtc().toIso8601String(), 'end': end.toUtc().toIso8601String()},
-      );
+  Future<CalendarPage> calendar({String impact = 'medium', required DateTime start, required DateTime end}) => _api.get(
+    '/v1/news/events',
+    (j) => CalendarPage.fromJson(_map(j)),
+    query: {'impact': impact, 'start': start.toUtc().toIso8601String(), 'end': end.toUtc().toIso8601String()},
+  );
 }
 
 final pulseRepositoryProvider = Provider<PulseRepository>((ref) => PulseRepository(ref.watch(apiClientProvider)));

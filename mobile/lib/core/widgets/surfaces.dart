@@ -39,6 +39,37 @@ class ZxBackground extends StatelessWidget {
   }
 }
 
+/// The Zentrix mark: a "Z" on the accent gradient with a soft glow.
+class BrandMark extends StatelessWidget {
+  const BrandMark({super.key, this.size = ZxSize.brandMark});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final zx = context.zx;
+    final p = zx.palette;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [p.accent, p.accentAlt]),
+        borderRadius: BorderRadius.circular(size * 0.3),
+        boxShadow: [BoxShadow(color: p.accent.withValues(alpha: 0.45), blurRadius: size * 0.6)],
+      ),
+      child: Text(
+        'Z',
+        style: (size > ZxSize.brandMark ? zx.text.display : zx.text.title).copyWith(
+          color: p.textOnAccent,
+          height: 1,
+          fontWeight: ZxType.bold,
+        ),
+      ),
+    );
+  }
+}
+
 /// Frosted surface (backdrop blur) for floating bars. Only floating surfaces blur, to keep scrolling smooth.
 class FrostedBar extends StatelessWidget {
   const FrostedBar({super.key, required this.child, this.edge = AxisDirection.down});

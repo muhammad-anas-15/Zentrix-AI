@@ -9,10 +9,12 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/badges.dart';
+import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../../auth/application/session.dart';
 import '../../auth/presentation/sign_in_prompt.dart';
+import '../../settings/presentation/profile_button.dart';
 import '../../track_record/presentation/track_record_view.dart';
 import '../data/journal_repository.dart';
 import '../domain/models.dart';
@@ -34,6 +36,7 @@ class JournalScreen extends ConsumerWidget {
         appBar: AppBar(
           flexibleSpace: const FrostedBar(child: SizedBox.expand()),
           title: Text(l.journalTitle),
+          actions: const [ProfileButton()],
           bottom: TabBar(
             tabs: [
               Tab(text: l.tabTrades),
@@ -329,11 +332,55 @@ class _StatsTab extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: ZxSpace.md),
+                  const _EquityCard(),
+                  const SizedBox(height: ZxSpace.md),
                   Disclaimer(text: l.statsNote),
                 ],
               );
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Running P&L of the closed trades on the loaded journal page, oldest close first.
+List<double> equityCurve(List<JournalEntry> entries) {
+  final closed = entries.where((e) => !e.isOpen && e.pnlAccount != null && e.exitAt != null).toList()
+    ..sort((a, b) => a.exitAt!.compareTo(b.exitAt!));
+  var total = 0.0;
+  return [0, for (final e in closed) total += e.pnlAccount!];
+}
+
+class _EquityCard extends ConsumerWidget {
+  const _EquityCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final zx = context.zx;
+    final page = ref.watch(journalProvider).value;
+    if (page == null) return const SizedBox.shrink();
+    final curve = equityCurve(page.items);
+    final cur = page.items.isEmpty ? '' : page.items.first.accountCurrency;
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(l.equityCurve, style: zx.text.bodyStrong)),
+              if (curve.length > 2)
+                Text(
+                  Fmt.money(curve.last, cur, signed: true),
+                  style: zx.text.metricSmall.copyWith(color: curve.last >= 0 ? zx.palette.bullish : zx.palette.bearish),
+                ),
+            ],
+          ),
+          const SizedBox(height: ZxSpace.xs),
+          Text(curve.length > 2 ? l.equityCaption : l.equityEmpty, style: zx.text.caption),
+          if (curve.length > 2) ...[const SizedBox(height: ZxSpace.md), EquityChart(values: curve)],
         ],
       ),
     );

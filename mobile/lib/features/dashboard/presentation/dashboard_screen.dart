@@ -18,6 +18,9 @@ import '../../auth/application/session.dart';
 import '../../market/application/market_providers.dart';
 import '../../market/domain/models.dart';
 import '../../market/presentation/markets_screen.dart';
+import '../../pulse/application/pulse_providers.dart';
+import '../../pulse/presentation/news_widgets.dart';
+import '../../settings/presentation/profile_button.dart';
 
 /// Home: the Market Radar. When markets are worth attention, how far price may move, what event comes next.
 /// It describes conditions and measured ranges; it never calls a direction.
@@ -33,6 +36,7 @@ class DashboardScreen extends ConsumerWidget {
     final radar = ref.watch(radarProvider);
     return ZxPage(
       title: l.marketRadar,
+      leading: const Padding(padding: EdgeInsets.all(ZxSpace.md), child: BrandMark()),
       actions: [
         IconButton(
           tooltip: l.alerts,
@@ -44,11 +48,13 @@ class DashboardScreen extends ConsumerWidget {
             child: const Icon(Icons.notifications_none_rounded),
           ),
         ),
+        const ProfileButton(),
       ],
       onRefresh: () async {
         ref
           ..invalidate(scenarioProvider)
-          ..invalidate(inboxProvider);
+          ..invalidate(inboxProvider)
+          ..invalidate(pulseHeadlinesProvider);
         ref.invalidate(radarProvider);
         await ref.read(radarProvider.future);
       },
@@ -88,13 +94,15 @@ class _RadarBody extends ConsumerWidget {
         FadeSlideIn(index: 1, child: _ExpectedRangeCard(item: focus)),
         const SizedBox(height: ZxSpace.md),
         FadeSlideIn(index: 2, child: _NextEventCard(item: focus)),
+        const SizedBox(height: ZxSpace.md),
+        const FadeSlideIn(index: 3, child: _PulseTeaser()),
         SectionHeader(l.marketsNow, caption: l.radarRanking),
         const SizedBox(height: ZxSpace.sm),
         for (final (i, item) in radar.items.indexed)
           Padding(
             padding: const EdgeInsets.only(bottom: ZxSpace.sm),
             child: FadeSlideIn(
-              index: i + 3,
+              index: i + 4,
               child: _RadarRow(
                 item: item,
                 selected: item.symbol == focus.symbol,
@@ -493,6 +501,75 @@ class _RadarRow extends StatelessWidget {
               child: Wrap(spacing: ZxSpace.xs, runSpacing: ZxSpace.xs, children: _stateChips(context, item)),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The latest medium- and high-impact headlines, with a way into the Pulse tab.
+class _PulseTeaser extends ConsumerWidget {
+  const _PulseTeaser();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final zx = context.zx;
+    final p = zx.palette;
+    final feed = ref.watch(pulseHeadlinesProvider).value;
+    if (feed == null || feed.items.isEmpty) return const SizedBox.shrink();
+    return GlassCard(
+      level: ZxLevel.base,
+      padding: const EdgeInsets.fromLTRB(ZxSpace.lg, ZxSpace.md, ZxSpace.sm, ZxSpace.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bolt_rounded, size: ZxSize.icon, color: p.caution),
+              const SizedBox(width: ZxSpace.sm),
+              Expanded(child: Text(l.pulseTitle, style: zx.text.bodyStrong)),
+              TextButton(onPressed: () => context.go('/pulse'), child: Text(l.seeAll)),
+            ],
+          ),
+          for (final item in feed.items)
+            InkWell(
+              borderRadius: BorderRadius.circular(ZxRadius.sm),
+              onTap: () => openNews(context, item.url),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: ZxSpace.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: ZxSpace.xs + 1),
+                      child: Container(
+                        width: ZxSpace.sm,
+                        height: ZxSpace.sm,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: item.impact == 'high' ? p.bearish : p.caution,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: ZxSpace.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.title, style: zx.text.body, maxLines: 2, overflow: TextOverflow.ellipsis),
+                          Text(
+                            '${item.sourceName} · ${item.ageS < 60 ? l.justNow : l.agoShort(Fmt.ago(item.ageS))}',
+                            style: zx.text.caption,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: ZxSpace.sm),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

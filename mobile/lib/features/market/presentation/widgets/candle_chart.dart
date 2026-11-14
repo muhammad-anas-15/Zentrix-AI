@@ -46,7 +46,7 @@ class ChartLive {
 }
 
 /// Interactive candlestick chart in the style of a trading terminal: drag to pan, pinch to zoom, long-press
-/// (or hover with a mouse) for the crosshair, double-tap to reset. The forming candle eases to each tick; the
+/// (or hover with a mouse) for the crosshair; "jump to latest" resets the view. The forming candle eases to each tick; the
 /// price line carries the countdown to the candle close. Charts read left to right in every locale.
 class CandleChart extends StatefulWidget {
   const CandleChart({
@@ -197,10 +197,6 @@ class _CandleChartState extends State<CandleChart> with SingleTickerProviderStat
               onHover: (e) => setState(() => _cross = e.localPosition),
               onExit: (_) => setState(() => _cross = null),
               child: GestureDetector(
-                onDoubleTap: () => setState(() {
-                  _visible = CandleChart.initialVisible;
-                  _offset = 0;
-                }),
                 onScaleStart: (_) => _visibleAtScaleStart = _clampVisible(_visible),
                 onScaleUpdate: (d) => setState(() {
                   if (d.pointerCount > 1) {
@@ -255,7 +251,12 @@ class _CandleChartState extends State<CandleChart> with SingleTickerProviderStat
                       Positioned(
                         right: ZxSize.chartAxisWidth + ZxSpace.sm,
                         bottom: ZxSize.chartTimeAxisHeight + ZxSpace.sm,
-                        child: _JumpToLatest(onTap: () => setState(() => _offset = 0)),
+                        child: _JumpToLatest(
+                          onTap: () => setState(() {
+                            _offset = 0;
+                            _visible = CandleChart.initialVisible;
+                          }),
+                        ),
                       ),
                   ],
                 ),
@@ -280,7 +281,9 @@ class _JumpToLatest extends StatelessWidget {
       message: context.l10n.jumpToLatest,
       child: Material(
         color: p.surfaceRaised,
-        shape: CircleBorder(side: BorderSide(color: p.glassBorder, width: ZxSize.hairline)),
+        shape: CircleBorder(
+          side: BorderSide(color: p.glassBorder, width: ZxSize.hairline),
+        ),
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onTap,
@@ -313,8 +316,15 @@ class _Readout extends StatelessWidget {
     final style = zx.text.chartLabel;
     TextSpan part(String k, String v) => TextSpan(
       children: [
-        if (k.isNotEmpty) TextSpan(text: '$k ', style: style.copyWith(color: p.textMuted)),
-        TextSpan(text: '$v  ', style: style.copyWith(color: color)),
+        if (k.isNotEmpty)
+          TextSpan(
+            text: '$k ',
+            style: style.copyWith(color: p.textMuted),
+          ),
+        TextSpan(
+          text: '$v  ',
+          style: style.copyWith(color: color),
+        ),
       ],
     );
     final v = candle.v;
@@ -530,7 +540,10 @@ class _CandlePainter extends CustomPainter {
   }
 
   TextPainter _painter(String text, Color color) => TextPainter(
-    text: TextSpan(text: text, style: labelStyle.copyWith(color: color)),
+    text: TextSpan(
+      text: text,
+      style: labelStyle.copyWith(color: color),
+    ),
     textDirection: TextDirection.ltr,
   )..layout();
 

@@ -6,6 +6,7 @@ import '../../../core/l10n.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/badges.dart';
+import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../../market/domain/models.dart';
@@ -97,6 +98,23 @@ class _CountsCard extends StatelessWidget {
               MetricTile(label: l.decided, value: '${c.decided}'),
             ],
           ),
+          if (ci != null && ci.length == 2 && c.hitRate != null) ...[
+            const SizedBox(height: ZxSpace.lg),
+            Text(l.ciBandTitle.toUpperCase(), style: zx.text.overline),
+            const SizedBox(height: ZxSpace.xs),
+            CiBar(value: c.hitRate, low: ci[0], high: ci[1]),
+            Row(
+              children: [
+                Text('0%', style: zx.text.chartLabel),
+                const Spacer(),
+                Text(l.coinFlip, style: zx.text.chartLabel),
+                const Spacer(),
+                Text('100%', style: zx.text.chartLabel),
+              ],
+            ),
+            const SizedBox(height: ZxSpace.xs),
+            Text(l.ciBandCaption, style: zx.text.caption),
+          ],
           const SizedBox(height: ZxSpace.lg),
           Row(
             children: [

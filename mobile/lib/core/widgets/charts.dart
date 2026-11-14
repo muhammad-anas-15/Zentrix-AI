@@ -160,6 +160,329 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(_RingPainter old) => old.fraction != fraction || old.color != color;
 }
 
+/// Running total (equity curve) with a dashed zero line: green above, red below. Always left-to-right.
+class EquityChart extends StatelessWidget {
+  const EquityChart({super.key, required this.values, this.height = ZxSize.equityChartHeight});
+
+  /// Cumulative values, starting at 0.
+  final List<double> values;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.zx.palette;
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: SizedBox(
+        height: height,
+        child: CustomPaint(
+          size: Size.infinite,
+          painter: _EquityPainter(values, p.bullish, p.bearish, p.chartGrid, p.textOnAccent),
+        ),
+      ),
+    );
+  }
+}
+
+class _EquityPainter extends CustomPainter {
+  _EquityPainter(this.values, this.up, this.down, this.grid, this.core);
+
+  final List<double> values;
+  final Color up;
+  final Color down;
+  final Color grid;
+  final Color core;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2 || size.isEmpty) return;
+    final lo = math.min(0.0, values.reduce(math.min));
+    final hi = math.max(0.0, values.reduce(math.max));
+    final span = hi - lo == 0 ? 1.0 : hi - lo;
+    final pad = size.height * 0.1;
+    double y(double v) => pad + (size.height - 2 * pad) * (1 - (v - lo) / span);
+    final pts = [for (var i = 0; i < values.length; i++) Offset(size.width * i / (values.length - 1), y(values[i]))];
+    final zero = y(0);
+    final color = values.last >= 0 ? up : down;
+
+    final dash = Paint()
+      ..color = grid
+      ..strokeWidth = ZxSize.hairline * 1.5;
+    for (var x = 0.0; x < size.width; x += ZxSpace.sm) {
+      canvas.drawLine(Offset(x, zero), Offset(math.min(x + ZxSpace.xs, size.width), zero), dash);
+    }
+    final line = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (final pt in pts.skip(1)) {
+      line.lineTo(pt.dx, pt.dy);
+    }
+    final fill = Path.from(line)
+      ..lineTo(pts.last.dx, zero)
+      ..lineTo(pts.first.dx, zero)
+      ..close();
+    final bounds = Offset.zero & size;
+    canvas
+      ..drawPath(
+        fill,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              up.withValues(alpha: 0.28),
+              up.withValues(alpha: 0.04),
+              down.withValues(alpha: 0.04),
+              down.withValues(alpha: 0.28),
+            ],
+            stops: [0, (zero / size.height).clamp(0, 1).toDouble(), (zero / size.height).clamp(0, 1).toDouble(), 1],
+          ).createShader(bounds),
+      )
+      ..drawPath(
+        line,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = ZxSize.hairline * 2
+          ..strokeJoin = StrokeJoin.round,
+      )
+      ..drawCircle(pts.last, ZxSpace.xs, Paint()..color = core)
+      ..drawCircle(
+        pts.last,
+        ZxSpace.xs,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = ZxSize.hairline * 1.5,
+      );
+  }
+
+  @override
+  bool shouldRepaint(_EquityPainter old) => old.values != values || old.up != up;
+}
+
+/// A trade plan as a vertical price ladder: target (green zone), entry, stop (red zone), each with its distance.
+class PriceLadder extends StatelessWidget {
+  const PriceLadder({
+    super.key,
+    required this.entry,
+    required this.stop,
+    this.target,
+    required this.decimals,
+    required this.entryLabel,
+    required this.stopLabel,
+    required this.targetLabel,
+    this.stopNote,
+    this.targetNote,
+  });
+
+  final double entry;
+  final double stop;
+  final double? target;
+  final int decimals;
+  final String entryLabel;
+  final String stopLabel;
+  final String targetLabel;
+  final String? stopNote;
+  final String? targetNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final zx = context.zx;
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: SizedBox(
+        height: ZxSize.ladderHeight,
+        child: CustomPaint(
+          size: Size.infinite,
+          painter: _LadderPainter(
+            entry: entry,
+            stop: stop,
+            target: target,
+            decimals: decimals,
+            labels: (entryLabel, stopLabel, targetLabel),
+            notes: (stopNote, targetNote),
+            palette: zx.palette,
+            label: zx.text.label,
+            price: zx.text.priceSmall,
+            note: zx.text.caption,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LadderPainter extends CustomPainter {
+  _LadderPainter({
+    required this.entry,
+    required this.stop,
+    required this.target,
+    required this.decimals,
+    required this.labels,
+    required this.notes,
+    required this.palette,
+    required this.label,
+    required this.price,
+    required this.note,
+  });
+
+  final double entry;
+  final double stop;
+  final double? target;
+  final int decimals;
+  final (String, String, String) labels;
+  final (String?, String?) notes;
+  final ZxPalette palette;
+  final TextStyle label;
+  final TextStyle price;
+  final TextStyle note;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final prices = [entry, stop, ?target];
+    final lo = prices.reduce(math.min);
+    final hi = prices.reduce(math.max);
+    final span = hi - lo == 0 ? 1.0 : hi - lo;
+    final pad = size.height * 0.12;
+    double y(double v) => pad + (size.height - 2 * pad) * (1 - (v - lo) / span);
+    const railX = ZxSpace.xl;
+    const railW = ZxSpace.sm;
+
+    void zone(double a, double b, Color c) {
+      final r = RRect.fromRectAndRadius(
+        Rect.fromLTRB(railX - railW / 2, math.min(y(a), y(b)), railX + railW / 2, math.max(y(a), y(b))),
+        const Radius.circular(ZxRadius.pill),
+      );
+      canvas
+        ..drawRRect(r, Paint()..color = c.withValues(alpha: 0.85))
+        ..drawRect(
+          Rect.fromLTRB(railX, math.min(y(a), y(b)), size.width, math.max(y(a), y(b))),
+          Paint()
+            ..shader = LinearGradient(
+              colors: [c.withValues(alpha: 0.14), c.withValues(alpha: 0)],
+            ).createShader(Rect.fromLTRB(railX, 0, size.width, size.height)),
+        );
+    }
+
+    zone(entry, stop, palette.bearish);
+    if (target != null) zone(entry, target!, palette.bullish);
+
+    void rung(double v, String name, Color c, String? sub) {
+      final py = y(v);
+      canvas
+        ..drawCircle(Offset(railX, py), ZxSpace.sm, Paint()..color = c.withValues(alpha: 0.25))
+        ..drawCircle(Offset(railX, py), ZxSpace.xs, Paint()..color = c);
+      final dash = Paint()
+        ..color = c.withValues(alpha: 0.6)
+        ..strokeWidth = ZxSize.hairline;
+      for (var x = railX + ZxSpace.md; x < size.width; x += ZxSpace.sm) {
+        canvas.drawLine(Offset(x, py), Offset(math.min(x + ZxSpace.xs, size.width), py), dash);
+      }
+      final n = TextPainter(
+        text: TextSpan(
+          text: name,
+          style: label.copyWith(color: c),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final pr = TextPainter(
+        text: TextSpan(
+          text: Fmt.price(v, decimals: decimals),
+          style: price,
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final top = py - n.height - ZxSpace.xxs;
+      n.paint(canvas, Offset(railX + ZxSpace.lg, top));
+      pr.paint(canvas, Offset(size.width - pr.width, top - (pr.height - n.height) / 2));
+      if (sub != null) {
+        final s = TextPainter(
+          text: TextSpan(text: sub, style: note),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        s.paint(canvas, Offset(railX + ZxSpace.lg, py + ZxSpace.xxs));
+      }
+    }
+
+    if (target != null) rung(target!, labels.$3, palette.bullish, notes.$2);
+    rung(entry, labels.$1, palette.accentAlt, null);
+    rung(stop, labels.$2, palette.bearish, notes.$1);
+  }
+
+  @override
+  bool shouldRepaint(_LadderPainter old) =>
+      old.entry != entry || old.stop != stop || old.target != target || old.palette != palette;
+}
+
+/// A measured rate with its 95% interval on a 0-100% track, against a reference line (e.g. 50%).
+class CiBar extends StatelessWidget {
+  const CiBar({super.key, required this.value, required this.low, required this.high, this.reference = 0.5});
+
+  final double? value;
+  final double? low;
+  final double? high;
+  final double reference;
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.ltr,
+    child: SizedBox(
+      height: ZxSize.ciBarHeight,
+      child: CustomPaint(size: Size.infinite, painter: _CiPainter(value, low, high, reference, context.zx.palette)),
+    ),
+  );
+}
+
+class _CiPainter extends CustomPainter {
+  _CiPainter(this.value, this.low, this.high, this.reference, this.palette);
+
+  final double? value;
+  final double? low;
+  final double? high;
+  final double reference;
+  final ZxPalette palette;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final mid = size.height / 2;
+    double x(double v) => size.width * v.clamp(0, 1);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, mid - ZxSpace.xxs, size.width, ZxSpace.xs),
+        const Radius.circular(ZxRadius.pill),
+      ),
+      Paint()..color = palette.glassStrong,
+    );
+    final lo = low;
+    final hi = high;
+    final clearsReference = lo != null && lo > reference;
+    final band = clearsReference ? palette.bullish : palette.accentAlt;
+    if (lo != null && hi != null) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(x(lo), mid - ZxSpace.xs, math.max(x(hi), x(lo) + 2), mid + ZxSpace.xs),
+          const Radius.circular(ZxRadius.pill),
+        ),
+        Paint()..color = band.withValues(alpha: 0.45),
+      );
+    }
+    final ref = Paint()
+      ..color = palette.textMuted
+      ..strokeWidth = ZxSize.hairline * 1.5;
+    for (var y = 0.0; y < size.height; y += ZxSpace.xs * 1.5) {
+      canvas.drawLine(Offset(x(reference), y), Offset(x(reference), math.min(y + ZxSpace.xs, size.height)), ref);
+    }
+    final v = value;
+    if (v != null) {
+      canvas
+        ..drawCircle(Offset(x(v), mid), ZxSpace.sm, Paint()..color = band.withValues(alpha: 0.3))
+        ..drawCircle(Offset(x(v), mid), ZxSpace.xs + 1, Paint()..color = band);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CiPainter old) => old.value != value || old.low != low || old.high != high;
+}
+
 /// One step of an expected-range band.
 typedef RangeStep = ({double? low, double? median, double? high});
 

@@ -110,7 +110,9 @@ class ZxChipBar<T> extends StatelessWidget {
                 color: on ? null : p.glass,
                 borderRadius: BorderRadius.circular(ZxRadius.pill),
                 border: Border.all(color: on ? p.accent : p.glassBorder, width: ZxSize.hairline),
-                boxShadow: on ? [BoxShadow(color: p.accent.withValues(alpha: 0.3), blurRadius: ZxEffects.glowBlur)] : null,
+                boxShadow: on
+                    ? [BoxShadow(color: p.accent.withValues(alpha: 0.3), blurRadius: ZxEffects.glowBlur)]
+                    : null,
               ),
               child: Material(
                 type: MaterialType.transparency,

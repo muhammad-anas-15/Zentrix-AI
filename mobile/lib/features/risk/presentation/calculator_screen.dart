@@ -7,10 +7,12 @@ import '../../../core/l10n.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/badges.dart';
+import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../../auth/application/session.dart';
 import '../../market/application/market_providers.dart';
+import '../../settings/presentation/profile_button.dart';
 import '../data/risk_repository.dart';
 import '../domain/models.dart';
 
@@ -35,6 +37,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
   String _symbol = defaultSymbols.first;
   String? _currency;
   AsyncValue<PositionSize>? _result;
+  PositionSizeRequest? _request;
 
   @override
   void dispose() {
@@ -59,7 +62,10 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
       riskPct: _num(_riskPct.text),
       leverage: _num(_leverage.text),
     );
-    setState(() => _result = const AsyncLoading());
+    setState(() {
+      _result = const AsyncLoading();
+      _request = request;
+    });
     final next = await AsyncValue.guard(() => ref.read(riskRepositoryProvider).positionSize(request));
     if (mounted) setState(() => _result = next);
   }
@@ -79,6 +85,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
 
     return ZxPage(
       title: l.riskTitle,
+      actions: const [ProfileButton()],
       children: [
         Form(
           key: _form,
@@ -195,7 +202,7 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
           AsyncValueView<PositionSize>(
             value: _result!,
             onRetry: _calculate,
-            data: (r) => SizeResult(result: r),
+            data: (r) => SizeResult(result: r, request: _request),
           ),
         const Disclaimer(),
       ],
@@ -205,9 +212,12 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
 
 /// The calculator's answer.
 class SizeResult extends StatelessWidget {
-  const SizeResult({super.key, required this.result});
+  const SizeResult({super.key, required this.result, this.request});
 
   final PositionSize result;
+
+  /// The prices that were sized (draws the price ladder).
+  final PositionSizeRequest? request;
 
   @override
   Widget build(BuildContext context) {
@@ -275,6 +285,37 @@ class SizeResult extends StatelessWidget {
             ],
           ),
         ),
+        if (request case final req?) ...[
+          const SizedBox(height: ZxSpace.md),
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.ladderTitle, style: zx.text.bodyStrong),
+                const SizedBox(height: ZxSpace.sm),
+                PriceLadder(
+                  entry: req.entry,
+                  stop: req.stop,
+                  target: req.takeProfit,
+                  decimals: Fmt.guessDecimals(req.entry),
+                  entryLabel: l.entry,
+                  stopLabel: l.stop,
+                  targetLabel: l.takeProfit,
+                  stopNote: [
+                    if (r.stopPips != null) l.pips(Fmt.number(r.stopPips, decimals: 1)),
+                    Fmt.money(-r.riskAmount, cur),
+                  ].join(' · '),
+                  targetNote: req.takeProfit == null
+                      ? null
+                      : [
+                          if (r.riskReward != null) '${Fmt.number(r.riskReward, decimals: 2)}R',
+                          if (r.rewardAmount != null) Fmt.money(r.rewardAmount, cur, signed: true),
+                        ].join(' · '),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (r.premiumLocked.contains('risk_guard')) ...[
           const SizedBox(height: ZxSpace.md),
           GlassCard(
