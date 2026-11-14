@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     rate_limit_refresh: str = "30/60"  # per IP
     rate_limit_public: str = "120/60"  # per IP, unauthenticated reads
     rate_limit_user: str = "240/60"  # per user
+    rate_limit_live: str = "150/60"  # per IP, live chart polling (a chart polls every 2 s)
 
     # Developer sign-in (POST /v1/auth/dev, no Google) to exercise the app locally. dev/test only.
     dev_login: bool = False
@@ -75,6 +76,11 @@ class Settings(BaseSettings):
     news_medium_window_s: int = 15 * 60  # medium impact: caution +/- this
     news_high_lead_s: int = 2 * 3600  # high impact within this -> caution
 
+    # Market Pulse headlines (app/services/news/headlines.py): feed codes to poll (empty = all), how often, how long
+    news_feeds: CsvList = Field(default_factory=list)
+    news_headlines_refresh_s: int = 120
+    news_items_keep_days: int = 7
+
     # Alerts and push (FCM HTTP v1). Without a service-account file, pushes are logged, not sent.
     fcm_credentials_file: Path | None = None
     max_alerts_per_user: int = 50
@@ -82,10 +88,12 @@ class Settings(BaseSettings):
     max_watchlist_items: int = 100
     # Market Radar: computed at most once per this many seconds per (timeframe, symbols); 0 = no cache
     radar_cache_s: int = 30
+    # Live charts: one exchange request per series per this many seconds, shared by every viewer
+    live_candle_cache_s: float = 1.0
     push_max_attempts: int = 3
 
     @field_validator("cors_origins", "google_client_ids", "news_calendar_urls", "free_signal_symbols",
-                     "free_signal_timeframes", mode="before")
+                     "free_signal_timeframes", "news_feeds", mode="before")
     @classmethod
     def _split_csv(cls, v: object) -> object:
         if isinstance(v, str):

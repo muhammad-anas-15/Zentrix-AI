@@ -148,7 +148,8 @@ async def _clean(app: FastAPI, fake_redis: fakeredis.FakeAsyncRedis, clock: Cloc
     clock.t = None
     app.state.radar_cache = None  # cached radar results must not leak between tests
     async with app.state.engine.begin() as conn:
-        await conn.execute(text("TRUNCATE users, audit_log, news_events RESTART IDENTITY CASCADE"))
+        await conn.execute(text("TRUNCATE users, audit_log, news_events, news_items, news_feed_status "
+                                "RESTART IDENTITY CASCADE"))
         await conn.execute(text("TRUNCATE signal_outcomes, signals, model_versions, candles RESTART IDENTITY CASCADE"))
         await conn.execute(text("DELETE FROM ingestion_targets WHERE reason <> 'chart'"))
         await conn.execute(text("UPDATE ingestion_targets SET enabled = true"))

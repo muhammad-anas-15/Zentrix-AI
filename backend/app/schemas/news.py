@@ -43,3 +43,37 @@ class GuardOut(BaseModel):
                   "caution 15 min before to 15 min after. Crypto: high-impact USD events only.")
     source: str = CALENDAR_SOURCE
     disclaimer: str = DISCLAIMER
+
+
+class NewsItemOut(BaseModel):
+    id: int
+    source: str = Field(description="Feed code, e.g. fed, ecb, coindesk")
+    source_name: str
+    kind: Literal["central_bank", "regulator", "headline"]
+    title: str
+    url: str = Field(description="The publisher's page; the app links out (no article text is stored)")
+    published_at: datetime
+    age_s: int
+    impact: Literal["high", "medium", "low"] = Field(description="Keyword rule on the headline (see `method`)")
+    impact_reason: str
+    assets: list[str] = Field(description="Currencies, metals, energy and coins the headline names (USD, XAU, BTC...)")
+
+
+class NewsSourceOut(BaseModel):
+    code: str
+    name: str
+    kind: Literal["central_bank", "regulator", "headline"]
+    ok: bool = Field(description="Last fetch succeeded")
+    last_ok_at: datetime | None
+    last_error: str | None
+
+
+class NewsFeedOut(BaseModel):
+    items: list[NewsItemOut] = Field(description="Newest first")
+    next_before_id: int | None
+    sources: list[NewsSourceOut]
+    updated_at: datetime | None = Field(description="Most recent successful fetch of any feed")
+    method: str
+    coverage: str = ("Official central-bank and regulator feeds, and publisher headline feeds (title and link only). "
+                     "Social media posts are not included: they need a paid API.")
+    disclaimer: str = DISCLAIMER

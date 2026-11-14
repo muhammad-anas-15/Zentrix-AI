@@ -19,6 +19,7 @@ from app.api.v1 import (
     auth,
     dev_auth,
     journal,
+    live,
     market,
     me,
     news,
@@ -36,6 +37,7 @@ from app.core.logging import configure_logging, get_logger
 from app.core.ratelimit import RateLimiter
 from app.db.session import make_engine, make_sessionmaker
 from app.services.auth.google import GoogleTokenVerifier, http_jwks_fetcher
+from app.services.marketdata.live import LiveCandles
 
 VERSION = "0.5.0"
 DESCRIPTION = """Zentrix: trading analysis and risk tools for FX, metals, commodities and crypto.
@@ -67,9 +69,11 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
         app.state.rate_limiter = RateLimiter(app.state.redis)
         app.state.google_verifier = google_verifier or GoogleTokenVerifier(
             settings.google_client_ids, http_jwks_fetcher(settings.google_jwks_url))
+        app.state.live_candles = LiveCandles(settings.live_candle_cache_s, clock)
         try:
             yield
         finally:
+            await app.state.live_candles.aclose()
             await engine.dispose()
             if redis is None:
                 await app.state.redis.aclose()
@@ -109,7 +113,8 @@ def create_app(settings: Settings | None = None, *, redis: Redis | None = None,
         return response
 
     app.include_router(health.router)
-    for router in (auth.router, me.router, market.router, signals.router, news.router, tools.router, radar.router,
+    for router in (auth.router, me.router, market.router, live.router, signals.router, news.router, tools.router,
+                   radar.router,
                    risk.router, journal.router, watchlists.router, alerts.router, stream.router, plans.router,
                    admin.router):
         app.include_router(router, prefix="/v1")

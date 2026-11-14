@@ -31,6 +31,7 @@ from app.services.alerts.push import DisabledSender, PushSender, deliver_pending
 from app.services.marketdata.candles import last_candle_times, upsert_candles
 from app.services.marketdata.providers import Provider
 from app.services.news.calendar import CalendarSource, refresh_calendar
+from app.services.news.headlines import HeadlineSource, enabled_feeds, refresh_headlines
 from app.services.realtime import candle_event, publish
 from app.services.signals.cache import bump_track_record_version, cache_latest_signals
 from app.services.signals.engine import generate_signals
@@ -85,7 +86,7 @@ class Worker:
     def __init__(self, sessionmaker: async_sessionmaker[AsyncSession], redis: Redis,
                  providers: dict[str, Provider], predictors: PredictorCache, settings: Settings,
                  clock: Callable[[], float] = time.time, calendar: CalendarSource | None = None,
-                 push: PushSender | None = None) -> None:
+                 push: PushSender | None = None, headlines: HeadlineSource | None = None) -> None:
         self.sessionmaker = sessionmaker
         self.redis = redis
         self.providers = providers
@@ -97,6 +98,8 @@ class Worker:
         self._last_ts: dict[Series, int] | None = None
         self._last_attempt: dict[Series, float] = {}
         self._calendar_next = 0.0
+        self.headlines = headlines
+        self._headlines_next = 0.0
 
     async def load_targets(self, db: AsyncSession) -> list[Target]:
         rows = (await db.execute(
@@ -140,6 +143,7 @@ class Worker:
         # Venues run concurrently, so a slow, throttled venue never delays another venue's signals.
         await asyncio.gather(*(self._run_venue(venue, ts, now, report) for venue, ts in by_venue.items()))
         await self._refresh_calendar(now, report)
+        await self._refresh_headlines(now, report)
         await self._news_alerts_and_push(report)
         if report.signals or report.outcomes:
             await bump_track_record_version(self.redis)
@@ -245,6 +249,21 @@ class Worker:
             self._calendar_next = now + 300
             report.errors.append(f"calendar: {type(exc).__name__}")
             log.warning("calendar_refresh_failed", error=type(exc).__name__)
+
+    async def _refresh_headlines(self, now: float, report: TickReport) -> None:
+        """Market Pulse headlines every ``news_headlines_refresh_s``; after a failure retry in a minute."""
+        if self.headlines is None or now < self._headlines_next:
+            return
+        try:
+            async with self.sessionmaker() as db:
+                await refresh_headlines(db, self.headlines, enabled_feeds(self.settings.news_feeds),
+                                        datetime.fromtimestamp(self.clock(), tz=UTC),
+                                        self.settings.news_items_keep_days)
+            self._headlines_next = now + self.settings.news_headlines_refresh_s
+        except Exception as exc:
+            self._headlines_next = now + 60
+            report.errors.append(f"headlines: {type(exc).__name__}")
+            log.warning("headlines_refresh_failed", error=type(exc).__name__)
 
     async def _budget_ok(self, venue: str, now: float) -> bool:
         if venue != "twelvedata":

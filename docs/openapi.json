@@ -3187,6 +3187,114 @@
         "title": "ListingOut",
         "type": "object"
       },
+      "LiveCandleOut": {
+        "properties": {
+          "candle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandleOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The forming candle (live) or the latest stored closed candle"
+          },
+          "closed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandleOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Live only: the candle that closed most recently, final values"
+          },
+          "closes_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the current candle period closes (null: market closed)",
+            "title": "Closes At"
+          },
+          "forming": {
+            "description": "`candle` is still forming (its values change until `closes_at`)",
+            "title": "Forming",
+            "type": "boolean"
+          },
+          "live": {
+            "description": "True: `candle` is the forming candle, straight from the exchange. False: this market's feed delivers closed candles only; charts update at each close",
+            "title": "Live",
+            "type": "boolean"
+          },
+          "market_open": {
+            "title": "Market Open",
+            "type": "boolean"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "poll_s": {
+            "description": "Suggested seconds until the next request",
+            "title": "Poll S",
+            "type": "integer"
+          },
+          "server_time": {
+            "description": "Server clock, to correct a device clock for the countdown",
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "source": {
+            "description": "Venue code of a live feed, or 'stored'",
+            "title": "Source",
+            "type": "string"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "venue",
+          "timeframe",
+          "live",
+          "candle",
+          "forming",
+          "closed",
+          "closes_at",
+          "market_open",
+          "server_time",
+          "poll_s",
+          "source"
+        ],
+        "title": "LiveCandleOut",
+        "type": "object"
+      },
       "MarkReadIn": {
         "properties": {
           "all": {
@@ -3399,6 +3507,212 @@
           "calendar_updated_at"
         ],
         "title": "NewsEventsOut",
+        "type": "object"
+      },
+      "NewsFeedOut": {
+        "properties": {
+          "coverage": {
+            "default": "Official central-bank and regulator feeds, and publisher headline feeds (title and link only). Social media posts are not included: they need a paid API.",
+            "title": "Coverage",
+            "type": "string"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "items": {
+            "description": "Newest first",
+            "items": {
+              "$ref": "#/components/schemas/NewsItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "next_before_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before Id"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/NewsSourceOut"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Most recent successful fetch of any feed",
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "items",
+          "next_before_id",
+          "sources",
+          "updated_at",
+          "method"
+        ],
+        "title": "NewsFeedOut",
+        "type": "object"
+      },
+      "NewsItemOut": {
+        "properties": {
+          "age_s": {
+            "title": "Age S",
+            "type": "integer"
+          },
+          "assets": {
+            "description": "Currencies, metals, energy and coins the headline names (USD, XAU, BTC...)",
+            "items": {
+              "type": "string"
+            },
+            "title": "Assets",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "impact": {
+            "description": "Keyword rule on the headline (see `method`)",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Impact",
+            "type": "string"
+          },
+          "impact_reason": {
+            "title": "Impact Reason",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "central_bank",
+              "regulator",
+              "headline"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "title": "Published At",
+            "type": "string"
+          },
+          "source": {
+            "description": "Feed code, e.g. fed, ecb, coindesk",
+            "title": "Source",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "description": "The publisher's page; the app links out (no article text is stored)",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "source_name",
+          "kind",
+          "title",
+          "url",
+          "published_at",
+          "age_s",
+          "impact",
+          "impact_reason",
+          "assets"
+        ],
+        "title": "NewsItemOut",
+        "type": "object"
+      },
+      "NewsSourceOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "central_bank",
+              "regulator",
+              "headline"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_ok_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Ok At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ok": {
+            "description": "Last fetch succeeded",
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "kind",
+          "ok",
+          "last_ok_at",
+          "last_error"
+        ],
+        "title": "NewsSourceOut",
         "type": "object"
       },
       "PlanOut": {
@@ -6888,6 +7202,80 @@
         ]
       }
     },
+    "/v1/candles/live": {
+      "get": {
+        "operationId": "live_candle_v1_candles_live_get",
+        "parameters": [
+          {
+            "description": "Canonical symbol, e.g. BTC/USDT",
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "description": "Canonical symbol, e.g. BTC/USDT",
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveCandleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Forming candle for live charts (real time on exchange feeds, closed candles otherwise)",
+        "tags": [
+          "market"
+        ]
+      }
+    },
     "/v1/conditions": {
       "get": {
         "operationId": "get_conditions_v1_conditions_get",
@@ -8324,6 +8712,162 @@
           }
         },
         "summary": "Economic calendar events",
+        "tags": [
+          "news"
+        ]
+      }
+    },
+    "/v1/news/feed": {
+      "get": {
+        "operationId": "news_feed_v1_news_feed_get",
+        "parameters": [
+          {
+            "description": "Comma-separated, e.g. USD,BTC",
+            "in": "query",
+            "name": "asset",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated, e.g. USD,BTC",
+              "title": "Asset"
+            }
+          },
+          {
+            "description": "Headlines reaching this instrument",
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "minLength": 3,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Headlines reaching this instrument",
+              "title": "Symbol"
+            }
+          },
+          {
+            "description": "Minimum impact",
+            "in": "query",
+            "name": "impact",
+            "required": false,
+            "schema": {
+              "default": "low",
+              "description": "Minimum impact",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ],
+              "title": "Impact",
+              "type": "string"
+            }
+          },
+          {
+            "description": "central_bank,regulator,headline",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "central_bank,regulator,headline",
+              "title": "Kind"
+            }
+          },
+          {
+            "description": "Words in the headline",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Words in the headline",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsFeedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Market Pulse: headlines with impact tags and asset badges",
         "tags": [
           "news"
         ]

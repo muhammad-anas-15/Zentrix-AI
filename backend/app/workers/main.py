@@ -22,6 +22,7 @@ from app.db.session import make_engine, make_sessionmaker
 from app.services.alerts.push import make_sender
 from app.services.marketdata.providers import default_providers
 from app.services.news.calendar import HttpCalendarSource
+from app.services.news.headlines import HttpHeadlineSource
 from app.services.signals.registry import PredictorCache
 from app.workers.ingest import Worker
 
@@ -34,7 +35,7 @@ async def run(settings: Settings, stop: asyncio.Event) -> None:
     redis = Redis.from_url(settings.redis_url, socket_connect_timeout=0.25, socket_timeout=2)
     worker = Worker(make_sessionmaker(engine), redis, default_providers(), PredictorCache(settings.artifacts_dir),
                     settings, calendar=HttpCalendarSource(settings.news_calendar_urls),
-                    push=make_sender(settings.fcm_credentials_file))
+                    push=make_sender(settings.fcm_credentials_file), headlines=HttpHeadlineSource())
     me = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
     log.info("worker_started", id=me)
     try:

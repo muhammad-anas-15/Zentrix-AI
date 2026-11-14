@@ -27,6 +27,23 @@ class CandlesOut(BaseModel):
     candles: list[CandleOut] = Field(description="Closed, market-hours candles, oldest first")
 
 
+class LiveCandleOut(BaseModel):
+    symbol: str
+    venue: str
+    timeframe: str
+    live: bool = Field(description="True: `candle` is the forming candle, straight from the exchange. False: this "
+                                   "market's feed delivers closed candles only; charts update at each close")
+    candle: CandleOut | None = Field(description="The forming candle (live) or the latest stored closed candle")
+    forming: bool = Field(description="`candle` is still forming (its values change until `closes_at`)")
+    closed: CandleOut | None = Field(description="Live only: the candle that closed most recently, final values")
+    closes_at: datetime | None = Field(description="When the current candle period closes (null: market closed)")
+    market_open: bool
+    server_time: datetime = Field(description="Server clock, to correct a device clock for the countdown")
+    poll_s: int = Field(description="Suggested seconds until the next request")
+    source: str = Field(description="Venue code of a live feed, or 'stored'")
+    note: str | None = None
+
+
 class SignalOutcomeOut(BaseModel):
     outcome: Literal["win", "loss", "flat", "void"]
     entry_time: datetime | None
