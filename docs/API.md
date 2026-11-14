@@ -147,6 +147,7 @@ status are Premium (see Plans and Premium); they are open to everyone while `PRE
 | Endpoint | Purpose |
 |---|---|
 | `GET /v1/conditions?symbol=&timeframe=15m` | `light` green/amber/red with `factors`: market open, data freshness, trend (ADX), volatility (ATR percentile), session liquidity, news |
+| `GET /v1/radar?timeframe=15m&symbols=` | **Market Radar** (free): every market ingested at the timeframe (or `symbols`, comma-separated, max 30) with its light, the reasons it is not green, trend (regime, ADX, direction while trending), volatility regime and percentile, news state and next event, last price, 24h change and a 24h mini-chart (`spark`). Ranked by light (green first), then volatility percentile; `ranking` states the rule. No direction calls. Cached for `RADAR_CACHE_S` (30 s), one computation per key at a time |
 | `GET /v1/levels?symbol=&side=long\|short&timeframe=&entry=&sl_atr=1.5&rr=1&rr=2&max_bars=50` | **Premium** (`trade_levels`). ATR stop and R-multiple targets. Each target's `base_rate` is how often it was hit before the stop on past candles, next to `break_even_hit_rate` |
 | `GET /v1/signals/{id}/levels` | **Premium** (`trade_levels`). The same for a signal, using only candles known when the signal was made. An unresolved signal outside the free markets also needs `all_markets` |
 | `POST /v1/exit-advice` | **Premium** (`exit_advisor`). Body: `symbol, timeframe, side, entry_price, stop_loss?, take_profit?, opened_at?` |
