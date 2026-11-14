@@ -435,48 +435,61 @@ class _RadarRow extends StatelessWidget {
       accent: selected ? p.accent : null,
       padding: const EdgeInsets.fromLTRB(ZxSpace.md, ZxSpace.md, ZxSpace.xs, ZxSpace.md),
       onTap: onTap,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          StatusOrb(color: _lightColor(context, item.light), pulse: false),
-          const SizedBox(width: ZxSpace.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.symbol, style: zx.text.bodyStrong),
-                const SizedBox(height: ZxSpace.xs),
-                if (item.hasData)
-                  Wrap(spacing: ZxSpace.xs, runSpacing: ZxSpace.xs, children: _stateChips(context, item))
-                else
-                  Text(l.feedUnavailable, style: zx.text.caption),
-              ],
-            ),
-          ),
-          if (item.spark.length > 1) ...[
-            const SizedBox(width: ZxSpace.sm),
-            SizedBox(
-              width: ZxSize.rowSparkWidth,
-              height: ZxSize.rowSparkHeight,
-              child: AreaChart(values: item.spark, color: moveColor, showLastDot: false),
-            ),
-          ],
-          const SizedBox(width: ZxSpace.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              FlashOnChange(
-                value: item.lastPrice,
-                child: Text(Fmt.price(item.lastPrice, decimals: item.priceDecimals), style: zx.text.priceSmall),
+              StatusOrb(color: _lightColor(context, item.light), pulse: false),
+              const SizedBox(width: ZxSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.symbol, style: zx.text.bodyStrong, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      item.hasData ? item.displayName : l.feedUnavailable,
+                      style: zx.text.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-              Text(Fmt.signedPercent(change), style: zx.text.caption.copyWith(color: moveColor)),
+              if (item.spark.length > 1) ...[
+                const SizedBox(width: ZxSpace.sm),
+                SizedBox(
+                  width: ZxSize.rowSparkWidth,
+                  height: ZxSize.rowSparkHeight,
+                  child: AreaChart(values: item.spark, color: moveColor, showLastDot: false),
+                ),
+              ],
+              const SizedBox(width: ZxSpace.md),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  FlashOnChange(
+                    value: item.lastPrice,
+                    child: Text(Fmt.price(item.lastPrice, decimals: item.priceDecimals), style: zx.text.priceSmall),
+                  ),
+                  Text(Fmt.signedPercent(change), style: zx.text.caption.copyWith(color: moveColor)),
+                ],
+              ),
+              IconButton(
+                tooltip: l.viewPair,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => context.push(pairLocation(item.symbol)),
+                icon: Icon(Icons.chevron_right_rounded, color: p.textMuted),
+              ),
             ],
           ),
-          IconButton(
-            tooltip: l.viewPair,
-            visualDensity: VisualDensity.compact,
-            onPressed: () => context.push(pairLocation(item.symbol)),
-            icon: Icon(Icons.chevron_right_rounded, color: p.textMuted),
-          ),
+          if (item.hasData) ...[
+            const SizedBox(height: ZxSpace.sm),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: ZxSize.orb + ZxSpace.md),
+              child: Wrap(spacing: ZxSpace.xs, runSpacing: ZxSpace.xs, children: _stateChips(context, item)),
+            ),
+          ],
         ],
       ),
     );

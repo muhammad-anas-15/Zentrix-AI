@@ -93,4 +93,37 @@ void main() {
     expect(e.isPremiumRequired, isTrue);
     expect(e.premiumFeature, 'scenario');
   });
+
+  test('a GET survives one dropped connection; a write is never re-sent', () async {
+    final flaky = FlakyServer();
+    final api = ApiClient(baseUrl: 'http://test', tokens: MemoryTokenStore(), adapter: flaky);
+    expect(await api.get('/v1/radar', (j) => (j! as Map<String, dynamic>)['ok']), true);
+    expect(flaky.calls, 2);
+    flaky.calls = 0;
+    await expectLater(api.post('/v1/journal', (j) => j, body: {}), throwsA(isA<ApiException>()));
+    expect(flaky.calls, 1);
+  });
+}
+
+/// Drops every other connection.
+class FlakyServer implements HttpClientAdapter {
+  int calls = 0;
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions o, Stream<Uint8List>? body, Future<void>? cancel) async {
+    calls++;
+    if (calls.isOdd) {
+      throw DioException(requestOptions: o, type: DioExceptionType.connectionError, message: 'connection reset');
+    }
+    return ResponseBody.fromString(
+      jsonEncode({'ok': true}),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

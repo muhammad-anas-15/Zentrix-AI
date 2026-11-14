@@ -42,8 +42,9 @@ class ApiClient {
   /// Fires when the session can no longer be refreshed (revoked, reused or expired refresh token).
   Stream<void> get sessionExpired => _expired.stream;
 
+  /// GETs are retried once after a dropped connection (common on mobile networks); writes never are.
   Future<T> get<T>(String path, Parse<T> parse, {Map<String, Object?>? query}) =>
-      _send(() => dio.get<Object?>(path, queryParameters: _clean(query)), parse);
+      _send(() => dio.get<Object?>(path, queryParameters: _clean(query)), parse, retryOnce: true);
 
   Future<T> post<T>(String path, Parse<T> parse, {Object? body, bool auth = true}) => _send(
     () => dio.post<Object?>(
@@ -63,11 +64,17 @@ class ApiClient {
   Future<void> delete(String path, {Map<String, Object?>? query}) =>
       _send(() => dio.delete<Object?>(path, queryParameters: _clean(query)), (_) {});
 
-  Future<T> _send<T>(Future<Response<Object?>> Function() call, Parse<T> parse) async {
+  static const retryDelay = Duration(milliseconds: 400);
+
+  Future<T> _send<T>(Future<Response<Object?>> Function() call, Parse<T> parse, {bool retryOnce = false}) async {
     try {
       final response = await call();
       return parse(response.data);
     } on DioException catch (e) {
+      if (retryOnce && e.response == null && e.type != DioExceptionType.cancel) {
+        await Future<void>.delayed(retryDelay);
+        return _send(call, parse);
+      }
       throw ApiException.fromDio(e);
     }
   }
