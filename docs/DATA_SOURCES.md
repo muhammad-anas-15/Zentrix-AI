@@ -7,7 +7,8 @@
 | Forex + gold candles | Twelve Data REST (`time_series`) | training, live signals | Free plan: 8 req/min, 800 req/day, <=5000 candles/call. Timestamps requested in UTC. |
 | Crypto candles | Binance USD-M futures klines (public) | research models only | No key. Product targets forex and gold. |
 | Economic calendar | `nfs.faireconomy.media` (ForexFactory weekly JSON) | news guard, news alerts, journal review | Unofficial feed, no published terms or SLA. Worker fetches it hourly into `news_events`. |
-| Headlines | none | - | RSS keyword flags were removed in Phase 3 (dead Reuters feed, noisy keywords). A licensed news API can be added later. |
+| Live chart candles | Binance spot / USD-M public klines (`/v1/candles/live`) | the forming candle on crypto charts | Fetched on demand, cached 1 s per series (one request in flight). FX and metals have no ticks on the free Twelve Data plan: their charts update at each close. |
+| Headlines (Market Pulse) | RSS/Atom: Fed, ECB, Bank of England, Bank of Japan, U.S. SEC (official); FXStreet, investingLive, CoinDesk, Cointelegraph (publishers) | Pulse tab, Home preview | Worker polls every 2 min with ETag/Last-Modified. Title, link, source and time only, never article text. Impact and asset tags come from keyword rules (`app/services/news/classify.py`). `NEWS_FEEDS` turns feeds on or off. RBI and SBP block automated access (403). Social posts (X) are not included: they need a paid API. |
 
 ## 2. Forex history (CLAUDE.md item 5)
 
@@ -59,6 +60,10 @@ Checked 2026-11-12. Verify again before launch; terms change.
   Sources: <https://dev.binance.vision/t/public-rest-api-for-commercial-use-case/23067>,
   <https://data.binance.vision/Binance_Vision-Terms_of_Use.pdf>.
 - **ForexFactory calendar feed:** unofficial endpoint. Replace with a licensed calendar before launch.
+- **Headline feeds (added 2026-11-15):** central-bank and SEC feeds are official public releases. Publisher RSS
+  feeds (FXStreet, investingLive, CoinDesk, Cointelegraph) are offered for reading; showing them in a commercial
+  app needs each publisher's permission, or a licensed news API. Until confirmed, keep them for testing, or
+  set `NEWS_FEEDS=fed,ecb,boe,boj,sec` for a public build.
 
 **Decision needed before Phase 2 goes public:** budget a display-licensed forex/gold feed (for example Twelve Data
 Venture, or another provider with display rights), or keep signals internal until then.

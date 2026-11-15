@@ -66,3 +66,19 @@ market-pulse section, and a flagship-grade visual pass over every screen.
   - navigation (Pulse tab, settings button);
   - calculator ladder and journal curve rendering.
 - Phone-size screenshots of the web build against live data (dark, light, Urdu).
+
+## Results
+
+- **Done as planned.** Backend: 29 new tests. App: 13 new tests.
+- **Found and fixed in the live check:**
+  - "Updated just now ago";
+  - calendar rows had no day;
+  - Urdu figures read "%1.9";
+  - the tab pill touched the screen edge;
+  - "bill" tagged a power-grid story as Medium;
+  - double-tap-to-reset delayed the jump-to-latest button by 300 ms (removed).
+- **Open for Phase 6:**
+  - CPU-heavy endpoints (`/v1/levels` 5-12 s under load, the radar) block the API event loop, which also delays
+    live polling. Move them to worker threads or precompute them.
+  - Push live updates over the WebSocket at scale instead of 2 s polling.
+  - Publisher terms for the headline feeds (see docs/DATA_SOURCES.md).

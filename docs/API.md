@@ -101,6 +101,7 @@ entry = next candle's open, exit = the open after `horizon` candles; `win`/`loss
 | Endpoint | Purpose |
 |---|---|
 | `GET /v1/candles?symbol=&timeframe=&venue=&limit=&end=` | Closed, market-hours candles for charts (oldest first, <= 1000) |
+| `GET /v1/candles/live?symbol=&timeframe=&venue=` | Forming candle for live charts. `live=true` on exchange feeds (Binance: `candle` is forming, `closed` is the candle that just closed, `poll_s`=2); `live=false` elsewhere (`candle` = last stored close, `poll_s` timed to the next close). Also `closes_at`, `market_open`, `server_time`. Own IP bucket `RATE_LIMIT_LIVE` |
 | `GET /v1/signals?symbol=&timeframe=&horizon=&strength=&status=&limit=&before_id=` | Every signal with its outcome, newest first; cursor `next_before_id` |
 | `GET /v1/signals/latest?symbol=&timeframe=&horizon=` | Latest signal (cached); 404 `no_signal` if none yet. Premium outside the free markets |
 | `GET /v1/track-record?symbol=&timeframe=&horizon=&since=` | Live stats from the database: counts, hit rate, 95% Wilson interval, by strength |
@@ -130,6 +131,7 @@ status are Premium (see Plans and Premium); they are open to everyone while `PRE
 |---|---|
 | `GET /v1/news/events?currency=USD,EUR&impact=medium&start=&end=&limit=` | Economic calendar (minimum impact), with `in_s` countdown |
 | `GET /v1/news/guard?symbol=` | `state`: `blackout` / `caution` / `clear` / `unknown`, plus reasons, active events, next event and countdown, `blackout_until` |
+| `GET /v1/news/feed?asset=USD,BTC&symbol=&impact=low&kind=&q=&limit=&before_id=` | Market Pulse headlines, newest first: `impact` (high/medium/low by keyword rules, see `method`), `impact_reason`, `assets`, `source_name`, link `url`, `age_s`; `sources` with feed health; cursor `next_before_id`. `symbol` selects the assets that reach it (FX both currencies, crypto coin + CRYPTO + USD) |
 
 - **Rules:**
   - High impact: blackout from 30 min before to 30 min after; caution if within 2 h.
