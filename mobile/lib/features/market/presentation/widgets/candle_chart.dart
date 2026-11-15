@@ -120,6 +120,9 @@ class CandleChart extends StatefulWidget {
   static const int minVisible = 20;
   static const int initialVisible = 70;
 
+  /// While a projection is shown, at most this many candles fit, so the ghost candles stay readable.
+  static const int projectionVisible = 40;
+
   @override
   State<CandleChart> createState() => _CandleChartState();
 }
@@ -199,7 +202,8 @@ class _CandleChartState extends State<CandleChart> with SingleTickerProviderStat
   }
 
   ({int start, int end}) _window() {
-    final visible = _clampVisible(_visible);
+    final wanted = widget.projection == null ? _visible : math.min(_visible, CandleChart.projectionVisible);
+    final visible = _clampVisible(wanted);
     final end = (_count - _offset.round()).clamp(visible, _count);
     return (start: math.max(0, end - visible), end: end);
   }
@@ -240,9 +244,10 @@ class _CandleChartState extends State<CandleChart> with SingleTickerProviderStat
       );
     }
     final decimals = widget.decimals ?? Fmt.guessDecimals(widget.candles.last.c);
-    final daily = const {'1d', '1w'}.contains(widget.timeframe);
-    final axisFormat = DateFormat(daily ? 'd MMM' : 'HH:mm');
-    final crossFormat = DateFormat(daily ? 'd MMM yyyy' : 'd MMM HH:mm');
+    // axis labels: dates from 4h up, weekday + time on 1h (labels would otherwise repeat one hour), time below
+    final daily = const {'4h', '1d', '1w'}.contains(widget.timeframe);
+    final axisFormat = DateFormat(daily ? 'd MMM' : (widget.timeframe == '1h' ? 'E HH:mm' : 'HH:mm'));
+    final crossFormat = DateFormat(const {'1d', '1w'}.contains(widget.timeframe) ? 'd MMM yyyy' : 'd MMM HH:mm');
     return Directionality(
       textDirection: TextDirection.ltr,
       child: LayoutBuilder(
@@ -691,7 +696,8 @@ class _CandlePainter extends CustomPainter {
           ..strokeWidth = ZxSize.hairline,
       );
       final tp = _painter(proj.label, color);
-      tp.paint(canvas, Offset(math.min(boundary + ZxSpace.xs, plot.right - tp.width), plot.top + ZxSpace.md));
+      // below the pattern label (drawn at the top)
+      tp.paint(canvas, Offset(math.min(boundary + ZxSpace.xs, plot.right - tp.width), plot.top + ZxSpace.xl));
     }
     final ghostFill = Paint()..color = color.withValues(alpha: 0.16);
     final ghostLine = Paint()

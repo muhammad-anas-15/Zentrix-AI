@@ -107,7 +107,13 @@ class _PairScreenState extends ConsumerState<PairScreen> {
       title: widget.symbol,
       onRefresh: _refresh,
       children: [
-        _LiveHeader(series: series.value, live: live, decimals: decimals, name: instrument?.displayName),
+        _LiveHeader(
+          series: series.value,
+          live: live,
+          decimals: decimals,
+          name: instrument?.displayName,
+          candle: timeframeDuration(tf),
+        ),
         ZxSegmented<String>(
           segments: [for (final t in available) (t, t)],
           selected: tf,
@@ -221,7 +227,16 @@ class _PairScreenState extends ConsumerState<PairScreen> {
 
 /// Price, 24h change and the feed status (live ticks, or updates at each close).
 class _LiveHeader extends StatelessWidget {
-  const _LiveHeader({required this.series, required this.live, required this.decimals, this.name});
+  const _LiveHeader({
+    required this.series,
+    required this.live,
+    required this.decimals,
+    this.name,
+    this.candle = Duration.zero,
+  });
+
+  /// Length of one candle: the last candle closed this long after it opened.
+  final Duration candle;
 
   final CandleSeries? series;
   final LiveCandle? live;
@@ -279,7 +294,10 @@ class _LiveHeader extends StatelessWidget {
         if (last != null && !isLive)
           Padding(
             padding: const EdgeInsets.only(top: ZxSpace.xs),
-            child: Text('${l.lastClose} · ${Fmt.dateTime(last.t, context.localeCode)}', style: zx.text.caption),
+            child: Text(
+              '${l.lastClose} · ${Fmt.dateTime(last.t.add(candle), context.localeCode)}',
+              style: zx.text.caption,
+            ),
           ),
       ],
     );

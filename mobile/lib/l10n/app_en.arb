@@ -455,6 +455,7 @@
       }
     }
   },
+  "patternNoneRange": "With no pattern on the last candles, the projection shows the typical range of any candle here.",
   "patternDisclaimer": "Describes what followed this pattern before, from past candles and ATR. Not a prediction or a trade signal: the next candles can do anything.",
   "swingUp": "Higher highs and lows",
   "swingDown": "Lower highs and lows",

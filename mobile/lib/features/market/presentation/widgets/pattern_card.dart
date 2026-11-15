@@ -206,7 +206,10 @@ class _Body extends StatelessWidget {
           ),
           if (proj.basis == 'all_candles') ...[
             const SizedBox(height: ZxSpace.xs),
-            Text(l.patternTypicalRange(pattern?.pastCases ?? 0), style: zx.text.caption),
+            Text(
+              pattern == null ? l.patternNoneRange : l.patternTypicalRange(pattern.pastCases),
+              style: zx.text.caption,
+            ),
           ],
         ],
         const SizedBox(height: ZxSpace.md),
