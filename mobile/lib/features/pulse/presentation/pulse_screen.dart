@@ -117,9 +117,9 @@ class _NewsList extends ConsumerWidget {
               child: Text(
                 [
                   if (updated != null)
-                    l.pulseUpdated(
-                      now.difference(updated).inSeconds < 60 ? l.justNow : Fmt.ago(now.difference(updated).inSeconds),
-                    ),
+                    now.difference(updated).inSeconds < 60
+                        ? l.pulseUpdatedNow
+                        : l.pulseUpdated(Fmt.ago(now.difference(updated).inSeconds)),
                   l.pulseSourcesOk(ok, feed.sources.length),
                 ].join(' · '),
                 style: zx.text.caption,
@@ -255,9 +255,10 @@ class _EventRow extends StatelessWidget {
     final p = zx.palette;
     final l = context.l10n;
     final figures = [
-      if (event.actual != null) '${l.actual} ${event.actual}',
-      if (event.forecast != null) '${l.forecast} ${event.forecast}',
-      if (event.previous != null) '${l.previous} ${event.previous}',
+      // each figure keeps its own left-to-right order inside Urdu text ("1.9%", not "%1.9")
+      if (event.actual != null) '${l.actual} ${Fmt.ltr(event.actual!)}',
+      if (event.forecast != null) '${l.forecast} ${Fmt.ltr(event.forecast!)}',
+      if (event.previous != null) '${l.previous} ${Fmt.ltr(event.previous!)}',
     ].join(' · ');
     return Opacity(
       opacity: past ? 0.6 : 1,
@@ -268,7 +269,14 @@ class _EventRow extends StatelessWidget {
           children: [
             SizedBox(
               width: ZxSize.rowSparkWidth,
-              child: Text(Fmt.time(event.eventAt, context.localeCode), style: zx.text.priceSmall),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(Fmt.time(event.eventAt, context.localeCode), style: zx.text.priceSmall),
+                  if (!DateUtils.isSameDay(event.eventAt.toLocal(), DateTime.now()))
+                    Text(Fmt.day(event.eventAt, context.localeCode), style: zx.text.caption),
+                ],
+              ),
             ),
             Padding(
               padding: const EdgeInsets.only(top: ZxSpace.xs),
@@ -289,7 +297,7 @@ class _EventRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(event.title, style: zx.text.body, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  if (figures.isNotEmpty) Text(Fmt.ltr(figures), style: zx.text.caption),
+                  if (figures.isNotEmpty) Text(figures, style: zx.text.caption),
                 ],
               ),
             ),

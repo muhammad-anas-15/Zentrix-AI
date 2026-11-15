@@ -100,8 +100,8 @@ RULES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "rall(?:y|ies)", "record high", "all-time high", "liquidations?", "sell-?off", "capitulation",
         "(?:\\d+(?:\\.\\d+)?)% (?:drop|fall|jump|gain|surge|plunge)")),
     ("medium", "market structure", _w(
-        "will list", "lists", "listing", "etf (?:inflows|outflows|flows)", "regulation", "regulators?", "bill", "law",
-        "stablecoin")),
+        "will list", "lists", "listing", "etf (?:inflows|outflows|flows)", "regulation", "regulators?",
+        "(?:crypto|stablecoin|market structure|digital asset) (?:bill|law|act)", "stablecoins?")),
 )
 
 

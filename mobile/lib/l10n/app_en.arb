@@ -362,6 +362,7 @@
     }
   },
   "justNow": "just now",
+  "pulseUpdatedNow": "Updated just now",
   "noHeadlines": "No headlines match this filter yet.",
   "breaking": "Breaking",
   "loadMore": "Load more",

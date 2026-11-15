@@ -82,4 +82,7 @@ abstract final class Fmt {
   static String dateTime(DateTime t, String locale) => DateFormat('d MMM, HH:mm', locale).format(t.toLocal());
 
   static String time(DateTime t, String locale) => DateFormat('HH:mm', locale).format(t.toLocal());
+
+  /// Local short day, e.g. "Mon 16".
+  static String day(DateTime t, String locale) => DateFormat('EEE d', locale).format(t.toLocal());
 }

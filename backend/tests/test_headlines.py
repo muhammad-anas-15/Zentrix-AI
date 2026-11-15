@@ -64,6 +64,8 @@ def test_external_entities_are_not_resolved() -> None:
     ("Here's what happened in crypto today", "low", {"CRYPTO"}),
     ("Federal Reserve Board announces pricing for payment services", "low", {"USD"}),
     ("Japan's yen weakens past 160 as BoJ stays put", "low", {"JPY"}),
+    ("Britain could turn wasted wind power into bitcoin to cut its $1.3 billion grid bill", "low", {"GBP", "BTC"}),
+    ("Senate passes stablecoin bill", "medium", {"CRYPTO"}),
 ])
 def test_impact_and_asset_rules(title: str, impact: str, assets: set[str]) -> None:
     t = tag(title)

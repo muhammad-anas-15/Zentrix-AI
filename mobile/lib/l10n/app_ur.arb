@@ -250,6 +250,7 @@
   "pulseSourcesOk": "{total} میں سے {ok} ذرائع کام کر رہے ہیں",
   "agoShort": "{ago} پہلے",
   "justNow": "ابھی",
+  "pulseUpdatedNow": "ابھی اپ ڈیٹ ہوا",
   "noHeadlines": "اس فلٹر سے ابھی کوئی خبر نہیں ملی۔",
   "breaking": "تازہ ترین",
   "loadMore": "مزید دکھائیں",

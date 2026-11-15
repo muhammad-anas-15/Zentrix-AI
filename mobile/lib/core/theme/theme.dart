@@ -261,7 +261,7 @@ ThemeData buildTheme(ZxPalette p) {
       labelColor: p.textOnAccent,
       unselectedLabelColor: p.textSecondary,
       indicatorSize: TabBarIndicatorSize.tab,
-      indicator: BoxDecoration(gradient: p.accentGradient, borderRadius: BorderRadius.circular(ZxRadius.pill)),
+      indicator: InsetPillIndicator(gradient: p.accentGradient),
       dividerColor: p.divider.withValues(alpha: 0),
       splashBorderRadius: BorderRadius.circular(ZxRadius.pill),
       labelPadding: const EdgeInsets.symmetric(horizontal: ZxSpace.md),
@@ -318,6 +318,34 @@ ThemeData buildTheme(ZxPalette p) {
     ),
     iconTheme: IconThemeData(color: p.textSecondary, size: ZxSize.icon),
   );
+}
+
+/// Tab indicator: a gradient pill inset inside its tab, so neighbouring tabs and screen edges never touch it.
+class InsetPillIndicator extends Decoration {
+  const InsetPillIndicator({required this.gradient, this.inset = const EdgeInsets.all(ZxSpace.sm - 2)});
+
+  final Gradient gradient;
+  final EdgeInsets inset;
+
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) => _InsetPillPainter(this);
+}
+
+class _InsetPillPainter extends BoxPainter {
+  _InsetPillPainter(this.d);
+
+  final InsetPillIndicator d;
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final size = configuration.size;
+    if (size == null) return;
+    final rect = d.inset.deflateRect(offset & size);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, Radius.circular(rect.height / 2)),
+      Paint()..shader = d.gradient.createShader(rect),
+    );
+  }
 }
 
 /// Dark first: the default experience.
