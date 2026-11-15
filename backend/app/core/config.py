@@ -1,0 +1,130 @@
+"""Application settings (Pydantic v2). Secrets come from the environment / backend/.env only."""
+
+from __future__ import annotations
+
+import secrets
+from functools import lru_cache
+from pathlib import Path
+from typing import Annotated, Literal
+
+from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+from ml.settings import BACKEND_DIR
+
+CsvList = Annotated[list[str], NoDecode]
+
+
+class Settings(BaseSettings):
+    # env_ignore_empty: "KEY=" in .env means "use the default", never an empty value
+    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore", env_ignore_empty=True)
+
+    app_env: Literal["dev", "test", "staging", "prod"] = "dev"
+    log_json: bool = False  # JSON logs (set true outside dev)
+    database_url: str = "postgresql+asyncpg://zentrix:zentrix@localhost:5432/zentrix"
+    redis_url: str = "redis://localhost:6379/0"
+    cors_origins: CsvList = Field(default_factory=list)
+    trust_proxy_headers: bool = False  # use X-Forwarded-For only behind a trusted proxy
+
+    # Auth
+    jwt_secret: SecretStr = SecretStr("")
+    jwt_issuer: str = "zentrix-api"
+    jwt_audience: str = "zentrix-app"
+    access_token_ttl_s: int = 15 * 60
+    refresh_token_ttl_s: int = 30 * 86400
+    google_client_ids: CsvList = Field(default_factory=list)  # Android / iOS / web OAuth client IDs
+    google_jwks_url: str = "https://www.googleapis.com/oauth2/v3/certs"
+    audit_salt: SecretStr = SecretStr("")
+
+    # Rate limits: "count/seconds"
+    rate_limit_enabled: bool = True
+    rate_limit_auth: str = "10/60"  # per IP, sign-in
+    rate_limit_refresh: str = "30/60"  # per IP
+    rate_limit_public: str = "120/60"  # per IP, unauthenticated reads
+    rate_limit_user: str = "240/60"  # per user
+    rate_limit_live: str = "150/60"  # per IP, live chart polling (a chart polls every 2 s)
+
+    # Developer sign-in (POST /v1/auth/dev, no Google) to exercise the app locally. dev/test only.
+    dev_login: bool = False
+
+    gemini_api_key: SecretStr = SecretStr("")
+    # Billing is out of scope: while False, premium features are unlocked for every user (anonymous too).
+    # True locks them to users with premium access (plan, subscription or grant; app/services/entitlements.py).
+    premium_enforced: bool = False
+    # Free tier: live signals for these markets; everything else is the premium feature "all_markets".
+    free_signal_symbols: CsvList = Field(default_factory=lambda: ["EUR/USD", "GBP/USD", "XAU/USD"])
+    free_signal_timeframes: CsvList = Field(default_factory=lambda: ["15m"])
+
+    # Worker (candle ingestion, signals, outcomes)
+    artifacts_dir: Path = BACKEND_DIR / "ml" / "artifacts"  # same env var as ml.settings (ARTIFACTS_DIR)
+    worker_poll_s: float = 5.0
+    ingest_grace_s: float = 3.0  # wait this long after a candle closes before fetching it
+    ingest_retry_s: float = 30.0  # min seconds between attempts for the same series
+    twelve_data_daily_budget: int = 780  # free plan: 800 requests/day
+    twelve_data_min_live_tf_s: int = 900  # below 15m the free plan cannot keep up
+    signal_max_lag_s: int | None = None  # default: min(20% of the timeframe, 180 s) after the close
+    outcome_void_after_s: int = 6 * 3600  # missing candles this long after the expected exit -> void
+
+    # News guard (economic calendar)
+    news_calendar_urls: CsvList = Field(default_factory=lambda: [
+        "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+        "https://nfs.faireconomy.media/ff_calendar_nextweek.json"])
+    news_refresh_s: int = 3600  # the publisher blocks much faster polling
+    news_stale_after_s: int = 6 * 3600  # older calendar -> guard state "unknown", never "clear"
+    news_blackout_before_s: int = 30 * 60  # high impact
+    news_blackout_after_s: int = 30 * 60
+    news_medium_window_s: int = 15 * 60  # medium impact: caution +/- this
+    news_high_lead_s: int = 2 * 3600  # high impact within this -> caution
+
+    # Market Pulse headlines (app/services/news/headlines.py): feed codes to poll (empty = all), how often, how long
+    news_feeds: CsvList = Field(default_factory=list)
+    news_headlines_refresh_s: int = 120
+    news_items_keep_days: int = 7
+
+    # Alerts and push (FCM HTTP v1). Without a service-account file, pushes are logged, not sent.
+    fcm_credentials_file: Path | None = None
+    max_alerts_per_user: int = 50
+    max_watchlists_per_user: int = 20
+    max_watchlist_items: int = 100
+    # Market Radar: computed at most once per this many seconds per (timeframe, symbols); 0 = no cache
+    radar_cache_s: int = 30
+    # Live charts: one exchange request per series per this many seconds, shared by every viewer
+    live_candle_cache_s: float = 1.0
+    push_max_attempts: int = 3
+
+    @field_validator("cors_origins", "google_client_ids", "news_calendar_urls", "free_signal_symbols",
+                     "free_signal_timeframes", "news_feeds", mode="before")
+    @classmethod
+    def _split_csv(cls, v: object) -> object:
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
+
+    @model_validator(mode="after")
+    def _check_secrets(self) -> Settings:
+        if self.dev_login and self.app_env not in ("dev", "test"):
+            raise ValueError("DEV_LOGIN is only allowed with APP_ENV=dev or test")
+        if self.app_env in ("staging", "prod"):
+            if len(self.jwt_secret.get_secret_value()) < 32:
+                raise ValueError("JWT_SECRET must be set (>= 32 chars) outside dev/test")
+            if not self.google_client_ids:
+                raise ValueError("GOOGLE_CLIENT_IDS must be set outside dev/test")
+            if len(self.audit_salt.get_secret_value()) < 16:
+                raise ValueError("AUDIT_SALT must be set (>= 16 chars) outside dev/test")
+        else:
+            # dev/test: ephemeral secrets so the app starts; tokens die with the process.
+            if not self.jwt_secret.get_secret_value():
+                self.jwt_secret = SecretStr(secrets.token_urlsafe(48))
+            if not self.audit_salt.get_secret_value():
+                self.audit_salt = SecretStr(secrets.token_urlsafe(24))
+        return self
+
+    @staticmethod
+    def parse_limit(spec: str) -> tuple[int, int]:
+        count, seconds = spec.split("/")
+        return int(count), int(seconds)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

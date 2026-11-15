@@ -1,0 +1,118 @@
+"""Out-of-sample metrics computed from walk-forward predictions. Used for both the model metadata and
+docs/ML_REPORT.md, so every number shown comes from stored OOS predictions."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+from ml.calibration.strength import MIN_TIER_N, TIER_LEVELS, TIER_ORDER, confidence, direction, wilson_interval
+
+RELIABILITY_BINS: tuple[float, ...] = (0.50, 0.52, 0.54, 0.56, 0.58, 0.60, 0.65, 1.0)
+# If a trivial last-candle rule already predicts the label this well, the label is dominated by feed structure
+# (e.g. synthetic 1m candles) and model "skill" cannot be separated from it.
+MAX_NAIVE_RATE = 0.55
+
+
+def _rate(correct: np.ndarray) -> dict[str, Any]:
+    n, k = int(len(correct)), int(np.sum(correct))
+    lo, hi = wilson_interval(k, n)
+    return {"n": n, "correct": k, "rate": k / n if n else None, "ci95": [lo, hi] if n else None}
+
+
+def reliability_table(p_up: np.ndarray, label: np.ndarray, bins: tuple[float, ...] = RELIABILITY_BINS) -> list[dict]:
+    conf, correct = confidence(p_up), direction(p_up) == label
+    rows = []
+    for i, (lo, hi) in enumerate(zip(bins[:-1], bins[1:], strict=True)):
+        last = i == len(bins) - 2
+        m = (conf >= lo) & ((conf <= hi) if last else (conf < hi))
+        rows.append({"bin": [lo, hi], "mean_confidence": float(conf[m].mean()) if m.any() else None,
+                     **_rate(correct[m])})
+    return rows
+
+
+def expected_calibration_error(p_up: np.ndarray, label: np.ndarray) -> float:
+    total = len(p_up)
+    return float(sum(r["n"] / total * abs(r["mean_confidence"] - r["rate"])
+                     for r in reliability_table(p_up, label) if r["n"]))
+
+
+def _naive(last_body_up: np.ndarray, y: np.ndarray) -> dict[str, Any]:
+    """Better of 'repeat the last candle's body direction' and 'reverse it' on the same rows. Picking the
+    better rule after the fact flatters the baseline, which makes beating it a stricter test for the model."""
+    repeat = _rate(last_body_up == y)
+    reverse = _rate(last_body_up != y)
+    return {**(repeat if repeat["rate"] >= reverse["rate"] else reverse),
+            "rule": "repeat last candle" if repeat["rate"] >= reverse["rate"] else "reverse last candle"}
+
+
+def assess_usability(m: dict[str, Any]) -> dict[str, Any]:
+    """A model may serve strength tiers only if its OOS accuracy interval clears both baselines and the label
+    is not dominated by a trivial rule. Otherwise every live signal is shown as "no demonstrated edge"."""
+    acc, base, naive = m["accuracy"], m["baseline_accuracy"], m["naive_baseline"]
+    best = max(base["rate"], naive["rate"])
+    reasons = []
+    if not (acc["n"] and acc["ci95"][0] > best):
+        reasons.append(f"95% interval does not clear the better baseline ({best * 100:.1f}%)")
+    if naive["rate"] >= MAX_NAIVE_RATE:
+        reasons.append(f"a trivial last-candle rule already scores {naive['rate'] * 100:.1f}% (feed artifact)")
+    return {"usable": not reasons, "reasons": reasons}
+
+
+def summarize(pred: pd.DataFrame) -> dict[str, Any]:
+    """Headline numbers use blocks >= 2 (calibrated out-of-sample); tier stats use blocks >= 3."""
+    cal = pred[pred["block"] >= 2]
+    y = cal["label"].to_numpy(dtype=int)
+    p_cal, p_raw = cal["p_cal"].to_numpy(dtype=float), cal["p_raw"].to_numpy(dtype=float)
+    eps = 1e-12
+    tiers = pred[pred["block"] >= 3]
+    tier_stats = {}
+    for tier in TIER_ORDER:
+        sel = tiers[tiers["strength"] == tier]
+        stats = _rate(direction(sel["p_cal"].to_numpy(dtype=float)) == sel["label"].to_numpy(dtype=int))
+        tier_stats[tier] = {**stats, "share": len(sel) / len(tiers) if len(tiers) else None}
+    out = {
+        "n_oos": int(len(cal)),
+        "period": {"first_time": int(cal["time"].min()), "last_time": int(cal["time"].max())},
+        "accuracy": _rate(direction(p_cal) == y),
+        "raw_accuracy": _rate(direction(p_raw) == y),
+        "baseline_accuracy": _rate(cal["majority_pred"].to_numpy(dtype=int) == y),
+        "naive_baseline": _naive(cal["last_body_up"].to_numpy(dtype=int), y),
+        "up_rate": float(y.mean()),
+        "brier": float(np.mean((p_cal - y) ** 2)),
+        "brier_raw": float(np.mean((p_raw - y) ** 2)),
+        "log_loss": float(-np.mean(y * np.log(p_cal + eps) + (1 - y) * np.log(1 - p_cal + eps))),
+        "ece_raw": expected_calibration_error(p_raw, y),
+        "ece_cal": expected_calibration_error(p_cal, y),
+        "reliability": reliability_table(p_cal, y),
+        "per_block": [{"block": int(b), **_rate(direction(g["p_cal"].to_numpy(float)) == g["label"].to_numpy(int))}
+                      for b, g in cal.groupby("block")],
+        "tiers": tier_stats,
+        "tier_validation": validate_tiers(tiers),
+    }
+    out["usability"] = assess_usability(out)
+    return out
+
+
+def validate_tiers(tiers: pd.DataFrame, min_n: int = MIN_TIER_N) -> dict[str, dict[str, Any]]:
+    """Did each tier hold up out-of-sample? Cuts for block k were chosen on earlier blocks, so the signals they
+    assigned in blocks 3+ are a clean test. Tier T is validated when signals labelled T or stronger (the set
+    'confidence >= cut') reached T's level with 95% confidence (Weak: strictly above 50%)."""
+    out: dict[str, dict[str, Any]] = {}
+    for i, (tier, level) in enumerate(TIER_LEVELS):
+        stronger = {t for t, _ in TIER_LEVELS[: i + 1]}
+        sel = tiers[tiers["strength"].isin(stronger)]
+        stats = _rate(direction(sel["p_cal"].to_numpy(dtype=float)) == sel["label"].to_numpy(dtype=int))
+        lo = stats["ci95"][0] if stats["n"] else None
+        ok = stats["n"] >= min_n and lo is not None and (lo > level if level == 0.5 else lo >= level)
+        out[tier] = {**stats, "validated": bool(ok)}
+    return out
+
+
+def served_cuts(cuts: dict[str, float | None], m: dict[str, Any]) -> dict[str, float | None]:
+    """Cuts actually used for live signals: only for a usable model, and only tiers validated out-of-sample."""
+    if not m["usability"]["usable"]:
+        return {t: None for t in cuts}
+    return {t: (c if m["tier_validation"].get(t, {}).get("validated") else None) for t, c in cuts.items()}

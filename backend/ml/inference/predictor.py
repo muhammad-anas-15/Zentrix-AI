@@ -1,0 +1,100 @@
+"""Live signals: latest CLOSED candle -> shared features -> model -> calibrated P(up) -> earned strength tier.
+
+Confidence shown to users is the calibrated probability; the strength label is the tier this model earned
+out-of-sample, and ``track_record`` carries that tier's measured OOS hit rate from the model metadata
+(never a hardcoded number). Not financial advice.
+"""
+
+from __future__ import annotations
+
+import math
+import time as _time
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+from ml.calibration.calibrators import calibrator_from_dict
+from ml.calibration.strength import assign_strength, confidence
+from ml.data.candles import HIGHER_TF, interval_seconds, is_forex
+from ml.data.sessions import session_for_symbol, trading_hours_only
+from ml.data.sources import binance, twelvedata
+from ml.features.builder import INFERENCE_HTF_LOOKBACK, INFERENCE_LOOKBACK, to_model_matrix
+from ml.inference.features import latest_feature_row
+from ml.training.model import load_artifact, model_key
+
+WEEKEND_SECONDS = 49 * 3600  # Fri 17:00 -> Sun 17:00 New York, plus a DST hour
+
+
+@dataclass(frozen=True)
+class Signal:
+    symbol: str
+    interval: str
+    horizon: int
+    candle_time: int  # open time (UTC epoch s) of the closed candle the signal is computed on
+    direction: str  # "Up" | "Down"
+    p_up_raw: float
+    p_up: float  # calibrated
+    confidence: float  # calibrated probability of the stated direction
+    strength: str
+    track_record: dict[str, Any] | None  # OOS stats of this strength tier for this model
+    model_key: str
+    model_trained_at: str
+    model_usable: bool  # False: no demonstrated OOS edge; every signal is "Very Weak - Wait"
+    features: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+class Predictor:
+    def __init__(self, model: Any, metadata: dict[str, Any]) -> None:
+        self.model = model
+        self.meta = metadata
+        self.calibrator = calibrator_from_dict(metadata["calibration"])
+        self.cuts = metadata["strength"]["cuts"]
+
+    @classmethod
+    def load(cls, symbol: str, interval: str, horizon: int = 1, root: Path | None = None) -> Predictor:
+        return cls(*load_artifact(model_key(symbol, interval, horizon), root))
+
+    def predict_row(self, row: pd.DataFrame) -> Signal:
+        x = to_model_matrix(row, self.meta["feature_cols"])
+        p_raw = float(self.model.predict_proba(x)[0, 1])
+        p_up = float(self.calibrator.predict(np.array([p_raw]))[0])
+        conf = float(confidence(np.array([p_up]))[0])
+        strength = str(assign_strength(conf, self.cuts)[0])
+        r = row.iloc[0]
+        return Signal(
+            symbol=self.meta["symbol"], interval=self.meta["interval"], horizon=int(self.meta["horizon"]),
+            candle_time=int(r["time"]), direction="Up" if p_up >= 0.5 else "Down", p_up_raw=p_raw, p_up=p_up,
+            confidence=conf, strength=strength,
+            track_record=self.meta["strength"]["tier_stats"].get(strength),
+            model_key=self.meta["key"], model_trained_at=self.meta["trained_at"],
+            model_usable=bool(self.meta.get("usability", {}).get("usable", False)),
+            features={k: (v.item() if hasattr(v, "item") else v) for k, v in r.items()},
+        )
+
+
+def fetch_recent(symbol: str, interval: str, limit: int) -> pd.DataFrame:
+    """Recent market-hours candles (same filter as training). For forex, over-fetches by one weekend
+    (49 h of candles) so that on Monday morning ``limit`` market-hours candles still remain."""
+    source = twelvedata if is_forex(symbol) else binance
+    want = limit + (math.ceil(WEEKEND_SECONDS / interval_seconds(interval)) if is_forex(symbol) else 0)
+    candles = trading_hours_only(source.fetch_latest(symbol, interval, want), session_for_symbol(symbol))
+    return candles.tail(limit).reset_index(drop=True)
+
+
+def live_feature_row(symbol: str, interval: str, now: float | None = None) -> pd.DataFrame:
+    """Feature row for the last closed candle. Fetches enough history for warm-up (+2: forming candle)."""
+    now = _time.time() if now is None else now
+    htf_interval = HIGHER_TF.get(interval)
+    candles = fetch_recent(symbol, interval, INFERENCE_LOOKBACK + 2)
+    htf = fetch_recent(symbol, htf_interval, INFERENCE_HTF_LOOKBACK + 2) if htf_interval else None
+    return latest_feature_row(candles, interval, htf, htf_interval, now=now)
+
+
+def latest_signal(symbol: str, interval: str, horizon: int = 1, now: float | None = None) -> Signal:
+    return Predictor.load(symbol, interval, horizon).predict_row(live_feature_row(symbol, interval, now))

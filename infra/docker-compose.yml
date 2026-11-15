@@ -1,0 +1,79 @@
+# Local stack: docker compose -f infra/docker-compose.yml up --build
+# Model artifacts live in the ml_data volume (/data/artifacts). Register them once (and after each retrain):
+#   docker compose -f infra/docker-compose.yml run --rm worker python -m app.workers.register_models
+name: zentrix
+
+x-backend: &backend
+  build:
+    context: ../backend
+    dockerfile: ../infra/Dockerfile
+  image: zentrix-backend:dev
+  env_file:
+    - path: ../backend/.env
+      required: false
+  environment:
+    DATABASE_URL: postgresql+asyncpg://zentrix:${POSTGRES_PASSWORD:-zentrix}@postgres:5432/zentrix
+    REDIS_URL: redis://redis:6379/0
+
+services:
+  migrate:   # one-off: apply Alembic migrations, then exit
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    volumes:
+      - ml_data:/data   # model artifacts + candle cache (never baked into the image)
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:    # candle ingestion, per-candle-close signals, outcome resolver
+    <<: *backend
+    command: ["python", "-m", "app.workers.main"]
+    volumes:
+      - ml_data:/data
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zentrix
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zentrix}   # dev default; set a real secret outside dev
+      POSTGRES_DB: zentrix
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zentrix -d zentrix"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pg_data:
+  ml_data:

@@ -1,0 +1,15 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        generate_for:
+          - lib/core/models/**
+          - lib/features/**/domain/**
+        options:
+          field_rename: snake
+          explicit_to_json: true
+          include_if_null: false
+      freezed:
+        generate_for:
+          - lib/core/models/**
+          - lib/features/**/domain/**

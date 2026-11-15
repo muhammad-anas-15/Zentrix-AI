@@ -1,0 +1,398 @@
+{
+  "@@locale": "en",
+  "appName": "Zentrix",
+  "tagline": "Analysis and risk tools for FX, metals and crypto.",
+  "signInTitle": "Trade with a plan",
+  "signInSubtitle": "Market conditions, honest signals and risk tools. Every signal is tracked in public.",
+  "signInWithGoogle": "Continue with Google",
+  "googleNotConfigured": "Google sign-in is not configured in this build yet.",
+  "devSignIn": "Developer sign-in",
+  "devSignInHint": "Local testing only: signs in with an email, without Google.",
+  "email": "Email",
+  "continueAsGuest": "Explore without an account",
+  "signInRequiredTitle": "Sign in to use this",
+  "signInRequiredBody": "Your journal, watchlists, alerts and settings are saved to your account.",
+  "signIn": "Sign in",
+  "legalNote": "Nothing in this app is financial advice.",
+  "navHome": "Home",
+  "navMarkets": "Markets",
+  "navRisk": "Risk",
+  "navJournal": "Journal",
+  "navSettings": "Settings",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "close": "Close",
+  "add": "Add",
+  "errorGeneric": "Something went wrong.",
+  "errorNetwork": "Can't reach the server. Check your connection.",
+  "notFinancialAdvice": "Not financial advice.",
+  "noDataForTimeframe": "No candles stored for this market and timeframe yet.",
+  "premium": "Premium",
+  "premiumLockedTitle": "Premium feature",
+  "premiumLockedBody": "{feature} is not on your plan. Purchases are not available yet.",
+  "@premiumLockedBody": {
+    "placeholders": {
+      "feature": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumOpenBeta": "Unlocked for everyone during the beta",
+  "marketOverview": "Market overview",
+  "conditionsTitle": "Market conditions",
+  "lightGreen": "Conditions OK",
+  "lightAmber": "Be careful",
+  "lightRed": "Stay out",
+  "lightUnknown": "Unknown",
+  "newsGuardTitle": "News guard",
+  "newsNextEvent": "Next: {event}",
+  "@newsNextEvent": {
+    "placeholders": {
+      "event": {
+        "type": "String"
+      }
+    }
+  },
+  "newsNoUpcoming": "No relevant events this week",
+  "newsStateBlackout": "Blackout",
+  "newsStateCaution": "Caution",
+  "newsStateClear": "Clear",
+  "newsStateUnknown": "Calendar unavailable",
+  "watchlistTitle": "Watchlist",
+  "latestSignal": "Latest signal",
+  "alerts": "Alerts",
+  "viewPair": "Open chart",
+  "marketsTitle": "Markets",
+  "searchMarkets": "Search symbol or name",
+  "assetFx": "FX",
+  "assetMetal": "Metals",
+  "assetCommodity": "Commodities",
+  "assetCrypto": "Crypto",
+  "assetOther": "Other",
+  "feedUnavailable": "No live feed yet",
+  "lastClose": "Last close",
+  "change24h": "24h",
+  "signalTitle": "Signal",
+  "directionUp": "Up",
+  "directionDown": "Down",
+  "modelProbability": "Model probability",
+  "horizonCandles": "{count, plural, =1{for the next candle} other{for the next {count} candles}}",
+  "@horizonCandles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noEdgeNote": "This model has shown no edge out of sample. Treat the direction as 50/50.",
+  "strengthStrong": "Strong",
+  "strengthGood": "Good",
+  "strengthModerate": "Moderate",
+  "strengthWeak": "Weak",
+  "strengthVeryWeak": "Very Weak - Wait",
+  "backtestTier": "Backtest of this tier: {rate} hit rate over {count} signals",
+  "@backtestTier": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outcomeWin": "Win",
+  "outcomeLoss": "Loss",
+  "outcomeFlat": "Flat",
+  "outcomeVoid": "Void",
+  "outcomePending": "Pending",
+  "noSignalYet": "No signal yet for this market and timeframe.",
+  "levelsTitle": "Stop-loss and targets (ATR)",
+  "sideLong": "Long",
+  "sideShort": "Short",
+  "entry": "Entry",
+  "stop": "Stop",
+  "targetR": "Target {r}R",
+  "@targetR": {
+    "placeholders": {
+      "r": {
+        "type": "String"
+      }
+    }
+  },
+  "baseRate": "Hit first {rate} of the time, break-even needs {breakEven}",
+  "@baseRate": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      },
+      "breakEven": {
+        "type": "String"
+      }
+    }
+  },
+  "baseRateUnknown": "Not enough history for a base rate",
+  "levelsNote": "Base rates show how often these exact levels were hit first on past candles. They do not predict the next trade.",
+  "riskTitle": "Position size",
+  "symbol": "Symbol",
+  "accountCurrency": "Account currency",
+  "balance": "Balance",
+  "riskPct": "Risk per trade (%)",
+  "entryPrice": "Entry price",
+  "stopLoss": "Stop-loss",
+  "takeProfitOptional": "Take-profit (optional)",
+  "leverageOptional": "Leverage (optional)",
+  "fromProfileHint": "Empty = your risk profile",
+  "calculate": "Calculate",
+  "resultLots": "Lots",
+  "resultUnits": "Units",
+  "resultRisk": "Money at risk",
+  "resultPipValue": "Pip value per lot",
+  "resultStop": "Stop distance",
+  "resultRR": "Reward : risk",
+  "resultMargin": "Margin",
+  "resultReward": "Reward",
+  "resultDailyLeft": "Daily loss left",
+  "warnings": "Warnings",
+  "conversion": "Currency conversion",
+  "fieldRequired": "Required",
+  "invalidNumber": "Enter a positive number",
+  "pips": "{value} pips",
+  "@pips": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyLossPremium": "Daily-loss check is a Premium feature.",
+  "journalTitle": "Journal",
+  "tabTrades": "Trades",
+  "tabStats": "Stats",
+  "tabTrackRecord": "Track record",
+  "addTrade": "Add trade",
+  "closeTrade": "Close trade",
+  "tradeOpen": "Open",
+  "tradeClosed": "Closed",
+  "side": "Side",
+  "quantity": "Quantity (units)",
+  "quantityHint": "1 standard FX lot = 100,000 units",
+  "entryTime": "Entry time",
+  "exitPrice": "Exit price",
+  "notes": "Notes",
+  "noTrades": "No trades yet. Log a trade to see your statistics.",
+  "statsNetPnl": "Net P&L",
+  "statsWinRate": "Win rate",
+  "statsProfitFactor": "Profit factor",
+  "statsExpectancy": "Expectancy",
+  "statsAvgR": "Average R",
+  "statsWorstStreak": "Worst losing streak",
+  "statsTrades": "Closed trades",
+  "wins": "Wins",
+  "losses": "Losses",
+  "breakeven": "Breakeven",
+  "deleteTradeConfirm": "Delete this trade?",
+  "tradeSaved": "Trade saved",
+  "trackRecordTitle": "Live track record",
+  "trackRecordIntro": "Every signal the app has made, with its outcome. Nothing is hidden or hand-picked.",
+  "signalsTotal": "Signals",
+  "decided": "Decided",
+  "hitRate": "Hit rate",
+  "ci95": "95% range {low} to {high}",
+  "@ci95": {
+    "placeholders": {
+      "low": {
+        "type": "String"
+      },
+      "high": {
+        "type": "String"
+      }
+    }
+  },
+  "pending": "Pending",
+  "byStrength": "By strength",
+  "recentSignals": "Recent resolved signals",
+  "noSignals": "No resolved signals yet.",
+  "alertsTitle": "Alerts",
+  "tabInbox": "Inbox",
+  "tabMyAlerts": "My alerts",
+  "markAllRead": "Mark all read",
+  "noAlertEvents": "Nothing yet. Triggered alerts appear here.",
+  "noAlerts": "No alerts yet. Create one for a price level or upcoming news.",
+  "newAlert": "New alert",
+  "alertKindPrice": "Price level",
+  "alertKindNews": "News",
+  "alertKindSignal": "Signal",
+  "alertAbove": "Crosses above",
+  "alertBelow": "Crosses below",
+  "alertLevel": "Price level",
+  "alertLeadMinutes": "Minutes before the event",
+  "alertMinStrength": "Minimum strength",
+  "alertCreated": "Alert created",
+  "pushNotConfigured": "Push notifications are not set up in this build. Triggered alerts appear in the inbox.",
+  "settingsTitle": "Settings",
+  "profile": "Profile",
+  "language": "Language",
+  "languageEnglish": "English",
+  "languageUrdu": "اردو",
+  "theme": "Theme",
+  "themeSystem": "System",
+  "themeDark": "Dark",
+  "themeLight": "Light",
+  "planTitle": "Plan",
+  "planFree": "Free",
+  "planPremium": "Premium",
+  "premiumFeatures": "Premium features",
+  "featureAvailable": "Available",
+  "featureLocked": "Not on your plan",
+  "featureAllMarkets": "All markets and timeframes",
+  "featureSignalAlerts": "Signal alerts",
+  "featureTradeLevels": "Stop-loss and take-profit levels",
+  "featureExitAdvisor": "Exit advisor",
+  "featureScenario": "Scenario path",
+  "featureJournal": "Trade journal and review",
+  "featureRiskGuard": "Daily risk guard",
+  "signOut": "Sign out",
+  "signOutEverywhere": "Sign out on all devices",
+  "deleteAccount": "Delete account",
+  "deleteAccountTitle": "Delete your account",
+  "deleteAccountBody": "This permanently deletes your account and all its data: journal, watchlists, alerts, devices and settings. It cannot be undone.",
+  "deleteAccountConfirmHint": "Type DELETE to confirm",
+  "deleteAccountButton": "Delete permanently",
+  "accountDeleted": "Your account was deleted.",
+  "about": "About",
+  "disclaimerLong": "Zentrix gives analysis and risk tools. Signals are probabilities from past data, and only the live track record shows how they perform. Nothing here is financial advice.",
+  "guestMode": "Guest mode",
+  "guestModeBody": "Sign in to keep a journal, watchlists and alerts.",
+  "sessionExpired": "Your session ended. Please sign in again.",
+  "highlightConditions": "A green, amber or red light for every market: trend, volatility, session and news.",
+  "highlightSignals": "Signals with honest strength labels, and every outcome tracked in public.",
+  "highlightRisk": "Position sizing, ATR stops and a journal that reviews your habits.",
+  "factorMarket": "Market hours",
+  "factorData": "Data freshness",
+  "factorTrend": "Trend",
+  "factorVolatility": "Volatility",
+  "factorSession": "Session liquidity",
+  "factorNews": "News",
+  "createWatchlist": "Create a watchlist",
+  "fromProfileShort": "From profile",
+  "statsNote": "Statistics of your own journal. Past results do not predict future results.",
+  "newsUnknownBody": "The economic calendar is out of date, so news risk is unknown. Check the calendar before trading.",
+  "marketRadar": "Market Radar",
+  "marketsNow": "Markets now",
+  "radarRanking": "Ranked by conditions, then activity. Not by a predicted direction.",
+  "expectedRange": "Expected range",
+  "expectedRangeNext": "{count} candles ahead · about {minutes} min",
+  "@expectedRangeNext": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "rangeCoverage": "{nominal} band · held {measured} of the time in {tested} past tests",
+  "@rangeCoverage": {
+    "placeholders": {
+      "nominal": {
+        "type": "String"
+      },
+      "measured": {
+        "type": "String"
+      },
+      "tested": {
+        "type": "int"
+      }
+    }
+  },
+  "rangeNotDirection": "Range, not direction: how far price may move, not which way.",
+  "noScenario": "Not enough history for an expected range yet.",
+  "nextEvent": "Next event",
+  "impactHigh": "High impact",
+  "impactMedium": "Medium impact",
+  "trendTrending": "Trending",
+  "trendWeak": "Weak trend",
+  "trendRanging": "Ranging",
+  "volLow": "Quiet",
+  "volNormal": "Normal vol",
+  "volHigh": "High vol",
+  "volExtreme": "Extreme vol",
+  "signalsLabTitle": "Signals Lab",
+  "signalsLabBody": "Direction models are in testing. None has proven an edge on unseen data yet, so they stay out of your way. Every result is in the live track record.",
+  "noRadarData": "No markets with stored data yet.",
+  "navPulse": "Pulse",
+  "pulseTitle": "Market Pulse",
+  "pulseSources": "Sources",
+  "pulseFilterAll": "All",
+  "pulseFilterHigh": "High impact",
+  "pulseFilterCentralBanks": "Central banks",
+  "pulseFilterFx": "FX & macro",
+  "pulseFilteredBy": "Showing",
+  "clearFilter": "Clear filter",
+  "pulseNote": "Headlines open at their publisher. Impact tags rank the type of news by fixed keyword rules, not how price will move.",
+  "pulseUpdated": "Updated {ago} ago",
+  "@pulseUpdated": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "pulseSourcesOk": "{ok} of {total} sources working",
+  "@pulseSourcesOk": {
+    "placeholders": {
+      "ok": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "agoShort": "{ago} ago",
+  "@agoShort": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "justNow": "just now",
+  "pulseUpdatedNow": "Updated just now",
+  "noHeadlines": "No headlines match this filter yet.",
+  "breaking": "Breaking",
+  "loadMore": "Load more",
+  "calendarTitle": "Economic calendar",
+  "upNext": "Up next",
+  "actual": "Actual",
+  "forecast": "Forecast",
+  "previous": "Previous",
+  "impactLow": "Low impact",
+  "pulseMethodTitle": "How the Pulse works",
+  "pulseMethod": "Headlines come from central banks (Fed, ECB, Bank of England, Bank of Japan), the U.S. SEC and market news publishers, checked every 2 minutes. Each is tagged by fixed keyword rules: rate decisions, CPI, payrolls, GDP, exchange hacks or halts, ETF decisions, regulator lawsuits, sanctions or war are High; central-bank speeches and minutes, other data and large market moves are Medium; analysis and the rest are Low. A tag ranks the type of news, not the size or direction of a price move. Calendar events keep the impact their publisher gives them.",
+  "pulseCoverage": "Social media posts (for example on X) are not included yet: they need a paid data feed.",
+  "sourceOk": "Working",
+  "sourceDown": "Unavailable",
+  "seeAll": "See all",
+  "jumpToLatest": "Jump to latest",
+  "liveBadge": "Live",
+  "updatesAtClose": "Updates at candle close",
+  "marketClosed": "Market closed",
+  "tabSignal": "Signal",
+  "tabLevels": "Levels",
+  "tabConditions": "Conditions",
+  "tabNews": "News",
+  "ladderTitle": "Price ladder",
+  "equityCurve": "Equity curve",
+  "equityCaption": "Running P&L of closed trades, oldest to newest.",
+  "equityEmpty": "Close at least two trades to draw your equity curve.",
+  "ciBandTitle": "Hit rate and its 95% range",
+  "ciBandCaption": "The bar shows where the true hit rate likely lies. While it reaches below the 50% line, there is no proven edge.",
+  "coinFlip": "50% (coin flip)",
+  "takeProfit": "Take-profit",
+  "noMarketsMatch": "No markets match your search."
+}
