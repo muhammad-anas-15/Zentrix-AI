@@ -39,6 +39,9 @@ class InstrumentOut(BaseModel):
     session: str
     active: bool = Field(description="False until the instrument has a usable data feed")
     listings: list[ListingOut]
+    timeframes: list[str] = Field(default_factory=list, description=(
+        "Timeframes with stored candles kept up to date on the primary listing (fetched or built from a finer "
+        "timeframe), shortest first. Empty: no chart data on the current data plan"))
 
 
 class InstrumentPage(BaseModel):

@@ -125,8 +125,8 @@ async def test_alert_crud_and_validation(client: httpx.AsyncClient, google: Fake
         "kind": "price_cross", "symbol": "EUR/GBP", "params": {"level": 0.86, "direction": "above"}})
     assert r.status_code == 422 and r.json()["error"]["code"] == "series_not_ingested"
     r = await client.post("/v1/alerts", headers=h, json={
-        "kind": "pct_move", "symbol": "EUR/USD", "timeframe": "4h", "params": {"pct": 1}})
-    assert r.json()["error"]["details"]["available_timeframes"] == ["15m", "1h"]
+        "kind": "pct_move", "symbol": "EUR/USD", "timeframe": "5m", "params": {"pct": 1}})
+    assert r.json()["error"]["details"]["available_timeframes"] == ["15m", "1h", "4h", "1d"]
 
     upd = await client.patch(f"/v1/alerts/{a['id']}", headers=h, json={"params": {"level": 1.2, "direction":
                                                                                    "below"}, "active": False})

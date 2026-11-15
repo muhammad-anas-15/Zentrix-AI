@@ -10,12 +10,13 @@ from sqlalchemy import func, or_, select
 from app.api.deps import DbDep
 from app.core.ratelimit import limit_by_ip
 from app.models.market import Instrument, InstrumentListing, Timeframe, Venue
+from app.models.signals import IngestionTarget
 from app.schemas.market import InstrumentOut, InstrumentPage, ListingOut, TimeframeOut, VenueOut
 
 router = APIRouter(tags=["market"], dependencies=[Depends(limit_by_ip("public", "rate_limit_public"))])
 
 
-def _instrument_out(i: Instrument) -> InstrumentOut:
+def _instrument_out(i: Instrument, timeframes: list[str] | None = None) -> InstrumentOut:
     return InstrumentOut(
         symbol=i.symbol, display_name=i.display_name, asset_class=i.asset_class,  # type: ignore[arg-type]
         instrument_type=i.instrument_type, base=i.base, quote=i.quote,  # type: ignore[arg-type]
@@ -23,7 +24,25 @@ def _instrument_out(i: Instrument) -> InstrumentOut:
         active=i.active,
         listings=[ListingOut(venue=li.venue.code, venue_symbol=li.venue_symbol, status=li.status,  # type: ignore[arg-type]
                              is_primary=li.is_primary, note=li.note) for li in i.listings],
+        timeframes=timeframes or [],
     )
+
+
+async def chart_timeframes(db: DbDep, instrument_ids: list[int]) -> dict[int, list[str]]:
+    """Instrument id -> timeframes kept up to date on its primary listing, shortest first."""
+    if not instrument_ids:
+        return {}
+    rows = (await db.execute(
+        select(InstrumentListing.instrument_id, IngestionTarget.timeframe)
+        .join(IngestionTarget, IngestionTarget.listing_id == InstrumentListing.id)
+        .join(Timeframe, Timeframe.code == IngestionTarget.timeframe)
+        .where(InstrumentListing.instrument_id.in_(instrument_ids), InstrumentListing.is_primary,
+               IngestionTarget.enabled)
+        .order_by(Timeframe.seconds))).all()
+    out: dict[int, list[str]] = {}
+    for iid, tf in rows:
+        out.setdefault(iid, []).append(tf)
+    return out
 
 
 @router.get("/instruments", response_model=InstrumentPage, summary="List instruments across asset classes")
@@ -52,7 +71,9 @@ async def list_instruments(
     total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     page = stmt.order_by(Instrument.asset_class, Instrument.symbol).limit(limit).offset(offset)
     rows = (await db.scalars(page)).all()
-    return InstrumentPage(items=[_instrument_out(i) for i in rows], total=total, limit=limit, offset=offset)
+    tfs = await chart_timeframes(db, [i.id for i in rows])
+    return InstrumentPage(items=[_instrument_out(i, tfs.get(i.id)) for i in rows], total=total, limit=limit,
+                          offset=offset)
 
 
 @router.get("/timeframes", response_model=list[TimeframeOut], summary="Supported candle timeframes")

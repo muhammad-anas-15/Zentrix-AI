@@ -46,6 +46,8 @@ class IngestionTarget(Base):
     priority: Mapped[int] = mapped_column(SmallInteger, default=100, server_default="100")  # lower runs first
     reason: Mapped[str] = mapped_column(String(16))
     backfill_candles: Mapped[int] = mapped_column(Integer, default=700, server_default="700")
+    # Set: never fetched; built by the worker from this listing's stored candles of that (finer) timeframe.
+    derive_from: Mapped[str | None] = mapped_column(ForeignKey("timeframes.code"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     listing: Mapped[InstrumentListing] = relationship(lazy="joined")

@@ -105,9 +105,10 @@ async def create_alert(body: AlertIn, user: CurrentUser, db: DbDep, settings: Se
     if body.kind in ("price_cross", "pct_move") and inst is not None:
         # price alerts are evaluated on ingested candles; refuse an alert that could never fire
         available = list((await db.scalars(select(IngestionTarget.timeframe).join(
-            InstrumentListing, InstrumentListing.id == IngestionTarget.listing_id).where(
+            InstrumentListing, InstrumentListing.id == IngestionTarget.listing_id).join(
+            Timeframe, Timeframe.code == IngestionTarget.timeframe).where(
             InstrumentListing.instrument_id == inst.id, InstrumentListing.is_primary, IngestionTarget.enabled)
-            .order_by(IngestionTarget.timeframe))).all())
+            .order_by(Timeframe.seconds))).all())
         if body.timeframe not in available:
             raise AppError(422, "series_not_ingested", f"{inst.symbol} {body.timeframe} candles are not ingested",
                            details={"available_timeframes": available})

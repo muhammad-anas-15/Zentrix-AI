@@ -56,6 +56,55 @@ async def load_series(db: AsyncSession, listing_id: int, timeframe: str, limit: 
                       "volume": r.volume or 0.0} for r in rows])
 
 
+WEEK_S = 7 * 86400
+MONDAY_OFFSET_S = 4 * 86400  # 1970-01-01 was a Thursday; weeks open on Monday 00:00 UTC
+
+
+def bucket_open(times: pd.Series, tf_s: int) -> pd.Series:
+    """Open time of the ``tf_s`` period containing each epoch time (UTC; weeks open on Monday)."""
+    if tf_s == WEEK_S:
+        return (times - MONDAY_OFFSET_S) // tf_s * tf_s + MONDAY_OFFSET_S
+    return times // tf_s * tf_s
+
+
+def aggregate(source: pd.DataFrame, tf_s: int, now_ts: float, drop_partial_first: bool = False) -> pd.DataFrame:
+    """Closed ``tf_s`` candles built from finer closed candles: open of the first, highest high, lowest low,
+    close of the last, summed volume. Periods still open at ``now_ts`` are left out. A market that closes inside a
+    period (FX on Friday evening) yields a shorter final candle, like any broker chart."""
+    if source.empty:
+        return source
+    df = source.sort_values("time")
+    buckets = bucket_open(df["time"], tf_s)
+    out = df.groupby(buckets.to_numpy()).agg(open=("open", "first"), high=("high", "max"), low=("low", "min"),
+                                             close=("close", "last"), volume=("volume", "sum"))
+    out.index.name = "time"
+    out = out.reset_index()
+    if drop_partial_first and len(out) and int(df["time"].iloc[0]) != int(out["time"].iloc[0]):
+        out = out.iloc[1:]  # history starts mid-period: that first candle would be incomplete
+    return out[out["time"] + tf_s <= now_ts].reset_index(drop=True)
+
+
+async def derive_candles(db: AsyncSession, listing_id: int, source_tf: str, target_tf: str, now_ts: float,
+                         since_ts: int | None = None) -> int:
+    """Build and store ``target_tf`` candles from stored ``source_tf`` candles of the same listing, from the period
+    containing ``since_ts`` (None: the whole stored history). Returns rows upserted. Caller commits."""
+    from ml.data.candles import interval_seconds
+
+    tf_s = interval_seconds(target_tf)
+    stmt = select(Candle.ts, Candle.open, Candle.high, Candle.low, Candle.close, Candle.volume).where(
+        Candle.listing_id == listing_id, Candle.timeframe == source_tf)
+    if since_ts is not None:
+        start = int(bucket_open(pd.Series([since_ts]), tf_s).iloc[0])
+        stmt = stmt.where(Candle.ts >= ts_to_dt(start))
+    rows = (await db.execute(stmt.order_by(Candle.ts))).all()
+    if not rows:
+        return 0
+    source = pd.DataFrame([{"time": dt_to_ts(r.ts), "open": r.open, "high": r.high, "low": r.low, "close": r.close,
+                            "volume": r.volume or 0.0} for r in rows])
+    return await upsert_candles(db, listing_id, target_tf,
+                                aggregate(source, tf_s, now_ts, drop_partial_first=since_ts is None))
+
+
 async def last_candle_times(db: AsyncSession) -> dict[tuple[int, str], int]:
     rows = (await db.execute(select(Candle.listing_id, Candle.timeframe, func.max(Candle.ts))
                              .group_by(Candle.listing_id, Candle.timeframe))).all()
