@@ -126,6 +126,31 @@ final newsGuardProvider = FutureProvider.autoDispose.family<NewsGuard, String>(
   (ref, symbol) => ref.watch(marketRepositoryProvider).newsGuard(symbol),
 );
 
+final patternProvider = FutureProvider.autoDispose.family<PatternOutlook?, SeriesKey>(
+  (ref, k) => ref.watch(marketRepositoryProvider).patterns(k.symbol, k.timeframe),
+);
+
+/// Length of one candle of a timeframe code ('5m', '15m', '1h', '4h', '1d', '1w').
+Duration timeframeDuration(String tf) {
+  final n = int.tryParse(tf.substring(0, tf.length - 1)) ?? 1;
+  return switch (tf[tf.length - 1]) {
+    'm' => Duration(minutes: n),
+    'h' => Duration(hours: n),
+    'd' => Duration(days: n),
+    'w' => Duration(days: 7 * n),
+    _ => Duration(minutes: n),
+  };
+}
+
+/// Chart timeframes this market has data for (all of them until the instrument list has loaded).
+List<String> availableTimeframes(Instrument? instrument) {
+  if (instrument == null) return chartTimeframes;
+  return [
+    for (final tf in chartTimeframes)
+      if (instrument.timeframes.contains(tf)) tf,
+  ];
+}
+
 final levelsProvider = FutureProvider.autoDispose.family<Levels, LevelsKey>(
   (ref, k) => ref.watch(marketRepositoryProvider).levels(k.symbol, k.timeframe, k.side),
 );

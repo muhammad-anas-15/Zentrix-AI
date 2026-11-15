@@ -134,7 +134,8 @@ class _InstrumentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final zx = context.zx;
     final p = zx.palette;
-    final live = instrument.hasLiveFeed;
+    final live = instrument.hasChartData;
+    final dailyOnly = instrument.timeframes.length == 1 && instrument.timeframes.first == '1d';
     final q = quote;
     final change = q?.change24hPct;
     final moveColor = change == null ? p.neutral : (change >= 0 ? p.bullish : p.bearish);
@@ -154,7 +155,11 @@ class _InstrumentRow extends StatelessWidget {
                   children: [
                     Text(instrument.symbol, style: zx.text.bodyStrong, maxLines: 1, overflow: TextOverflow.ellipsis),
                     Text(
-                      live ? instrument.displayName : context.l10n.feedUnavailable,
+                      !live
+                          ? context.l10n.feedUnavailable
+                          : dailyOnly
+                          ? '${instrument.displayName} · ${context.l10n.dailyOnlyShort}'
+                          : instrument.displayName,
                       style: zx.text.caption,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

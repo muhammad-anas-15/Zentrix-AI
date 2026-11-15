@@ -31,6 +31,50 @@ class ChartZone {
   final Color color;
 }
 
+/// One ghost candle of a projection (prices of a projected path, never traded prices).
+@immutable
+class ProjectedCandle {
+  const ProjectedCandle({
+    required this.o,
+    required this.h,
+    required this.l,
+    required this.c,
+    required this.bandLow,
+    required this.bandHigh,
+  });
+
+  final double o;
+  final double h;
+  final double l;
+  final double c;
+  final double bandLow;
+  final double bandHigh;
+}
+
+/// A projected path drawn to the right of the candle it starts from ([anchor], the open time of the last closed
+/// candle): ghost candles and a shaded band. Steps that fall on candles already on the chart (the forming one)
+/// show only the band.
+@immutable
+class ChartProjection {
+  const ChartProjection({required this.anchor, required this.steps, required this.color, required this.label});
+
+  final DateTime anchor;
+  final List<ProjectedCandle> steps;
+  final Color color;
+  final String label;
+}
+
+/// Candles to mark (a detected pattern), from [from] (open time of its first candle) to [to].
+@immutable
+class ChartHighlight {
+  const ChartHighlight({required this.from, required this.to, required this.label, required this.color});
+
+  final DateTime from;
+  final DateTime to;
+  final String label;
+  final Color color;
+}
+
 /// What the chart knows about the live feed: whether ticks are real time, when the current candle closes, and
 /// how far the device clock is from the server's (for the countdown).
 @immutable
@@ -46,8 +90,9 @@ class ChartLive {
 }
 
 /// Interactive candlestick chart in the style of a trading terminal: drag to pan, pinch to zoom, long-press
-/// (or hover with a mouse) for the crosshair; "jump to latest" resets the view. The forming candle eases to each tick; the
-/// price line carries the countdown to the candle close. Charts read left to right in every locale.
+/// (or hover with a mouse) for the crosshair; "jump to latest" resets the view. The forming candle eases to each
+/// tick; the price line carries the countdown to the candle close. An optional projection is drawn as ghost candles
+/// to the right. Charts read left to right in every locale.
 class CandleChart extends StatefulWidget {
   const CandleChart({
     super.key,
@@ -58,6 +103,8 @@ class CandleChart extends StatefulWidget {
     this.live,
     this.timeframe = '15m',
     this.height = ZxSize.chartHeight,
+    this.projection,
+    this.highlight,
   });
 
   final List<Candle> candles;
@@ -67,6 +114,8 @@ class CandleChart extends StatefulWidget {
   final ChartLive? live;
   final String timeframe;
   final double height;
+  final ChartProjection? projection;
+  final ChartHighlight? highlight;
 
   static const int minVisible = 20;
   static const int initialVisible = 70;
@@ -163,11 +212,22 @@ class _CandleChartState extends State<CandleChart> with SingleTickerProviderStat
     return left > 0 ? Fmt.clock(left) : null;
   }
 
-  int? _crossIndex(({int start, int end}) w, double plotWidth) {
+  int? _crossIndex(({int start, int end}) w, double plotWidth, int slots) {
     final x = _cross?.dx;
     if (x == null || plotWidth <= 0 || w.end <= w.start || x > plotWidth) return null;
-    final step = plotWidth / (w.end - w.start);
-    return (w.start + (x / step).floor()).clamp(w.start, w.end - 1);
+    final step = plotWidth / slots;
+    final i = w.start + (x / step).floor();
+    return i >= w.end ? null : i.clamp(w.start, w.end - 1); // over the projection: no candle readout
+  }
+
+  /// Index of the candle a projection starts from (searched from the newest), or null.
+  int? _anchorIndex() {
+    final p = widget.projection;
+    if (p == null) return null;
+    for (var i = _count - 1; i >= 0 && i >= _count - 6; i--) {
+      if (widget.candles[i].t == p.anchor) return i;
+    }
+    return null;
   }
 
   @override
@@ -189,8 +249,27 @@ class _CandleChartState extends State<CandleChart> with SingleTickerProviderStat
         builder: (context, constraints) {
           final w = _window();
           final plotWidth = constraints.maxWidth - ZxSize.chartAxisWidth;
-          final step = plotWidth / math.max(1, w.end - w.start);
-          final crossIndex = _crossIndex(w, plotWidth);
+          final anchor = _anchorIndex();
+          // room for the projected candles to the right of the newest one, while the view is at the live edge
+          final extra = anchor == null || w.end != _count
+              ? 0
+              : math.max(0, anchor + widget.projection!.steps.length - (_count - 1));
+          final slots = math.max(1, w.end - w.start + extra);
+          final step = plotWidth / slots;
+          final crossIndex = _crossIndex(w, plotWidth, slots);
+          var highlightFrom = -1;
+          final hl = widget.highlight;
+          if (hl != null) {
+            for (var i = _count - 1; i >= 0 && i >= _count - 8; i--) {
+              if (widget.candles[i].t == hl.from) highlightFrom = i;
+            }
+          }
+          var highlightTo = -1;
+          if (hl != null && highlightFrom >= 0) {
+            for (var i = highlightFrom; i < _count; i++) {
+              if (!widget.candles[i].t.isAfter(hl.to)) highlightTo = i;
+            }
+          }
           return SizedBox(
             height: widget.height,
             child: MouseRegion(
@@ -222,6 +301,11 @@ class _CandleChartState extends State<CandleChart> with SingleTickerProviderStat
                             last: _shown(widget.candles),
                             start: w.start,
                             end: w.end,
+                            slots: slots,
+                            projection: anchor == null ? null : widget.projection,
+                            anchor: anchor,
+                            highlight: highlightFrom >= 0 && highlightTo >= highlightFrom ? hl : null,
+                            highlightRange: (highlightFrom, highlightTo),
                             decimals: decimals,
                             levels: widget.levels,
                             zones: widget.zones,
@@ -362,6 +446,11 @@ class _CandlePainter extends CustomPainter {
     required this.last,
     required this.start,
     required this.end,
+    required this.slots,
+    required this.projection,
+    required this.anchor,
+    required this.highlight,
+    required this.highlightRange,
     required this.decimals,
     required this.levels,
     required this.zones,
@@ -378,6 +467,11 @@ class _CandlePainter extends CustomPainter {
   final Candle last; // the newest candle as currently drawn (eased between ticks)
   final int start;
   final int end;
+  final int slots; // candle slots across the plot: the visible candles plus room for a projection
+  final ChartProjection? projection;
+  final int? anchor; // index of the candle the projection starts from
+  final ChartHighlight? highlight;
+  final (int, int) highlightRange;
   final int decimals;
   final List<ChartLevel> levels;
   final List<ChartZone> zones;
@@ -418,16 +512,37 @@ class _CandlePainter extends CustomPainter {
       lo = math.min(lo, math.min(z.from, z.to));
       hi = math.max(hi, math.max(z.from, z.to));
     }
+    final proj = projection;
+    final a = anchor;
+    if (proj != null && a != null) {
+      for (final s in proj.steps) {
+        lo = math.min(lo, math.min(s.l, s.bandLow));
+        hi = math.max(hi, math.max(s.h, s.bandHigh));
+      }
+    }
     // keep the candles clear of the volume histogram at the bottom
     final volumeH = maxVol > 0 ? plot.height * ZxEffects.volumeFraction : 0.0;
     final span = hi - lo == 0 ? hi.abs() * 0.001 + 1e-9 : hi - lo;
     hi += span * _paddingFraction;
     lo -= span * _paddingFraction + span * (volumeH / math.max(1, plot.height - volumeH));
     double y(double price) => plot.bottom - (price - lo) / (hi - lo) * plot.height;
-    final step = plot.width / n;
+    final step = plot.width / slots;
     double cx(int i) => plot.left + step * (i - start + 0.5);
 
     _grid(canvas, plot, lo, hi, n, cx);
+
+    final hl = highlight;
+    final (hlFrom, hlTo) = highlightRange;
+    if (hl != null && hlTo >= start) {
+      final left = cx(math.max(hlFrom, start)) - step / 2;
+      final right = cx(hlTo) + step / 2;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTRB(left, plot.top, right, plot.bottom), const Radius.circular(ZxRadius.sm)),
+        Paint()..color = hl.color.withValues(alpha: ZxEffects.zoneAlpha),
+      );
+      final tp = _painter(hl.label, hl.color);
+      tp.paint(canvas, Offset((right - tp.width).clamp(0.0, math.max(0.0, plot.right - tp.width)), plot.top + 2));
+    }
 
     for (final z in zones) {
       canvas.drawRect(
@@ -474,6 +589,8 @@ class _CandlePainter extends CustomPainter {
       _tag(canvas, '${l.label} ${Fmt.price(l.price, decimals: decimals)}', y(l.price), plot, l.color);
     }
 
+    if (proj != null && a != null && a >= start) _projection(canvas, plot, proj, a, step, y, cx);
+
     // price line on the newest visible candle; at the live edge it carries the countdown to the close
     final atEdge = end == candles.length;
     final shownLast = _at(end - 1);
@@ -496,7 +613,7 @@ class _CandlePainter extends CustomPainter {
 
     // crosshair: follows the finger or mouse, with price and time tags on the axes
     final c = cross;
-    if (c != null && c.dx <= plot.right && c.dy <= plot.bottom) {
+    if (c != null && c.dx <= plot.right && c.dy <= plot.bottom && start + (c.dx / step).floor() < end) {
       final i = (start + (c.dx / step).floor()).clamp(start, end - 1);
       final hair = Paint()
         ..color = palette.chartCrosshair
@@ -516,6 +633,90 @@ class _CandlePainter extends CustomPainter {
       );
       _timeTag(canvas, crossTimeLabel(_at(i).t), cx(i), plot, size);
     }
+  }
+
+  /// The projected path: a band from the anchor close through each step's 20-80% range, a dashed median line,
+  /// and ghost candles (outlined, translucent) where no real candle exists yet.
+  void _projection(
+    Canvas canvas,
+    Rect plot,
+    ChartProjection proj,
+    int a,
+    double step,
+    double Function(double) y,
+    double Function(int) cx,
+  ) {
+    final color = proj.color;
+    final start0 = Offset(cx(a), y(candles[a].c));
+    final upper = Path()..moveTo(start0.dx, start0.dy);
+    final lower = <Offset>[];
+    for (var k = 0; k < proj.steps.length; k++) {
+      final s = proj.steps[k];
+      upper.lineTo(cx(a + k + 1), y(s.bandHigh));
+      lower.add(Offset(cx(a + k + 1), y(s.bandLow)));
+    }
+    for (final pt in lower.reversed) {
+      upper.lineTo(pt.dx, pt.dy);
+    }
+    upper.close();
+    canvas
+      ..save()
+      ..clipRect(plot)
+      ..drawPath(upper, Paint()..color = color.withValues(alpha: ZxEffects.zoneAlpha));
+    final mid = Paint()
+      ..color = color.withValues(alpha: 0.8)
+      ..strokeWidth = ZxSize.hairline * 1.5;
+    var prev = start0;
+    for (var k = 0; k < proj.steps.length; k++) {
+      final next = Offset(cx(a + k + 1), y(proj.steps[k].c));
+      final d = (next - prev).distance;
+      if (d > 0) {
+        final dir = (next - prev) / d;
+        for (var t = 0.0; t < d; t += ZxSpace.sm) {
+          canvas.drawLine(prev + dir * t, prev + dir * math.min(t + ZxSpace.xs, d), mid);
+        }
+      }
+      prev = next;
+    }
+    // the boundary between candles that happened and the projection
+    final firstGhost = math.max(a + 1, candles.length);
+    final boundary = cx(firstGhost) - step / 2;
+    if (firstGhost - a - 1 < proj.steps.length) {
+      _dashedV(
+        canvas,
+        boundary,
+        plot,
+        Paint()
+          ..color = color.withValues(alpha: 0.5)
+          ..strokeWidth = ZxSize.hairline,
+      );
+      final tp = _painter(proj.label, color);
+      tp.paint(canvas, Offset(math.min(boundary + ZxSpace.xs, plot.right - tp.width), plot.top + ZxSpace.md));
+    }
+    final ghostFill = Paint()..color = color.withValues(alpha: 0.16);
+    final ghostLine = Paint()
+      ..color = color.withValues(alpha: 0.75)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ZxSize.hairline;
+    for (var k = 0; k < proj.steps.length; k++) {
+      final i = a + k + 1;
+      if (i < candles.length) continue; // a real candle is already there (the forming one)
+      final s = proj.steps[k];
+      final x = cx(i);
+      canvas.drawLine(Offset(x, y(s.h)), Offset(x, y(s.l)), ghostLine);
+      final top = y(math.max(s.o, s.c));
+      final rect = Rect.fromLTRB(
+        x - step * _bodyFraction / 2,
+        top,
+        x + step * _bodyFraction / 2,
+        math.max(y(math.min(s.o, s.c)), top + 1),
+      );
+      final rr = RRect.fromRectAndRadius(rect, Radius.circular(math.min(step * 0.12, 2)));
+      canvas
+        ..drawRRect(rr, ghostFill)
+        ..drawRRect(rr, ghostLine);
+    }
+    canvas.restore();
   }
 
   void _grid(Canvas canvas, Rect plot, double lo, double hi, int n, double Function(int) cx) {
@@ -647,5 +848,8 @@ class _CandlePainter extends CustomPainter {
       old.zones != zones ||
       old.countdown != countdown ||
       old.live != live ||
+      old.slots != slots ||
+      old.projection != projection ||
+      old.highlight != highlight ||
       old.palette != palette;
 }

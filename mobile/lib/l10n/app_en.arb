@@ -394,5 +394,85 @@
   "ciBandCaption": "The bar shows where the true hit rate likely lies. While it reaches below the 50% line, there is no proven edge.",
   "coinFlip": "50% (coin flip)",
   "takeProfit": "Take-profit",
-  "noMarketsMatch": "No markets match your search."
+  "noMarketsMatch": "No markets match your search.",
+  "tabPattern": "Pattern",
+  "patternTitle": "Pattern projection",
+  "patternLabel": "Technical Pattern Projection (based on historical candlestick & ATR behaviour)",
+  "noPatternNow": "No classic candlestick pattern on the last candles.",
+  "patternPastCases": "{count} earlier cases in this market's history",
+  "@patternPastCases": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "patternBaseRate": "After this pattern, price was {side} {horizon} candles later in {rate} of {cases} past cases.",
+  "@patternBaseRate": {
+    "placeholders": {
+      "side": {
+        "type": "String"
+      },
+      "horizon": {
+        "type": "int"
+      },
+      "rate": {
+        "type": "String"
+      },
+      "cases": {
+        "type": "int"
+      }
+    }
+  },
+  "higher": "higher",
+  "lower": "lower",
+  "patternBaseline": "Any candle: {rate}. The marker on the bar is that baseline.",
+  "@patternBaseline": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "patternEdge": "More often on its side than any candle, beyond luck. Still not a guarantee.",
+  "patternNoEdge": "No measurable edge here: about as often as any candle. Read the projection as a range, not a direction.",
+  "patternRange": "Middle 60% of past outcomes after {steps} candles: {range}",
+  "@patternRange": {
+    "placeholders": {
+      "steps": {
+        "type": "int"
+      },
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "patternTypicalRange": "Too few earlier cases of this pattern here ({count}): the projection shows the typical range of any candle.",
+  "@patternTypicalRange": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "patternDisclaimer": "Describes what followed this pattern before, from past candles and ATR. Not a prediction or a trade signal: the next candles can do anything.",
+  "swingUp": "Higher highs and lows",
+  "swingDown": "Lower highs and lows",
+  "swingRange": "No clear swing",
+  "momentumValue": "10 candles: {value}",
+  "@momentumValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "classicBullish": "Classic reading: bullish",
+  "classicBearish": "Classic reading: bearish",
+  "classicNeutral": "Classic reading: neutral",
+  "projectionChartLabel": "Projection",
+  "noChartData": "No chart data for this market on the current data plan yet.",
+  "fiveMinNeedsFeed": "5m candles for FX and gold need a paid data feed (on hold). The other timeframes are kept up to date.",
+  "dailyOnly": "Daily candles only for this market on the current data plan.",
+  "dailyOnlyShort": "daily chart"
 }
