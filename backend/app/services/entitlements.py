@@ -67,6 +67,8 @@ FEATURES: dict[str, Feature] = {f.key: f for f in [
             "Hold / tighten stop / take partial / consider exit for an open position."),
     Feature("scenario", "premium", "Scenario path",
             "Price bands for the next 1-5 candles with their measured coverage."),
+    Feature("pattern_outlook", "premium", "Pattern projection",
+            "The candlestick pattern now and what followed it over 1-5 candles in this market's history."),
     Feature("journal", "premium", "Trade journal and review",
             "Journal with server-computed P&L and R, statistics and a review of your habits."),
     Feature("risk_guard", "premium", "Daily risk guard",

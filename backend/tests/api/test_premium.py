@@ -101,6 +101,7 @@ GATED: list[tuple[str, str, str, dict[str, Any], int]] = [
     ("POST", "/v1/exit-advice", "/v1/exit-advice", {"json": {"symbol": "EUR/USD", "side": "long",
                                                              "entry_price": 1.1}}, 200),
     ("GET", "/v1/scenario", "/v1/scenario", {"params": {"symbol": "EUR/USD", "steps": 2}}, 200),
+    ("GET", "/v1/patterns", "/v1/patterns", {"params": {"symbol": "EUR/USD"}}, 200),
     ("POST", "/v1/journal", "/v1/journal", {"json": TRADE}, 201),
     ("PATCH", "/v1/journal/{entry_id}", "/v1/journal/999999", {"json": {"notes": "x"}}, 404),
     ("GET", "/v1/journal/stats", "/v1/journal/stats", {}, 200),

@@ -1,7 +1,9 @@
-"""Trader-protection tools: market conditions, ATR levels, position size, exit advice, scenario path.
+"""Trader-protection tools: market conditions, ATR levels, position size, exit advice, scenario path, pattern
+projection.
 
 Public with the IP rate limit; the position-size calculator personalises (risk profile, daily loss budget) when
-a valid access token is sent. Levels, exit advice and the scenario path are Premium (``app/api/premium.py``).
+a valid access token is sent. Levels, exit advice, the scenario path and the pattern projection are Premium
+(``app/api/premium.py``).
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from app.schemas.analysis import (
     ExitAdviceOut,
     FactorOut,
     LevelsOut,
+    PatternOutlookOut,
     PositionSizeIn,
     PositionSizeOut,
     ScenarioDirectionOut,
@@ -32,7 +35,7 @@ from app.schemas.analysis import (
     TargetOut,
 )
 from app.services.analysis import conditions as cond
-from app.services.analysis import exit_advisor, levels, scenario
+from app.services.analysis import exit_advisor, levels, patterns, scenario
 from app.services.analysis.market import Series, load_market, rnd, support_resistance, with_atr
 from app.services.marketdata.candles import load_series, ts_to_dt
 from app.services.marketdata.lookup import instrument_by_symbol, listing_for
@@ -204,6 +207,32 @@ async def post_exit_advice(body: ExitAdviceIn, db: DbDep, now: NowDep, settings:
     return ExitAdviceOut(symbol=body.symbol, timeframe=body.timeframe, side=body.side, as_of=_as_of(s),
                          news_state=guard.state, method=exit_advisor.METHOD,
                          premium_locked=[] if market_open else ["all_markets"], **out)
+
+
+@router.get("/patterns", response_model=PatternOutlookOut, tags=["tools"],
+            summary="Technical Pattern Projection: pattern now, structure, and what followed it over 1-5 candles "
+                    "(Premium)",
+            **premium("pattern_outlook"))
+async def get_patterns(db: DbDep, symbol: SymbolQ, timeframe: TimeframeQ = "15m", venue: VenueQ = None,
+                       steps: Annotated[int, Query(ge=3, le=5)] = 5) -> PatternOutlookOut:
+    s = await load_market(db, symbol, timeframe, venue, n=5000, min_candles=120)
+    out = patterns.outlook(s.candles, steps)
+    as_of = _as_of(s)
+    tf_s = interval_seconds(timeframe)
+    d = s.decimals + 1  # one extra digit: projected values are not prices that traded
+    projection = out["projection"]
+    if projection is not None:
+        projection["steps"] = [
+            {**step, "at": as_of + timedelta(seconds=tf_s * step["k"]),
+             **{k: rnd(step[k], d) for k in ("open", "high", "low", "close", "band_low", "band_high")}}
+            for step in projection["steps"]]
+    pattern = out["pattern"]
+    if pattern is not None:
+        pattern["starts"] = ts_to_dt(pattern["starts"])
+    return PatternOutlookOut(symbol=symbol, venue=s.ref.venue, timeframe=timeframe, as_of=as_of,
+                             last_close=out["last_close"], atr=rnd(out["atr"], d), label=patterns.LABEL,
+                             pattern=pattern, structure=out["structure"], projection=projection,
+                             base_rate=out["base_rate"], history=out["history"], method=patterns.METHOD)
 
 
 @router.get("/scenario", response_model=ScenarioOut, tags=["tools"],

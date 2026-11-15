@@ -59,6 +59,7 @@ Premium features are still labelled, so the app can show a "Premium" badge.
 | `trade_levels` | ATR stop/targets with base rates | `GET /v1/levels`, `GET /v1/signals/{id}/levels` |
 | `exit_advisor` | Exit advice | `POST /v1/exit-advice` |
 | `scenario` | Scenario path | `GET /v1/scenario` |
+| `pattern_outlook` | Pattern projection | `GET /v1/patterns` |
 | `journal` | Journal, stats, review | `POST /v1/journal`, `PATCH /v1/journal/{id}`, `GET /v1/journal/stats`, `GET /v1/journal/review` |
 | `risk_guard` | Daily-loss, overtrading and loss-streak warnings | `GET /v1/me/risk-status`; the daily-loss check in `POST /v1/risk/position-size` |
 
@@ -154,6 +155,7 @@ status are Premium (see Plans and Premium); they are open to everyone while `PRE
 | `GET /v1/signals/{id}/levels` | **Premium** (`trade_levels`). The same for a signal, using only candles known when the signal was made. An unresolved signal outside the free markets also needs `all_markets` |
 | `POST /v1/exit-advice` | **Premium** (`exit_advisor`). Body: `symbol, timeframe, side, entry_price, stop_loss?, take_profit?, opened_at?` |
 | `GET /v1/scenario?symbol=&timeframe=&steps=5` | **Premium** (`scenario`). Price band for the next 1-5 candles; see below |
+| `GET /v1/patterns?symbol=&timeframe=&steps=5` | **Premium** (`pattern_outlook`). Technical Pattern Projection: the pattern on the last candles, market structure, and what followed it over 3-5 candles here; see below |
 
 **Conditions light:**
 - Red: market closed, stale data, news blackout, or extreme volatility.
@@ -169,6 +171,27 @@ status are Premium (see Plans and Premium); they are open to everyone while `PRE
 
 Its `direction` comes only from registered models. Each one shows its live track record and backtest
 accuracy, with `reliable=false` when the model has no demonstrated edge.
+
+**Pattern projection** (`label`: "Technical Pattern Projection (based on historical candlestick & ATR
+behaviour)"):
+- `pattern`:
+  - one of Three White Soldiers / Three Black Crows, Bullish / Bearish Engulfing, Hammer / Shooting Star (pin
+    bars), or Doji;
+  - `bias` follows classic chart reading;
+  - `past_cases` is how often it occurred before in the stored candles;
+  - null when no pattern is present.
+- `structure`: ADX trend regime, 20-candle swing (`uptrend` / `downtrend` / `range`), RSI and 10-candle momentum.
+- `projection.steps`:
+  - ghost candles built from the median close, high and low k candles after past cases, in ATR units scaled to
+    today's ATR;
+  - `band_low` / `band_high` are the 20th and 80th percentiles;
+  - `basis` is `all_candles` (the typical range) when there are fewer than 30 past cases.
+- `base_rate`:
+  - for directional patterns: how often price was on the pattern's side k candles later (`by_step`), with a 95%
+    interval, next to the same rate for any candle (`baseline`);
+  - `edge` is true only when a stricter interval (seven patterns are tested) lies above the baseline.
+
+Past cases overlap in time. This describes history; it is not a prediction or a trade signal.
 
 ### Risk calculator, risk profile, daily status
 

@@ -201,6 +201,83 @@ class ScenarioOut(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
+class PatternOut(BaseModel):
+    key: str
+    name: str
+    bias: int = Field(description="+1 bullish, -1 bearish, 0 neutral (as classic chart reading has it)")
+    candles: int = Field(description="How many of the last candles form it")
+    meaning: str
+    starts: datetime = Field(description="Open time of its first candle")
+    past_cases: int = Field(description="Earlier occurrences in this market's stored candles")
+    enough_cases: bool
+
+
+class StructureOut(BaseModel):
+    trend_regime: str
+    trend_direction: str | None
+    adx: float | None
+    swing: Literal["uptrend", "downtrend", "range"] = Field(
+        description="Last 20 candles: higher highs and higher lows, lower highs and lower lows, or neither")
+    rsi: float | None
+    momentum_pct: float | None = Field(description="Change of the close over the last 10 candles, percent")
+    lookback: int
+
+
+class ProjectionStepOut(BaseModel):
+    k: int
+    at: datetime = Field(description="Approximate close time of that candle (market closures not skipped)")
+    open: float
+    high: float
+    low: float
+    close: float = Field(description="Median close of past cases")
+    band_low: float = Field(description="20th percentile close of past cases")
+    band_high: float = Field(description="80th percentile close of past cases")
+
+
+class ProjectionOut(BaseModel):
+    basis: Literal["pattern", "all_candles"] = Field(
+        description="pattern: past cases of this pattern; all_candles: too few cases, typical range of any candle")
+    cases: int
+    band: list[float]
+    steps: list[ProjectionStepOut]
+
+
+class StepRateOut(BaseModel):
+    k: int
+    rate: float | None
+    ci95: list[float] | None
+    cases: int
+    baseline: float | None
+
+
+class PatternBaseRateOut(BaseModel):
+    horizon: int
+    rate: float | None = Field(description="Share of past cases on the pattern's side `horizon` candles later")
+    ci95: list[float] | None
+    cases: int
+    baseline: float | None = Field(description="The same share over all candles")
+    edge: bool = Field(description="True only if a strict interval lies above the baseline")
+    by_step: list[StepRateOut]
+
+
+class PatternOutlookOut(BaseModel):
+    symbol: str
+    venue: str
+    timeframe: str
+    as_of: datetime
+    last_close: float
+    atr: float | None
+    label: str
+    pattern: PatternOut | None = Field(description="null: no classic pattern on the last candles")
+    structure: StructureOut
+    projection: ProjectionOut | None
+    base_rate: PatternBaseRateOut | None = Field(description="Directional patterns only")
+    history: int = Field(description="Stored candles searched")
+    premium: PremiumBadge = premium_field("pattern_outlook")
+    method: str
+    disclaimer: str = DISCLAIMER
+
+
 class RadarItemOut(BaseModel):
     rank: int = 0
     symbol: str
