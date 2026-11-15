@@ -64,3 +64,22 @@ Branch `phase-5.7` (from `phase-5.6`).
   - chart projection renders.
 - **Real data:** run the worker until the new series backfill, then check every timeframe on BTC, EUR/USD, XAU/USD
   and a cross, and the projection in the web build.
+
+## Results (2026-11-16)
+
+- **After one worker run:**
+  - crypto 5m and 1d are stored for all 20 listings (about 1,000 candles each);
+  - FX/gold 4h is built for the 6 majors (133 candles from 3 weeks of 1h);
+  - FX 1d is stored for all 20 FX/gold markets (700 days).
+- **Every offered (market, timeframe) returns candles** from `/v1/candles` and `/v1/candles/live`. The app offers
+  only those, and says why FX 5m is missing.
+- **Projection on real data:** BTC 1d showed Three Black Crows with only 5 earlier cases. The app reports
+  "60% of 5 past cases", a 23-88% range, "no measurable edge", and the typical-range projection. Most markets show
+  no classic pattern on the last candle at a given moment, which the app states plainly.
+- **Found in the live check and fixed:**
+  - 4h axis labels repeated one hour;
+  - ghost candles were too thin at 70 visible candles (the chart now shows at most 40 with a projection);
+  - "Last close" showed the candle's open time;
+  - "too few cases (0)" appeared when there was no pattern;
+  - price alerts would never fire on built 4h candles.
+- **Tests:** backend 206 (12 new); app 60 (6 new).
