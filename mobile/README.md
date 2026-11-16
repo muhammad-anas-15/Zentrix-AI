@@ -146,10 +146,28 @@ python -m http.server 8090 --directory build/web     # then open http://localhos
 | `API_BASE_URL` | `http://10.0.2.2:8000` (web: `http://127.0.0.1:8000`) | Backend base URL |
 | `GOOGLE_SERVER_CLIENT_ID` | empty | OAuth **web** client ID. It is the audience of the ID token, and must be listed in the backend's `GOOGLE_CLIENT_IDS`. While empty, the Google button is disabled |
 | `GOOGLE_CLIENT_ID` | empty | iOS client ID (not needed on Android) |
-| `DEV_LOGIN` | false | Shows "Developer sign-in". It works only against a backend with `APP_ENV=dev` and `DEV_LOGIN=true` |
-| `DEV_AUTO_SIGN_IN` | empty | Developer builds only: signs in as this email at start-up (for demos and screenshots) |
+| `DEV_LOGIN` | false | Shows "Developer sign-in". It works only against a backend with `APP_ENV=dev` and `DEV_LOGIN=true`. **Ignored in release builds** |
+| `DEV_AUTO_SIGN_IN` | empty | Developer builds only: signs in as this email at start-up (for demos and screenshots). Ignored in release builds |
+| `SENTRY_DSN` | empty | Crash and error reporting; empty = off. No user or request data is sent |
+| `PRIVACY_URL`, `TERMS_URL` | empty | Links in Settings → About (required for Play) |
+| `APP_ENV` | dev (release: prod) | Tags error reports |
 
 The app contains no secrets. The Google client IDs are public identifiers.
+
+## Release builds
+
+- A release build **refuses to start** unless `API_BASE_URL` is `https://...`, and it never shows developer sign-in.
+- Play bundles are built by CI from the upload key in repository secrets: GitHub → Actions → **Android release**.
+  See `docs/PLAY_STORE.md`.
+- To build locally (needs the Android SDK, Java 17 and `android/key.properties` with the upload keystore):
+
+```bash
+flutter build appbundle --release --obfuscate --split-debug-info=build/symbols \
+  --dart-define=API_BASE_URL=https://api.example.com --dart-define=GOOGLE_SERVER_CLIENT_ID=<web client id> \
+  --dart-define=PRIVACY_URL=https://... --dart-define=TERMS_URL=https://...
+```
+
+- Without `key.properties` the release build is debug-signed: fine on a device, not accepted by Play.
 
 ## Google sign-in (when the OAuth client IDs exist)
 
@@ -176,10 +194,6 @@ test/    tokens, formatters, API client (refresh), models, session/router, widge
 
 - **Push notifications:** these need a Firebase project and `android/app/google-services.json`. Until then, alerts
   show in the in-app inbox.
-- **Release signing:** the upload keystore and a signed AAB come in Phase 6. The application id `ai.zentrix.app`
-  cannot change after the first Play upload, so confirm it before release.
+- **Application id:** `ai.zentrix.app` cannot change after the first Play upload, so confirm it before release.
 - **Urdu text:** the strings need a review by a native speaker. Server-generated details (condition reasons, warnings)
   are still in English.
-- **Fonts:** the app uses the platform font, with tabular figures for prices. A bundled font, for example a Nastaliq
-  face for Urdu, is a one-line change in `tokens.dart`.
-- **Visual design:** from Claude Design later. It applies through the tokens.
