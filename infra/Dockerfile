@@ -21,7 +21,8 @@ WORKDIR /app
 COPY . .
 # Editable install so path-based settings resolve to /app. The heavy [knowledge] extra (torch) is
 # deliberately left out of the API image for now.
-RUN pip install -e ".[llm]" \
+RUN pip install --upgrade "pip>=26.2" "setuptools>=84.1" \
+ && pip install -e ".[llm]" "pyasn1>=0.6.5" \
  && useradd --create-home --uid 10001 zentrix \
  && mkdir -p /data && chown -R zentrix /data
 USER zentrix

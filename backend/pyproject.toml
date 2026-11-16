@@ -29,6 +29,9 @@ dependencies = [
     "httpx>=0.27",
     "prometheus-client>=0.20",   # /metrics (API) and the worker metrics port
     "sentry-sdk>=2.0",           # error tracking, off until SENTRY_DSN is set
+    # Floors for transitive packages with published advisories (pip-audit, 2026-11-16); CI audits on every push.
+    "urllib3>=2.8",
+    "certifi>=2026.10.18",
 ]
 
 [project.optional-dependencies]
