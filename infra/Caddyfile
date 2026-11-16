@@ -1,0 +1,35 @@
+# TLS (automatic Let's Encrypt), compression and request limits in front of the API.
+{
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# The API refuses bodies over MAX_BODY_BYTES (64 KiB) too; this stops large uploads at the edge.
+	request_body {
+		max_size 256KB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Metrics are scraped from inside the Docker network (api:8000/metrics, worker:9100), never from the internet.
+	@internal path /metrics /metrics/*
+	respond @internal 404
+
+	# REST and the /v1/stream WebSocket
+	reverse_proxy api:8000 {
+		health_uri /health
+		health_interval 30s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
