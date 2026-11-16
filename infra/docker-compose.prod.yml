@@ -1,0 +1,116 @@
+# Staging / production stack on one Docker host (see docs/DEPLOY.md).
+#   cd infra && cp .env.production.example .env && edit .env
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Only Caddy publishes ports (80/443). Postgres, Redis, the API and the worker metrics stay on the private network.
+name: zentrix-${DEPLOY_ENV:-staging}
+
+x-backend: &backend
+  build:
+    context: ../backend
+    dockerfile: ../infra/Dockerfile
+  image: zentrix-backend:${IMAGE_TAG:-latest}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://zentrix:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/zentrix
+    REDIS_URL: redis://redis:6379/0
+    LOG_JSON: "true"
+    TRUST_PROXY_HEADERS: "true"   # X-Forwarded-For comes from Caddy only
+  volumes:
+    - ml_data:/data
+  logging:
+    driver: json-file
+    options: {max-size: "20m", max-file: "5"}
+
+services:
+  migrate:
+    <<: *backend
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  api:
+    <<: *backend
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+  worker:   # exactly one per environment (it also holds a Redis lock per tick)
+    <<: *backend
+    command: ["python", "-m", "app.workers.main"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://zentrix:${POSTGRES_PASSWORD}@postgres:5432/zentrix
+      REDIS_URL: redis://redis:6379/0
+      LOG_JSON: "true"
+      PROMETHEUS_MULTIPROC_DIR: ""   # single process: plain metrics registry
+      WORKER_METRICS_PORT: "9100"
+    healthcheck: {disable: true}
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN, e.g. api-staging.example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zentrix
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: zentrix
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zentrix -d zentrix"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backup:   # nightly pg_dump with retention; copy /backups off the host (see docs/RUNBOOK.md)
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: zentrix
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: zentrix
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_INTERVAL_S: ${BACKUP_INTERVAL_S:-86400}
+    entrypoint: ["sh", "/scripts/backup-loop.sh"]
+    volumes:
+      - ./backup:/scripts:ro
+      - backups:/backups
+    depends_on:
+      postgres: {condition: service_healthy}
+
+volumes:
+  pg_data:
+  redis_data:
+  ml_data:
+  backups:
+  caddy_data:
+  caddy_config:

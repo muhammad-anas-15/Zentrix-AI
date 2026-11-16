@@ -34,12 +34,16 @@ abstract class Instrument with _$Instrument {
     required String session,
     required bool active,
     @Default(<Listing>[]) List<Listing> listings,
+    @Default(<String>[]) List<String> timeframes,
   }) = _Instrument;
 
   factory Instrument.fromJson(Map<String, dynamic> json) => _$InstrumentFromJson(json);
 
   /// Has a primary feed that is ingesting data.
   bool get hasLiveFeed => listings.any((l) => l.isPrimary && l.status == 'active');
+
+  /// Has stored candles for at least one chart timeframe.
+  bool get hasChartData => hasLiveFeed && timeframes.isNotEmpty;
 }
 
 @freezed
@@ -274,6 +278,115 @@ abstract class Levels with _$Levels {
   }) = _Levels;
 
   factory Levels.fromJson(Map<String, dynamic> json) => _$LevelsFromJson(json);
+}
+
+/// `GET /v1/patterns`: Technical Pattern Projection.
+@freezed
+abstract class ChartPattern with _$ChartPattern {
+  const factory ChartPattern({
+    required String key,
+    required String name,
+    required int bias,
+    required int candles,
+    required String meaning,
+    required DateTime starts,
+    required int pastCases,
+    required bool enoughCases,
+  }) = _ChartPattern;
+
+  factory ChartPattern.fromJson(Map<String, dynamic> json) => _$ChartPatternFromJson(json);
+}
+
+@freezed
+abstract class MarketStructure with _$MarketStructure {
+  const factory MarketStructure({
+    required String trendRegime,
+    String? trendDirection,
+    double? adx,
+    required String swing,
+    double? rsi,
+    double? momentumPct,
+    required int lookback,
+  }) = _MarketStructure;
+
+  factory MarketStructure.fromJson(Map<String, dynamic> json) => _$MarketStructureFromJson(json);
+}
+
+@freezed
+abstract class ProjectionStep with _$ProjectionStep {
+  const factory ProjectionStep({
+    required int k,
+    required DateTime at,
+    required double open,
+    required double high,
+    required double low,
+    required double close,
+    required double bandLow,
+    required double bandHigh,
+  }) = _ProjectionStep;
+
+  factory ProjectionStep.fromJson(Map<String, dynamic> json) => _$ProjectionStepFromJson(json);
+}
+
+@freezed
+abstract class Projection with _$Projection {
+  const factory Projection({
+    required String basis,
+    required int cases,
+    required List<double> band,
+    required List<ProjectionStep> steps,
+  }) = _Projection;
+
+  factory Projection.fromJson(Map<String, dynamic> json) => _$ProjectionFromJson(json);
+}
+
+@freezed
+abstract class StepRate with _$StepRate {
+  const factory StepRate({required int k, double? rate, List<double>? ci95, required int cases, double? baseline}) =
+      _StepRate;
+
+  factory StepRate.fromJson(Map<String, dynamic> json) => _$StepRateFromJson(json);
+}
+
+@freezed
+abstract class PatternBaseRate with _$PatternBaseRate {
+  const factory PatternBaseRate({
+    required int horizon,
+    double? rate,
+    List<double>? ci95,
+    required int cases,
+    double? baseline,
+    required bool edge,
+    @Default(<StepRate>[]) List<StepRate> byStep,
+  }) = _PatternBaseRate;
+
+  factory PatternBaseRate.fromJson(Map<String, dynamic> json) => _$PatternBaseRateFromJson(json);
+}
+
+@freezed
+abstract class PatternOutlook with _$PatternOutlook {
+  const PatternOutlook._();
+
+  const factory PatternOutlook({
+    required String symbol,
+    required String timeframe,
+    required DateTime asOf,
+    required double lastClose,
+    double? atr,
+    required String label,
+    ChartPattern? pattern,
+    required MarketStructure structure,
+    Projection? projection,
+    PatternBaseRate? baseRate,
+    required int history,
+    required String method,
+    PremiumBadge? premium,
+  }) = _PatternOutlook;
+
+  factory PatternOutlook.fromJson(Map<String, dynamic> json) => _$PatternOutlookFromJson(json);
+
+  /// The history shows the pattern was followed by its side more often than any candle, beyond luck.
+  bool get hasEdge => baseRate?.edge ?? false;
 }
 
 /// One market on the Radar (`GET /v1/radar`): conditions now, recent movement. No direction call.

@@ -19,16 +19,16 @@ from datetime import UTC, datetime
 
 import pandas as pd
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings
 from app.core.logging import get_logger
-from app.models.market import Instrument, InstrumentListing, Venue
+from app.models.market import Candle, Instrument, InstrumentListing, Venue
 from app.models.signals import IngestionTarget
 from app.services.alerts import evaluator
 from app.services.alerts.push import DisabledSender, PushSender, deliver_pending
-from app.services.marketdata.candles import last_candle_times, upsert_candles
+from app.services.marketdata.candles import derive_candles, last_candle_times, upsert_candles
 from app.services.marketdata.providers import Provider
 from app.services.news.calendar import CalendarSource, refresh_calendar
 from app.services.news.headlines import HeadlineSource, enabled_feeds, refresh_headlines
@@ -42,6 +42,7 @@ from ml.data.sessions import is_market_open, trading_hours_only
 
 log = get_logger(__name__)
 Series = tuple[int, str]  # (listing_id, timeframe)
+DEFERRED_PRIORITY = 500  # targets at or above this priority run after every other series of their venue
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,7 @@ class Target:
     session: str
     priority: int
     backfill: int
+    derive_from: str | None = None  # built from this finer timeframe of the same listing, never fetched
 
     @property
     def series(self) -> Series:
@@ -111,7 +113,7 @@ class Worker:
             .where(IngestionTarget.enabled, InstrumentListing.status == "active", Venue.active)
             .order_by(IngestionTarget.priority, IngestionTarget.id))).all()
         return [Target(t.listing_id, iid, sym, t.timeframe, venue, li.venue_symbol, session, t.priority,
-                       t.backfill_candles) for t, li, venue, session, iid, sym in rows]
+                       t.backfill_candles, t.derive_from) for t, li, venue, session, iid, sym in rows]
 
     def latest_closed_open(self, t: Target, now: float) -> int:
         """Open time of the newest candle that should have closed by ``now - grace``."""
@@ -138,10 +140,11 @@ class Worker:
             targets = await self.load_targets(db)
         by_venue: dict[str, list[Target]] = defaultdict(list)
         for t in targets:
-            if t.venue in self.providers and self.is_due(t, now):
+            if t.derive_from is None and t.venue in self.providers and self.is_due(t, now):
                 by_venue[t.venue].append(t)
         # Venues run concurrently, so a slow, throttled venue never delays another venue's signals.
         await asyncio.gather(*(self._run_venue(venue, ts, now, report) for venue, ts in by_venue.items()))
+        await self._derive(targets, report)
         await self._refresh_calendar(now, report)
         await self._refresh_headlines(now, report)
         await self._news_alerts_and_push(report)
@@ -155,9 +158,10 @@ class Worker:
 
     async def _run_venue(self, venue: str, targets: list[Target], now: float, report: TickReport) -> None:
         """Higher timeframes first (their fresh candles feed the base series' trend feature), then each series
-        is signalled and resolved right after it is ingested, keeping the signal lag minimal."""
+        is signalled and resolved right after it is ingested, keeping the signal lag minimal. Deferred targets
+        (priority >= DEFERRED_PRIORITY, chart-only series on a rate-limited feed) run after all others."""
         failed: set[Series] = set()
-        for t in sorted(targets, key=lambda t: (-t.tf_s, t.priority)):
+        for t in sorted(targets, key=lambda t: (t.priority >= DEFERRED_PRIORITY, -t.tf_s, t.priority)):
             got = await self._ingest(venue, t, now, report, failed)
             if got is not None:
                 await self._process_series(t, failed, report, got)
@@ -224,6 +228,37 @@ class Worker:
                 report.alerts += await evaluator.on_candles(db, t.instrument_id, t.listing_id, t.timeframe,
                                                             got.prev_last, now_dt)
             await db.commit()
+
+    async def _derive(self, targets: list[Target], report: TickReport) -> None:
+        """Build derived series (e.g. FX 4h from 1h) from the candles ingested this tick; a derived series without
+        stored candles is built from the whole stored source history."""
+        assert self._last_ts is not None
+        now = self.clock()
+        for t in targets:
+            if t.derive_from is None:
+                continue
+            fresh = (t.listing_id, t.derive_from) in report.ingested
+            if not fresh and self._last_ts.get(t.series) is not None:
+                continue
+            since = self._last_ts.get(t.series)
+            try:
+                async with self.sessionmaker() as db:
+                    n = await derive_candles(db, t.listing_id, t.derive_from, t.timeframe, now, since)
+                    await db.commit()
+                    if n:
+                        newest = await db.scalar(select(func.max(Candle.ts)).where(
+                            Candle.listing_id == t.listing_id, Candle.timeframe == t.timeframe))
+                        if newest is not None:
+                            self._last_ts[t.series] = int(newest.timestamp())
+                            if since is not None and newest.timestamp() > since:  # never alert on a first build
+                                report.alerts += await evaluator.on_candles(
+                                    db, t.instrument_id, t.listing_id, t.timeframe, since,
+                                    datetime.fromtimestamp(now, tz=UTC))
+                                await db.commit()
+                report.ingested[t.series] = n
+            except Exception as exc:
+                report.errors.append(f"derive:{t.symbol}:{t.timeframe}: {type(exc).__name__}")
+                log.warning("derive_failed", symbol=t.symbol, tf=t.timeframe, error=type(exc).__name__)
 
     async def _news_alerts_and_push(self, report: TickReport) -> None:
         now_dt = datetime.fromtimestamp(self.clock(), tz=UTC)

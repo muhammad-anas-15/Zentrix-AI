@@ -40,7 +40,14 @@ HistData is used for depth, keep a Twelve Data out-of-sample period to check the
   (`TWELVE_DATA_DAILY_BUDGET`, default 780) and runs nothing below 15m live. Requests are 8 s apart, so the
   last FX series of a quarter-hour is fetched ~100 s after the close (inside the 3-minute signal window).
   More pairs or faster timeframes need a paid plan; enabling them is an `ingestion_targets` row, not code.
-- **Binance:** public klines, no daily budget at this volume (well under the request-weight limits).
+- **Chart timeframes (Phase 5.7):**
+  - FX/gold 4h is built by the worker from the stored 1h candles (`ingestion_targets.derive_from = '1h'`), at no
+    request cost.
+  - 1d is fetched for all 20 FX/gold markets: about 20 requests a day, about 740 in total. Those targets have
+    priority 900, so they run after the signal series of a tick.
+  - FX/gold 5m would need about 1,700 requests a day and is not ingested on the free plan; the app explains this.
+- **Binance:** public klines, no daily budget at this volume (well under the request-weight limits). Crypto has
+  every chart timeframe: 5m, 15m, 1h, 4h and 1d.
 
 ## 3. Provider terms (CLAUDE.md item 10). Blocking for launch, not for research
 

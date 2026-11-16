@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n.dart';
+import '../../../core/links.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/providers.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/badges.dart';
@@ -35,6 +37,7 @@ class SettingsScreen extends ConsumerWidget {
     final l = context.l10n;
     final zx = context.zx;
     final prefs = ref.watch(preferencesProvider);
+    final config = ref.watch(appConfigProvider);
     final user = ref.watch(currentUserProvider);
     final lang = prefs.locale?.languageCode ?? Localizations.localeOf(context).languageCode;
 
@@ -84,6 +87,29 @@ class SettingsScreen extends ConsumerWidget {
         ],
         SectionHeader(l.about),
         GlassCard(child: Text(l.disclaimerLong, style: zx.text.secondary)),
+        if (config.privacyUrl.isNotEmpty || config.termsUrl.isNotEmpty)
+          GlassCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                if (config.privacyUrl.isNotEmpty)
+                  ListTile(
+                    key: const Key('privacyPolicy'),
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: Text(l.privacyPolicy),
+                    trailing: const Icon(Icons.open_in_new_rounded, size: ZxSize.iconSm),
+                    onTap: () => openExternal(context, config.privacyUrl),
+                  ),
+                if (config.termsUrl.isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.description_outlined),
+                    title: Text(l.termsOfUse),
+                    trailing: const Icon(Icons.open_in_new_rounded, size: ZxSize.iconSm),
+                    onTap: () => openExternal(context, config.termsUrl),
+                  ),
+              ],
+            ),
+          ),
       ],
     );
   }

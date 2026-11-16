@@ -12,22 +12,42 @@ import contextlib
 import os
 import signal
 import socket
+import time
 import uuid
 
+from prometheus_client import start_http_server
 from redis.asyncio import Redis
 
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
+from app.core.observability import (
+    WORKER_CANDLES,
+    WORKER_ERRORS,
+    WORKER_LAST_TICK,
+    WORKER_SIGNALS,
+    WORKER_TICK_SECONDS,
+    WORKER_TICKS,
+    init_sentry,
+)
 from app.db.session import make_engine, make_sessionmaker
 from app.services.alerts.push import make_sender
 from app.services.marketdata.providers import default_providers
 from app.services.news.calendar import HttpCalendarSource
 from app.services.news.headlines import HttpHeadlineSource
 from app.services.signals.registry import PredictorCache
-from app.workers.ingest import Worker
+from app.workers.ingest import TickReport, Worker
 
 log = get_logger("worker")
 LOCK_KEY = "lock:worker:tick"
+
+
+def record_tick(report: TickReport, seconds: float) -> None:
+    WORKER_TICKS.inc()
+    WORKER_TICK_SECONDS.observe(seconds)
+    WORKER_CANDLES.inc(sum(report.ingested.values()))
+    WORKER_SIGNALS.inc(len(report.signals))
+    WORKER_ERRORS.inc(len(report.errors))
+    WORKER_LAST_TICK.set(time.time())
 
 
 async def run(settings: Settings, stop: asyncio.Event) -> None:
@@ -46,9 +66,12 @@ async def run(settings: Settings, stop: asyncio.Event) -> None:
             except Exception:
                 got = True  # Redis down: run anyway (single-worker deployments)
             if got:
+                started = time.perf_counter()
                 try:
-                    await worker.tick()
+                    report = await worker.tick()
+                    record_tick(report, time.perf_counter() - started)
                 except Exception:
+                    WORKER_ERRORS.inc()
                     log.exception("tick_failed")
                 finally:
                     try:
@@ -67,6 +90,10 @@ async def run(settings: Settings, stop: asyncio.Event) -> None:
 def main() -> None:
     settings = get_settings()
     configure_logging(json=settings.log_json)
+    init_sentry(settings, "worker", "zentrix-worker@0.6.0")
+    if settings.worker_metrics_port:
+        start_http_server(settings.worker_metrics_port)  # Prometheus scrape target; keep the port private
+        log.info("worker_metrics", port=settings.worker_metrics_port)
     stop = asyncio.Event()
 
     async def _main() -> None:

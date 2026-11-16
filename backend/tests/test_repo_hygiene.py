@@ -23,8 +23,9 @@ def _tracked() -> list[str]:
 
 def test_no_env_or_artifacts_tracked() -> None:
     files = _tracked()
+    # only templates may be tracked (.env.example, .env.production.example); they are scanned for keys below
     assert not [f for f in files if Path(f).name == ".env" or Path(f).name.startswith(".env.") and
-                not f.endswith(".env.example")]
+                not f.endswith(".example")]
     assert not [f for f in files if f.endswith((".pkl", ".parquet", ".sqlite3", ".db"))]
     assert "backend/.env.example" in files
 

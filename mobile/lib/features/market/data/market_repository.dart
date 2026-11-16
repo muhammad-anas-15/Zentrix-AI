@@ -77,6 +77,20 @@ class MarketRepository {
     }
   }
 
+  /// Technical Pattern Projection for the next [steps] candles; null without enough stored history (404 no_data).
+  Future<PatternOutlook?> patterns(String symbol, String timeframe, {int steps = 5}) async {
+    try {
+      return await _api.get(
+        '/v1/patterns',
+        (j) => PatternOutlook.fromJson(_map(j)),
+        query: {'symbol': symbol, 'timeframe': timeframe, 'steps': steps},
+      );
+    } on ApiException catch (e) {
+      if (e.code == 'no_data') return null;
+      rethrow;
+    }
+  }
+
   Future<Levels> levels(String symbol, String timeframe, String side) => _api.get(
     '/v1/levels',
     (j) => Levels.fromJson(_map(j)),

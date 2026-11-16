@@ -1780,7 +1780,7 @@
             "title": "Ends At"
           },
           "key": {
-            "description": "'premium' or one premium feature: all_markets, signal_alerts, trade_levels, exit_advisor, scenario, journal, risk_guard",
+            "description": "'premium' or one premium feature: all_markets, signal_alerts, trade_levels, exit_advisor, scenario, pattern_outlook, journal, risk_guard",
             "title": "Key",
             "type": "string"
           },
@@ -2068,6 +2068,14 @@
             "description": "Canonical symbol, e.g. EUR/USD, BTC/USDT, BTC/USDT:PERP",
             "title": "Symbol",
             "type": "string"
+          },
+          "timeframes": {
+            "description": "Timeframes with stored candles kept up to date on the primary listing (fetched or built from a finer timeframe), shortest first. Empty: no chart data on the current data plan",
+            "items": {
+              "type": "string"
+            },
+            "title": "Timeframes",
+            "type": "array"
           }
         },
         "required": [
@@ -3715,6 +3723,242 @@
         "title": "NewsSourceOut",
         "type": "object"
       },
+      "PatternBaseRateOut": {
+        "properties": {
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The same share over all candles",
+            "title": "Baseline"
+          },
+          "by_step": {
+            "items": {
+              "$ref": "#/components/schemas/StepRateOut"
+            },
+            "title": "By Step",
+            "type": "array"
+          },
+          "cases": {
+            "title": "Cases",
+            "type": "integer"
+          },
+          "ci95": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci95"
+          },
+          "edge": {
+            "description": "True only if a strict interval lies above the baseline",
+            "title": "Edge",
+            "type": "boolean"
+          },
+          "horizon": {
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share of past cases on the pattern's side `horizon` candles later",
+            "title": "Rate"
+          }
+        },
+        "required": [
+          "horizon",
+          "rate",
+          "ci95",
+          "cases",
+          "baseline",
+          "edge",
+          "by_step"
+        ],
+        "title": "PatternBaseRateOut",
+        "type": "object"
+      },
+      "PatternOut": {
+        "properties": {
+          "bias": {
+            "description": "+1 bullish, -1 bearish, 0 neutral (as classic chart reading has it)",
+            "title": "Bias",
+            "type": "integer"
+          },
+          "candles": {
+            "description": "How many of the last candles form it",
+            "title": "Candles",
+            "type": "integer"
+          },
+          "enough_cases": {
+            "title": "Enough Cases",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "past_cases": {
+            "description": "Earlier occurrences in this market's stored candles",
+            "title": "Past Cases",
+            "type": "integer"
+          },
+          "starts": {
+            "description": "Open time of its first candle",
+            "format": "date-time",
+            "title": "Starts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "bias",
+          "candles",
+          "meaning",
+          "starts",
+          "past_cases",
+          "enough_cases"
+        ],
+        "title": "PatternOut",
+        "type": "object"
+      },
+      "PatternOutlookOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atr"
+          },
+          "base_rate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PatternBaseRateOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Directional patterns only"
+          },
+          "disclaimer": {
+            "default": "Not financial advice. Signals are probabilities from past data; the live track record below is the only measure of how they perform.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "history": {
+            "description": "Stored candles searched",
+            "title": "History",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_close": {
+            "title": "Last Close",
+            "type": "number"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PatternOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null: no classic pattern on the last candles"
+          },
+          "premium": {
+            "$ref": "#/components/schemas/PremiumBadge",
+            "description": "Premium label (pattern_outlook); unlocked for everyone while PREMIUM_ENFORCED=false"
+          },
+          "projection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "structure": {
+            "$ref": "#/components/schemas/StructureOut"
+          },
+          "symbol": {
+            "title": "Symbol",
+            "type": "string"
+          },
+          "timeframe": {
+            "title": "Timeframe",
+            "type": "string"
+          },
+          "venue": {
+            "title": "Venue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "venue",
+          "timeframe",
+          "as_of",
+          "last_close",
+          "atr",
+          "label",
+          "pattern",
+          "structure",
+          "projection",
+          "base_rate",
+          "history",
+          "method"
+        ],
+        "title": "PatternOutlookOut",
+        "type": "object"
+      },
       "PlanOut": {
         "properties": {
           "code": {
@@ -4219,6 +4463,98 @@
           "feature"
         ],
         "title": "PremiumBadge",
+        "type": "object"
+      },
+      "ProjectionOut": {
+        "properties": {
+          "band": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Band",
+            "type": "array"
+          },
+          "basis": {
+            "description": "pattern: past cases of this pattern; all_candles: too few cases, typical range of any candle",
+            "enum": [
+              "pattern",
+              "all_candles"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "cases": {
+            "title": "Cases",
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectionStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "basis",
+          "cases",
+          "band",
+          "steps"
+        ],
+        "title": "ProjectionOut",
+        "type": "object"
+      },
+      "ProjectionStepOut": {
+        "properties": {
+          "at": {
+            "description": "Approximate close time of that candle (market closures not skipped)",
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "band_high": {
+            "description": "80th percentile close of past cases",
+            "title": "Band High",
+            "type": "number"
+          },
+          "band_low": {
+            "description": "20th percentile close of past cases",
+            "title": "Band Low",
+            "type": "number"
+          },
+          "close": {
+            "description": "Median close of past cases",
+            "title": "Close",
+            "type": "number"
+          },
+          "high": {
+            "title": "High",
+            "type": "number"
+          },
+          "k": {
+            "title": "K",
+            "type": "integer"
+          },
+          "low": {
+            "title": "Low",
+            "type": "number"
+          },
+          "open": {
+            "title": "Open",
+            "type": "number"
+          }
+        },
+        "required": [
+          "k",
+          "at",
+          "open",
+          "high",
+          "low",
+          "close",
+          "band_low",
+          "band_high"
+        ],
+        "title": "ProjectionStepOut",
         "type": "object"
       },
       "QuoteOut": {
@@ -5519,6 +5855,63 @@
         "title": "SignalPage",
         "type": "object"
       },
+      "StepRateOut": {
+        "properties": {
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "cases": {
+            "title": "Cases",
+            "type": "integer"
+          },
+          "ci95": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci95"
+          },
+          "k": {
+            "title": "K",
+            "type": "integer"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          }
+        },
+        "required": [
+          "k",
+          "rate",
+          "ci95",
+          "cases",
+          "baseline"
+        ],
+        "title": "StepRateOut",
+        "type": "object"
+      },
       "StrengthCountsOut": {
         "properties": {
           "ci95": {
@@ -5602,6 +5995,84 @@
           "strength"
         ],
         "title": "StrengthCountsOut",
+        "type": "object"
+      },
+      "StructureOut": {
+        "properties": {
+          "adx": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adx"
+          },
+          "lookback": {
+            "title": "Lookback",
+            "type": "integer"
+          },
+          "momentum_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Change of the close over the last 10 candles, percent",
+            "title": "Momentum Pct"
+          },
+          "rsi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi"
+          },
+          "swing": {
+            "description": "Last 20 candles: higher highs and higher lows, lower highs and lower lows, or neither",
+            "enum": [
+              "uptrend",
+              "downtrend",
+              "range"
+            ],
+            "title": "Swing",
+            "type": "string"
+          },
+          "trend_direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend Direction"
+          },
+          "trend_regime": {
+            "title": "Trend Regime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trend_regime",
+          "trend_direction",
+          "adx",
+          "swing",
+          "rsi",
+          "momentum_pct",
+          "lookback"
+        ],
+        "title": "StructureOut",
         "type": "object"
       },
       "SubscriptionOut": {
@@ -8915,6 +9386,101 @@
         "tags": [
           "news"
         ]
+      }
+    },
+    "/v1/patterns": {
+      "get": {
+        "operationId": "get_patterns_v1_patterns_get",
+        "parameters": [
+          {
+            "description": "Canonical symbol, e.g. EUR/USD",
+            "in": "query",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "description": "Canonical symbol, e.g. EUR/USD",
+              "maxLength": 40,
+              "minLength": 3,
+              "title": "Symbol",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeframe",
+            "required": false,
+            "schema": {
+              "default": "15m",
+              "maxLength": 8,
+              "title": "Timeframe",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Venue"
+            }
+          },
+          {
+            "in": "query",
+            "name": "steps",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 5,
+              "minimum": 3,
+              "title": "Steps",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatternOutlookOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Technical Pattern Projection: pattern now, structure, and what followed it over 1-5 candles (Premium)",
+        "tags": [
+          "tools"
+        ],
+        "x-premium": {
+          "feature": "pattern_outlook",
+          "scope": "full"
+        }
       }
     },
     "/v1/plans": {
