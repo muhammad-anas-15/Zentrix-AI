@@ -1,10 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- The app talks to the Zentrix API. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- allowBackup=false: the session tokens live in Android's encrypted storage, whose keys are not backed up;
+         a restored copy on another device could not be read, so nothing is copied off the phone. -->
     <application
         android:label="Zentrix"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -42,6 +46,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- url_launcher: open news articles and the privacy policy in the browser (Android 11+ visibility). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

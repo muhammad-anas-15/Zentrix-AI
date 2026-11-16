@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/format/formatters.dart';
 import '../../../core/l10n.dart';
+import '../../../core/links.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/surfaces.dart';
 import '../domain/models.dart';
 
 /// Opens a headline at its publisher (outside the app).
-Future<void> openNews(BuildContext context, String url) async {
-  final uri = Uri.tryParse(url);
-  final ok =
-      uri != null &&
-      (uri.scheme == 'https' || uri.scheme == 'http') &&
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!ok && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric)));
-  }
-}
+Future<void> openNews(BuildContext context, String url) => openExternal(context, url);
 
 /// High / Medium / Low. Colours follow the news guard: red, amber, grey.
 class ImpactTag extends StatelessWidget {

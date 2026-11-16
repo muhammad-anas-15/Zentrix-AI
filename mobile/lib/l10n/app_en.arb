@@ -475,5 +475,7 @@
   "noChartData": "No chart data for this market on the current data plan yet.",
   "fiveMinNeedsFeed": "5m candles for FX and gold need a paid data feed (on hold). The other timeframes are kept up to date.",
   "dailyOnly": "Daily candles only for this market on the current data plan.",
-  "dailyOnlyShort": "daily chart"
+  "dailyOnlyShort": "daily chart",
+  "privacyPolicy": "Privacy policy",
+  "termsOfUse": "Terms of use"
 }

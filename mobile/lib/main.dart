@@ -5,18 +5,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/config/app_config.dart';
 import 'core/providers.dart';
+import 'core/telemetry.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   LicenseRegistry.addLicense(_fontLicenses);
+  // Fails fast on a misconfigured release build (e.g. an http:// API URL) instead of shipping it.
+  final config = AppConfig.fromEnvironment();
   final prefs = await SharedPreferences.getInstance();
-  runApp(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      // No blind retries: the API client already refreshes tokens; the UI offers "Retry".
-      retry: (retryCount, error) => null,
-      child: const ZentrixApp(),
+  await runWithTelemetry(
+    config,
+    () => runApp(
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs), appConfigProvider.overrideWithValue(config)],
+        // No blind retries: the API client already refreshes tokens; the UI offers "Retry".
+        retry: (retryCount, error) => null,
+        child: const ZentrixApp(),
+      ),
     ),
   );
 }
