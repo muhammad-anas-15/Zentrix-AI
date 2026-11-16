@@ -8,6 +8,7 @@ a valid access token is sent. Levels, exit advice, the scenario path and the pat
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
 from typing import Annotated, Any
 
@@ -68,7 +69,8 @@ def _as_of(s: Series) -> datetime:
 async def get_conditions(db: DbDep, now: NowDep, settings: SettingsDep, symbol: SymbolQ,
                          timeframe: TimeframeQ = "15m", venue: VenueQ = None) -> ConditionsOut:
     s = await load_market(db, symbol, timeframe, venue, n=600, min_candles=60)
-    c = cond.assess(s.candles, timeframe, s.ref.instrument.session, now, await _guard(db, s, now, settings))
+    guard = await _guard(db, s, now, settings)
+    c = await asyncio.to_thread(cond.assess, s.candles, timeframe, s.ref.instrument.session, now, guard)
     return ConditionsOut(symbol=symbol, venue=s.ref.venue, timeframe=timeframe, light=c.light,  # type: ignore[arg-type]
                          factors=[FactorOut(**f.as_dict()) for f in c.factors], trend=c.trend,
                          volatility=c.volatility, sessions=c.sessions, last_candle_close=c.last_candle_close,
@@ -111,7 +113,7 @@ async def get_levels(
     if len(targets) > 4 or any(not 0 < r <= 10 for r in targets):
         raise AppError(422, "validation_error", "rr: up to 4 values in (0, 10]")
     s = await load_market(db, symbol, timeframe, venue, n=1100, min_candles=60)
-    return _levels_out(s, side, entry, sl_atr, targets, max_bars)
+    return await asyncio.to_thread(_levels_out, s, side, entry, sl_atr, targets, max_bars)
 
 
 @router.get("/signals/{signal_id}/levels", response_model=LevelsOut, tags=["signals"],
@@ -133,7 +135,8 @@ async def signal_levels(db: DbDep, gate: GateDep, signal_id: Annotated[int, Path
     notes = ["entry = close of the signal candle; a real entry fills at the next candle's open"]
     if not sig.model_usable:
         notes.append("this signal's model has no demonstrated edge: the levels describe risk, not an opportunity")
-    return _levels_out(Series(ref, sig.timeframe, candles), side, None, sl_atr, RR_DEFAULT, max_bars, sig.id, notes)
+    return await asyncio.to_thread(_levels_out, Series(ref, sig.timeframe, candles), side, None, sl_atr, RR_DEFAULT,
+                                   max_bars, sig.id, notes)
 
 
 @router.post("/risk/position-size", response_model=PositionSizeOut, tags=["risk"],
@@ -202,8 +205,8 @@ async def post_exit_advice(body: ExitAdviceIn, db: DbDep, now: NowDep, settings:
     sig = await _latest_signal(db, s.ref.listing.id, body.timeframe, last_open) if market_open else None
     opened = int(body.opened_at.timestamp()) // interval_seconds(body.timeframe) * interval_seconds(body.timeframe) \
         if body.opened_at else None
-    out = exit_advisor.advise(s.candles, body.side, body.entry_price, body.stop_loss, body.take_profit, opened,
-                              guard, signal_to_dict(sig) if sig else None)
+    out = await asyncio.to_thread(exit_advisor.advise, s.candles, body.side, body.entry_price, body.stop_loss,
+                                  body.take_profit, opened, guard, signal_to_dict(sig) if sig else None)
     return ExitAdviceOut(symbol=body.symbol, timeframe=body.timeframe, side=body.side, as_of=_as_of(s),
                          news_state=guard.state, method=exit_advisor.METHOD,
                          premium_locked=[] if market_open else ["all_markets"], **out)
@@ -216,7 +219,7 @@ async def post_exit_advice(body: ExitAdviceIn, db: DbDep, now: NowDep, settings:
 async def get_patterns(db: DbDep, symbol: SymbolQ, timeframe: TimeframeQ = "15m", venue: VenueQ = None,
                        steps: Annotated[int, Query(ge=3, le=5)] = 5) -> PatternOutlookOut:
     s = await load_market(db, symbol, timeframe, venue, n=5000, min_candles=120)
-    out = patterns.outlook(s.candles, steps)
+    out = await asyncio.to_thread(patterns.outlook, s.candles, steps)  # CPU-bound: off the event loop
     as_of = _as_of(s)
     tf_s = interval_seconds(timeframe)
     d = s.decimals + 1  # one extra digit: projected values are not prices that traded
@@ -243,8 +246,8 @@ async def get_scenario(db: DbDep, gate: GateDep, symbol: SymbolQ, timeframe: Tim
     s = await load_market(db, symbol, timeframe, venue, n=1300, min_candles=300)
     tf_s = interval_seconds(timeframe)
     as_of = _as_of(s)
-    step_rows = [ScenarioStepOut(at=as_of + timedelta(seconds=tf_s * b["k"]), **b)
-                 for b in scenario.bands(s.candles, steps)]
+    bands = await asyncio.to_thread(scenario.bands, s.candles, steps)  # CPU-bound: off the event loop
+    step_rows = [ScenarioStepOut(at=as_of + timedelta(seconds=tf_s * b["k"]), **b) for b in bands]
     last_open = ts_to_dt(int(s.candles["time"].iloc[-1]))
     market_open = gate.market_open(symbol, timeframe)  # else: no live signal of a premium market
     directions = []

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 from functools import lru_cache
 from pathlib import Path
@@ -21,6 +22,15 @@ class Settings(BaseSettings):
 
     app_env: Literal["dev", "test", "staging", "prod"] = "dev"
     log_json: bool = False  # JSON logs (set true outside dev)
+    # Interactive API docs (/docs, /redoc, /openapi.json). Default: on in dev/test, off in staging/prod.
+    docs_enabled: bool | None = None
+    max_body_bytes: int = 64 * 1024  # larger request bodies get 413 (the proxy should cap them too)
+
+    # Observability: Sentry (off while empty), Prometheus /metrics (bearer METRICS_TOKEN outside dev/test)
+    sentry_dsn: SecretStr = SecretStr("")
+    sentry_traces_sample_rate: float = 0.0
+    metrics_token: SecretStr = SecretStr("")
+    worker_metrics_port: int | None = None  # the worker serves Prometheus metrics on this port when set
     database_url: str = "postgresql+asyncpg://zentrix:zentrix@localhost:5432/zentrix"
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: CsvList = Field(default_factory=list)
@@ -124,7 +134,24 @@ class Settings(BaseSettings):
         count, seconds = spec.split("/")
         return int(count), int(seconds)
 
+    @property
+    def docs_on(self) -> bool:
+        return self.docs_enabled if self.docs_enabled is not None else self.app_env in ("dev", "test")
+
+    @property
+    def is_deployed(self) -> bool:
+        return self.app_env in ("staging", "prod")
+
+
+def load_settings() -> Settings:
+    """Settings from the environment and backend/.env, plus one file per secret in SECRETS_DIR when set (e.g. Docker
+    secrets in /run/secrets: a file named ``jwt_secret`` holds JWT_SECRET). Environment variables win over files."""
+    secrets_dir = os.environ.get("SECRETS_DIR")
+    if secrets_dir and Path(secrets_dir).is_dir():
+        return Settings(_secrets_dir=secrets_dir)  # type: ignore[call-arg]
+    return Settings()
+
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    return load_settings()

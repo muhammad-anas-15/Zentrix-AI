@@ -123,7 +123,7 @@ async def _compute(db: DbDep, now: datetime, settings: SettingsDep, timeframe: s
                 raise
             items.append(RadarItemOut(**base, venue=None, light="unknown", reasons=["no stored candles yet"]))
             continue
-        c = cond.assess(s.candles, timeframe, inst.session, now, g)
+        c = await asyncio.to_thread(cond.assess, s.candles, timeframe, inst.session, now, g)  # CPU: off the loop
         times = s.candles["time"].to_numpy()
         closes = [float(x) for x in s.candles["close"].to_numpy()]
         last_t = int(times[-1])
