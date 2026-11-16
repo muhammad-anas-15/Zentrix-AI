@@ -72,3 +72,31 @@ Accept: a clean staging deploy and a release build.
 - Local production-mode run (`APP_ENV=staging`, 2+ workers), with a smoke test and a load test against it.
 - Backup and restore drill on the dev database.
 - Workflow YAML parsed and checked.
+
+## Results (2026-11-16)
+
+- **Tests:**
+  - backend 216 passed (10 new: hardening, object access, secrets from files, Sentry scrubbing); ruff and mypy clean;
+  - app 64 passed (4 new: release guards, error-report scrubbing, privacy links); analyze clean.
+- **Local production-mode run** (`APP_ENV=staging`, 2 uvicorn workers, JSON logs, metrics token):
+  - `scripts/smoke.py` 15/15 passed, including docs, openapi, dev sign-in and metrics not public;
+  - every log line is JSON, uvicorn's included.
+- **Load test:** 158 req/s at 10 users (p50 45 ms, p95 211 ms) and 170 req/s at 50 users (p50 166 ms, p95 881 ms),
+  0 errors (`docs/LOAD_TEST.md`).
+- **Backup drill:** dump 2.6 MB in 1 s, restore in 4.3 s, all 12 table counts identical (`docs/RUNBOOK.md`).
+- **Dependency audit:**
+  - the API's dependency tree is clean after raising floors;
+  - 3 findings remain in local research-only extras.
+- **Release build:** the release web build compiles (as in CI). The signed AAB is built by
+  `.github/workflows/release-android.yml`; this machine has no Android SDK or Java.
+- **Fixed along the way:**
+  - ink ripples were hidden on list rows inside glass cards;
+  - a client `X-Request-ID` could inject text into logs;
+  - unhandled errors returned plain text;
+  - `.env.production.example` was ignored by git.
+- **Not done here, needs you:**
+  - a server and domain for the real staging deploy;
+  - the upload keystore and GitHub secrets;
+  - the Play Console account;
+  - a lawyer's review of `docs/legal/`;
+  - the open items in `docs/SECURITY.md`.
