@@ -235,7 +235,13 @@ class GlassCard extends StatelessWidget {
           top: accent?.withValues(alpha: ZxEffects.accentBorder) ?? p.highlight,
           bottom: accent?.withValues(alpha: ZxEffects.accentBorder * 0.4) ?? p.glassBorder,
         ),
-        child: Padding(padding: padding, child: child),
+        // a transparent Material above the gradient: list tiles and buttons inside show their ink ripples
+        child: Material(
+          type: MaterialType.transparency,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: Padding(padding: padding, child: child),
+        ),
       ),
     );
     if (onTap != null) {
